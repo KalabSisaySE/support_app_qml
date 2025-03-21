@@ -10,11 +10,11 @@ Button{
     property url btnIconSource: "../../images/svg_images/home_icon.svg"
     property color btnColorDefault: "#1c1d20"
     property color btnColorMouseOver: "#23272E"
-    property color btnColorClicked: "#00a1f1"
+    property color btnColorClicked: "#16a086"
     property int iconWidth: 18
     property int iconHeight: 18
-    property color activeMenuColor: "#55aaff"
-    property color activeMenuColorRight: "#2c313c"
+    property color activeMenuColor: "#35b8a0"
+    property color activeMenuColorRight: "#32b89e"
     property bool isActiveMenu: false
 
     QtObject{

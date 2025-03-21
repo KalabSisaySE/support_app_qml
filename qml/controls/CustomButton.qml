@@ -6,9 +6,9 @@ Button {
     id: button
 
     // Custom Properties
-    property color colorDefault: "#4891d9"
-    property color colorMouseOver: "#55AAFF"
-    property color colorPressed: "#3F7EBD"
+    property color colorDefault: "#35b59d"
+    property color colorMouseOver: "#1dccac"
+    property color colorPressed: "#35b19a"
 
     QtObject{
         id: internal

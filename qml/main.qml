@@ -13,7 +13,7 @@ Window {
     minimumHeight: 500
     visible: true
     color: "#00000000"
-    title: qsTr("Course Qt Quick")
+    title: qsTr("Macrosoft Support")
 
     // Remove title bar
     flags: Qt.Window | Qt.FramelessWindowHint
@@ -391,7 +391,7 @@ Window {
                     Label {
                         id: labelTopInfo1
                         color: "#5f6a82"
-                        text: qsTr("Application description")
+                        text: qsTr("©Macrosoft 2025, All rights reserved")
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top

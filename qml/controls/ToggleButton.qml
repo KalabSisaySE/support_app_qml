@@ -8,7 +8,7 @@ Button{
     property url btnIconSource: "../../images/svg_images/menu_icon.svg"
     property color btnColorDefault: "#1c1d20"
     property color btnColorMouseOver: "#23272E"
-    property color btnColorClicked: "#00a1f1"
+    property color btnColorClicked: "#16a086"
 
     QtObject{
         id: internal
