@@ -8,9 +8,9 @@ import QtQuick.Dialogs
 Window {
     id: mainWindow
     width: 1000
-    height: 580
-    minimumWidth: 800
-    minimumHeight: 500
+    height: 620
+    minimumWidth: 820
+    minimumHeight: 565
     visible: true
     color: "#00000000"
     title: qsTr("Macrosoft Support")
@@ -288,91 +288,182 @@ Window {
                         LeftMenuBtn {
                             id: btnHome
                             width: leftMenu.width
-                            text: qsTr("Home")
+                            text: qsTr("Info")
                             isActiveMenu: true
                             onClicked: {
                                 btnHome.isActiveMenu = true
-                                btnSettings.isActiveMenu = false
-                                stackView.push(Qt.resolvedUrl("pages/homePage.qml"))
+                                btnHelp.isActiveMenu = false
+                                btnServices.isActiveMenu = false
+                                btnRecording.isActiveMenu = false
+                                btnPermissions.isActiveMenu = false
+                                stackView.push(Qt.resolvedUrl("pages/infoPage.qml"))
                             }
                         }
 
                         LeftMenuBtn {
-                            id: btnOpen
+                            id: btnPermissions
                             width: leftMenu.width
-                            text: qsTr("Open")
-                            btnIconSource: "../../images/svg_images/open_icon.svg"
+                            text: qsTr("Permissions")
 
-                            onPressed: {
-                                fileOpen.open()
-                            }
+                            btnIconSource: "../../images/svg_images/permissions.svg"
+                            onClicked: {
+                                btnHome.isActiveMenu = false
+                                btnHelp.isActiveMenu = false
+                                btnServices.isActiveMenu = false
+                                btnRecording.isActiveMenu = false
+                                btnPermissions.isActiveMenu = true
 
-                            FileDialog {
-                                id: fileOpen
-                                title: "Please choose a file"
-                                currentFolder: "file:///" + Qt.application.homeDir
-                                nameFilters: ["Text Files (*.txt)"]
-                                onAccepted: {
-                                    backend.openFile(selectedFile) // Changed from 'fileOpen.fileUrl'
-                                }
+                                stackView.push(Qt.resolvedUrl("pages/permissionsPage.qml"))
                             }
                         }
 
                         LeftMenuBtn {
-                            id: btnSave
+                            id: btnServices
                             width: leftMenu.width
-                            text: qsTr("Save")
-                            btnIconSource: "../../images/svg_images/save_icon.svg"
+                            text: qsTr("Services")
 
-                            onPressed: {
-                                fileSave.open()
-                            }
+                            btnIconSource: "../../images/svg_images/services.svg"
+                            onClicked: {
+                                btnHome.isActiveMenu = false
+                                btnHelp.isActiveMenu = false
+                                btnRecording.isActiveMenu = false
+                                btnPermissions.isActiveMenu = false
+                                btnServices.isActiveMenu = true
 
-                            FileDialog{
-                                id: fileSave
-                                title: "Save file"
-                                currentFolder: "file:///" + Qt.application.homeDir
-                                nameFilters: ["Text File (*.txt)"]
-                                onAccepted: {
-                                    backend.getTextField(actualPage.getText)
-                                    backend.writeFile(fileSave.fileUrl)
-                                }
+                                stackView.push(Qt.resolvedUrl("pages/servicesPage.qml"))
                             }
                         }
+
+                        LeftMenuBtn {
+                            id: btnRecording
+                            width: leftMenu.width
+                            text: qsTr("Recording")
+
+                            btnIconSource: "../../images/svg_images/recording.svg"
+                            onClicked: {
+                                btnHome.isActiveMenu = false
+                                btnHelp.isActiveMenu = false
+                                btnServices.isActiveMenu = false
+                                btnPermissions.isActiveMenu = false
+                                btnRecording.isActiveMenu = true
+
+                                stackView.push(Qt.resolvedUrl("pages/recordingPage.qml"))
+                            }
+                        }
+
+
                     }
 
                     LeftMenuBtn {
-                        id: btnSettings
+                        id: btnHelp
                         width: leftMenu.width
-                        text: qsTr("Settings")
+                        text: qsTr("Help")
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 25
-                        btnIconSource: "../../images/svg_images/settings_icon.svg"
+                        btnIconSource: "../../images/svg_images/help.svg"
                         onClicked: {
                             btnHome.isActiveMenu = false
-                            btnSettings.isActiveMenu = true
-                            stackView.push(Qt.resolvedUrl("pages/settingsPage.qml"))
+                            btnPermissions.isActiveMenu = false
+                            btnServices.isActiveMenu = false
+                            btnRecording.isActiveMenu = false
+                            btnHelp.isActiveMenu = true
+                            stackView.push(Qt.resolvedUrl("pages/helpPage.qml"))
                         }
                     }
                 }
 
                 Rectangle {
                     id: contentPages
+                    height: parent.height * 0.6
                     color: "#00000000"
                     anchors.left: leftMenu.right
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.bottom: parent.bottom
                     clip: true
                     anchors.rightMargin: 0
                     anchors.leftMargin: 0
-                    anchors.bottomMargin: 25
                     anchors.topMargin: 0
 
                     StackView {
                         id: stackView
                         anchors.fill: parent
-                        initialItem: Qt.resolvedUrl("pages/homePage.qml")
+                        initialItem: Qt.resolvedUrl("pages/infoPage.qml")
+                    }
+                }
+
+                Rectangle {
+                    id: processContainer
+                    color: "#171917"
+                    anchors.left: leftMenu.right
+                    anchors.right: parent.right
+                    anchors.top: contentPages.bottom
+                    anchors.bottom: parent.bottom
+                    anchors.leftMargin: 0
+                    anchors.rightMargin: 0
+                    anchors.topMargin: 0
+                    anchors.bottomMargin: 25
+
+                    Rectangle {
+                        id: rectangle1
+                        color: "#00ffffff"
+                        anchors.fill: parent
+
+                        CustomProgressBar { width: parent.width * 0.8 ; height: 20; anchors.top: parent.top; anchors.topMargin: 10;anchors.horizontalCenter: parent.horizontalCenter}
+
+                        Rectangle {
+                            id: rectangle2
+                            height: parent.height * 0.75
+                            color: "#ffffff"
+                            radius: 4
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            anchors.leftMargin: 5
+                            anchors.rightMargin: 5
+                            anchors.bottomMargin: 5
+
+                            ScrollView {
+                                    id: scrollView
+                                    anchors.fill: parent
+                                    padding: 10
+
+                                    TextArea {
+                                        id: logTextArea
+                                        readOnly: true
+                                        wrapMode: Text.Wrap
+                                        font.family: "Monospace"
+                                        selectByMouse: true
+
+                                        // Auto-scroll implementation
+                                        onTextChanged: {
+                                            // Queue the scroll operation to ensure proper timing
+                                            Qt.callLater(() => {
+                                                if (scrollView.flickableItem) {
+                                                    // Scroll to maximum contentY position
+                                                    scrollView.flickableItem.contentY =
+                                                        Math.max(0, scrollView.flickableItem.contentHeight - scrollView.flickableItem.height)
+                                                }
+                                            })
+                                            const lines = text.split('\n')
+                                            if (lines.length > maxLines) {
+                                                text = lines.slice(-maxLines).join('\n')
+                                            }
+                                        }
+
+                                        // Optional: Trim old entries
+                                        property int maxLines: 1000
+
+                                    }
+                                }
+
+                                // Demo: Add log entries every 500ms
+                                Timer {
+                                    interval: 500
+                                    running: true
+                                    repeat: true
+                                    onTriggered: logTextArea.append("New log: " + new Date().toLocaleTimeString())
+                                }
+                        }
                     }
                 }
 
@@ -381,7 +472,7 @@ Window {
                     color: "#282c34"
                     anchors.left: leftMenu.right
                     anchors.right: parent.right
-                    anchors.top: contentPages.bottom
+                    anchors.top: processContainer.bottom
                     anchors.bottom: parent.bottom
                     anchors.rightMargin: 0
                     anchors.leftMargin: 0
@@ -391,7 +482,7 @@ Window {
                     Label {
                         id: labelTopInfo1
                         color: "#5f6a82"
-                        text: qsTr("©Macrosoft 2025, All rights reserved")
+                        text: qsTr("Copyright © 2025 Macrosoft. All Rights Reserved.")
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
@@ -401,6 +492,7 @@ Window {
                         anchors.rightMargin: 30
                         anchors.leftMargin: 10
                         anchors.bottomMargin: 0
+                        horizontalAlignment: Text.AlignHCenter
                     }
 
                     MouseArea {
@@ -438,6 +530,8 @@ Window {
                         }
                     }
                 }
+
+
             }
         }
     }
@@ -514,3 +608,9 @@ Window {
     }
 
 }
+
+/*##^##
+Designer {
+    D{i:0}D{i:29;invisible:true}D{i:30}D{i:32}
+}
+##^##*/

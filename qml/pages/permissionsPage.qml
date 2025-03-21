@@ -12,7 +12,7 @@ Item {
             x: 302
             y: 194
             color: "#ffffff"
-            text: qsTr("Settings Page")
+            text: qsTr("Permissions Page")
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter

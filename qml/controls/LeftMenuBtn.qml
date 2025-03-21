@@ -7,7 +7,7 @@ Button{
     text: qsTr("Left Menu Text")
 
     // CUSTOM PROPERTIES
-    property url btnIconSource: "../../images/svg_images/home_icon.svg"
+    property url btnIconSource: "../../images/svg_images/info.svg"
     property color btnColorDefault: "#1c1d20"
     property color btnColorMouseOver: "#23272E"
     property color btnColorClicked: "#16a086"
