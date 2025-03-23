@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Window 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Window
+import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 import "controls"
 import QtQuick.Dialogs
@@ -408,7 +408,14 @@ Window {
                         color: "#00ffffff"
                         anchors.fill: parent
 
-                        CustomProgressBar { width: parent.width * 0.8 ; height: 20; anchors.top: parent.top; anchors.topMargin: 10;anchors.horizontalCenter: parent.horizontalCenter}
+                        CustomProgressBar {
+                            width: parent.width * 0.8 ;
+                            height: 20;
+                            value: backend.progress;
+                            anchors.top: parent.top;
+                            anchors.topMargin: 10;
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
 
                         Rectangle {
                             id: rectangle2

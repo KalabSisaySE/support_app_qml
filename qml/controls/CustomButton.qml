@@ -7,8 +7,9 @@ Button {
 
     // Custom Properties
     property color colorDefault: "#35b59d"
-    property color colorMouseOver: "#1dccac"
-    property color colorPressed: "#35b19a"
+    property color colorMouseOver: Qt.lighter(colorDefault, 1.2)
+    property color colorPressed: Qt.darker(colorDefault, 1.2)
+
 
     QtObject{
         id: internal
@@ -34,7 +35,7 @@ Button {
 
     background: Rectangle{
         color: internal.dynamicColor
-        radius: 10
+        radius: 4
     }
 }
 /*##^##
