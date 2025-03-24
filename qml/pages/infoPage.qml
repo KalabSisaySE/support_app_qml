@@ -48,10 +48,10 @@ Item {
 
             ColumnLayout {
                 id: columnLayout
-                spacing: 80
+                spacing: 50
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: 50
+                // anchors.margins: 50
 
                 RowLayout {
                     id: macrosoftQuickSupportLabelRow
@@ -59,6 +59,10 @@ Item {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.topMargin: 25
+                    anchors.leftMargin: 25
+                    anchors.rightMargin: 25
+
+
 
 
                     Label {
@@ -78,13 +82,13 @@ Item {
                     CustomButton {
                         id: macrosoftQuickSupportButton
                         text: "Inštalovať"
-                        Layout.maximumWidth: 200
+                        Layout.maximumWidth: 140
                         Layout.fillWidth: true
                         Layout.preferredHeight: 30
                         Layout.preferredWidth: 150
 
                         onClicked: {
-                            backend.install_and_run_macrosoft_connect()
+                            backend.install_or_uninstall()
                         }
                     }
                 }
@@ -93,13 +97,14 @@ Item {
                     id: macrosoftQuickSupportIndicatorRow
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: 25
+                    anchors.leftMargin: 25
+                    anchors.rightMargin: 25
+
 
 
                     Label {
                         id: macrosoftQuickSupportIndicatorLabel
-                        text: "Aplikácia MacrosoftConnectQuickSupport::"
+                        text: "Aplikácia MacrosoftConnectQuickSupport:"
                         font.pointSize: 14
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -118,11 +123,44 @@ Item {
 
                         StatusIndicator {
                             id: appIndicator
-                            size: indicatorSize
-                            status: indicatorStatus
+                            size: 20
+                            status: backend.macrosoft_rust_desk_status
                             Layout.alignment: Qt.AlignVCenter
                             anchors.centerIn: parent
                         }
+                    }
+                }
+
+                RowLayout {
+                    id: a
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 25
+                    anchors.rightMargin: 25
+
+
+
+                    Label {
+                        id: ab
+                        text: backend.progress
+                        font.pointSize: 14
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                        // font.bold: true
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+
+                    Label {
+                        id: absd
+                        text: backend.macrosoft_rust_desk_status
+                        font.pointSize: 14
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                        // font.bold: true
                     }
                 }
             }
@@ -140,6 +178,22 @@ Item {
 
         function onAddCounter(text) {
             abtnChangeName.colorDefault = "#ff0000"
+        }
+
+        function onMacrosoftRustDeskStatusChanged(status) {
+            if (status === "enabled") {
+                macrosoftQuickSupportButton.text = "Odinštalovať"
+                macrosoftQuickSupportButton.colorDefault = "#ff0000"
+                // macrosoftQuickSupportButton.onClicked = () => {backend.uninstall_macrosoft_connect}
+
+            } else {
+                macrosoftQuickSupportButton.text = "Inštalovať"
+                macrosoftQuickSupportButton.colorDefault = "#35b59d"
+                // macrosoftQuickSupportButton.onClicked = () => {backend.install_and_run_macrosoft_connect}
+
+            }
+
+            macrosoftQuickSupportIndicatorLabel.text = status
         }
 
         //

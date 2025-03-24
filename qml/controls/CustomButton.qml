@@ -10,6 +10,7 @@ Button {
     property color colorMouseOver: Qt.lighter(colorDefault, 1.2)
     property color colorPressed: Qt.darker(colorDefault, 1.2)
 
+    font.bold: true
 
     QtObject{
         id: internal
@@ -27,6 +28,7 @@ Button {
             id: name
             text: button.text
             font: button.font
+
             color: "#ffffff"
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
