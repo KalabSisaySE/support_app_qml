@@ -81,7 +81,7 @@ Item {
                         width: 150
                         height: 30
 
-                        enabled: backend.is_install_on_progress
+                        enabled: backend.is_app_installation_running
 
                         onClicked: {
                             backend.install_or_uninstall()
@@ -114,7 +114,7 @@ Item {
                         StatusIndicator {
                             id: appIndicator
                             size: 20
-                            status: backend.macrosoft_rust_desk_status
+                            status: backend.app_installation_status
                             Layout.alignment: Qt.AlignVCenter
                             anchors.centerIn: parent
                         }
@@ -136,7 +136,7 @@ Item {
             abtnChangeName.colorDefault = "#ff0000"
         }
 
-        function onMacrosoftRustDeskStatusChanged(status) {
+        function onAppInstallationStatusChanged(status) {
             if (status === "enabled") {
                 macrosoftQuickSupportButton.text = "Odinštalovať"
                 macrosoftQuickSupportButton.colorDefault = "#ff0000"
@@ -151,7 +151,7 @@ Item {
 
     Component.onCompleted: {
 
-        if (backend.macrosoft_rust_desk_status === "enabled") {
+        if (backend.app_installation_status === "enabled") {
                 macrosoftQuickSupportButton.text = "Odinštalovať"
                 macrosoftQuickSupportButton.colorDefault = "#ff0000"
 

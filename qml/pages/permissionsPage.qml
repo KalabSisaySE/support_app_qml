@@ -77,7 +77,7 @@ Item {
                         StatusIndicator {
                             id: appIndicator
                             size: 20
-                            status: backend.macrosoft_rust_desk_status
+                            status: backend.app_installation_status
                             Layout.alignment: Qt.AlignVCenter
                             anchors.centerIn: parent
                         }
