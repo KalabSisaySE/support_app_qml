@@ -13,6 +13,10 @@ from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThrea
 from PySide6.QtQuickControls2 import QQuickStyle
 
 
+from support_app.utils import is_app_running, is_service_running
+from support_app.rust_service_manager import ServiceManager
+
+
 class AppInstallationWorker(QObject):
     """manages macrosoft rustdesk installation and uninstallation"""
     progress_changed = Signal(int)
@@ -117,6 +121,7 @@ class AppInstallationWorker(QObject):
 
         self.finished.emit()
 
+
 class StartAppWorker(QObject):
     """manages macrosoft rustdesk starting"""
     progress_changed = Signal(int)
@@ -149,6 +154,95 @@ class StartAppWorker(QObject):
 
         self.finished.emit()
 
+
+class AppServiceWorker(QObject):
+    """manages macrosoft rustdesk service"""
+    progress_changed = Signal(int)
+    log = Signal(str)
+    finished = Signal()
+    manager = ServiceManager(
+        service_name="MacrosoftConnectQuickSupport",
+        display_name="MacrosoftConnectQuickSupport Service",
+        binary_path=(
+            r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
+        ),
+    )
+
+    def check_installation(self):
+        """Check if the application is installed and update the UI accordingly."""
+        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+
+        if os.path.exists(app_path):
+            return True
+
+    def start_macrosoftconnect(self):
+        """Start the MacrosoftConnectQuickSupport application."""
+        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+
+        if not os.path.exists(app_path):
+            return
+
+        try:
+            subprocess.Popen(
+                [app_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+            return True
+        except Exception as e:
+            return
+
+    @Slot()
+    def start_service(self, signals=None):
+        """Start the MacrosoftConnectQuickSupport service."""
+        try:
+            if not self.check_installation():
+                self.log.emit("App is not installed. Install app first...")
+                self.finished.emit()
+                return
+
+            if not is_app_running():
+                self.log.emit("App is not running. Running app...")
+                if not self.start_macrosoftconnect():
+                    self.log.emit("Couldn't start app automatically...")
+                    self.finished.emit()
+                    return
+
+            if not self.manager.is_service_installed():
+                self.log.emit("Creating Service...")
+                self.manager.create_service()
+
+            self.manager.start_service()
+            self.log.emit("MacrosoftConnectQuickSupport Service is running")
+
+        except Exception as e:
+            self.log.emit(f"Failed to start MacrosoftConnectQuickSupport Service, {e}")
+
+        self.finished.emit()
+
+    @Slot()
+    def stop_service(self):
+        """Stop the MacrosoftConnectQuickSupport service."""
+        try:
+            self.log.emit("In Stop Service")
+            if is_service_running("MacrosoftConnectQuickSupport"):
+                self.log.emit("service is running")
+                if is_app_running():
+                    self.log.emit("app is running")
+                    self.manager.stop_service()
+                    self.log.emit("MacrosoftConnectQuickSupport Service has stopped")
+
+                else:
+                    self.log.emit("Service is not running...")
+            else:
+                self.log.emit("Service is not running...")
+        except Exception as e:
+            self.log.emit(
+                f"Failed to stop MacrosoftConnectQuickSupport Service {e}"
+            )
+
+
 class MainWindow(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -161,6 +255,9 @@ class MainWindow(QObject):
     progressChanged = Signal(int)
     appInstallationStatusChanged = Signal(str)
     appInstallationRunning = Signal(bool)
+    appStartEnabledChanged = Signal(bool)
+    appServiceStatusChanged = Signal(str)
+    appServiceButtonStatusChanged = Signal(bool)
     newLogAdded = Signal(str)
 
     taskStarted = Signal()
@@ -173,14 +270,21 @@ class MainWindow(QObject):
 
         # values
         self._progress = 0
-        self._app_installation_status = self.check_installation()
+        self._app_installation_status = "enabled" if self.check_installation() else "disabled"
         self._is_app_installation_running = False
+        self._is_app_start_enabled = self.check_installation()
+
+        self._app_service_status = "enabled" if self.is_service_on() else "disabled"
+        self._is_app_service_button_enabled = self.check_installation()
 
         self.app_installation_thread = None
         self.app_installation_worker = None
 
         self.app_start_thread = None
         self.app_start_worker = None
+
+        self.app_service_thread = None
+        self.app_service_worker = None
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -198,6 +302,17 @@ class MainWindow(QObject):
         if self._progress != value:
             self._progress = value
             self.progressChanged.emit(value)
+
+    @Property(bool, notify=appStartEnabledChanged)
+    def is_app_start_enabled(self):
+        return self._is_app_start_enabled
+
+    @is_app_start_enabled.setter
+    def is_app_start_enabled(self, is_enabled):
+        if self._is_app_start_enabled != is_enabled:
+            status = is_enabled if self.check_installation() else False
+            self._is_app_start_enabled = status
+            self.appStartEnabledChanged.emit(status)
 
     @Property(bool, notify=appInstallationRunning)
     def is_app_installation_running(self):
@@ -218,6 +333,27 @@ class MainWindow(QObject):
         if self._app_installation_status != status:
             self._app_installation_status = status
             self.appInstallationStatusChanged.emit(status)
+
+    @Property(str, notify=appServiceStatusChanged)
+    def app_service_status(self):
+        return self._app_service_status
+
+    @app_service_status.setter
+    def app_service_status(self, status):
+        if self._app_service_status != status:
+            self._app_service_status = status
+            self.appServiceStatusChanged.emit(status)
+
+    @Property(bool, notify=appServiceButtonStatusChanged)
+    def is_app_service_button_enabled(self):
+        return self._is_app_service_button_enabled
+
+    @is_app_service_button_enabled.setter
+    def is_app_service_button_enabled(self, status):
+        if self._is_app_service_button_enabled != status:
+            self._is_app_service_button_enabled = status
+            self.appServiceButtonStatusChanged.emit(status)
+
 
 
     @Slot(str)
@@ -244,6 +380,7 @@ class MainWindow(QObject):
             self.app_installation_thread.started.connect(self.app_installation_worker.install_app)
         else:
             print(f"\n\n\n\tuninstall_macrosoft_connect\n\n")
+            self.is_app_start_enabled = False
             self.app_installation_thread.started.connect(self.app_installation_worker.uninstall_app)
 
 
@@ -275,8 +412,32 @@ class MainWindow(QObject):
         self.app_start_worker.finished.connect(self.on_start_app_finished)
 
         # Start the thread
-        self.is_app_installation_running = True
+        self.is_app_start_enabled = False
         self.app_start_thread.start()
+
+    @Slot()
+    def toggle_service(self):
+        """turns on/off Macrosoft Rustdesk service"""
+        if self.app_service_thread and self.app_service_thread.isRunning():
+            self.app_service_thread.quit()
+            self.app_service_thread.wait()
+
+        self.app_service_thread = QThread()
+        self.app_service_worker = AppServiceWorker()
+        self.app_service_worker.moveToThread(self.app_service_thread)
+
+        if self.is_service_on():
+            self.app_service_thread.started.connect(self.app_service_worker.stop_service)
+        else:
+            self.app_service_thread.started.connect(self.app_service_worker.start_service)
+
+        self.app_service_worker.progress_changed.connect(self.update_progress)
+        self.app_service_worker.log.connect(self.add_log)
+        self.app_service_worker.finished.connect(self.on_toggle_service_finished)
+
+        # self.is_app_installation_running = True
+        self.is_app_service_button_enabled = False
+        self.app_service_thread.start()
 
     @Slot()
     def check_installation(self):
@@ -301,15 +462,22 @@ class MainWindow(QObject):
         else:
             self.app_installation_status = "disabled"
 
+    def is_service_on(self):
+        """checks if Macrosoft rustdesk service is running"""
+        return is_service_running("MacrosoftConnectQuickSupport")
+
     @Slot()
     def on_installation_finished(self):
         """updates app state, cleans up, releases resources"""
         print(f"\n\n\ton_installation_finished called ...\n\n")
         if self.check_installation():
             self.app_installation_status = "enabled"
+            self.is_app_start_enabled = True
         else:
             self.app_installation_status = "disabled"
+            self.is_app_start_enabled = False
 
+        self.update_progress(0)
 
 
         self.app_installation_thread.quit()
@@ -325,6 +493,36 @@ class MainWindow(QObject):
     @Slot()
     def on_start_app_finished(self):
         """cleans up when start app button is clicked"""
+        print(f"\n\n\ton_start_app_finished called ...\n\n")
+
+        self.app_start_thread.quit()
+        self.app_start_thread.wait()
+        self.app_start_thread.deleteLater()
+        self.app_start_thread = None
+
+        self.app_start_worker.deleteLater()
+        self.app_start_worker = None
+        self.is_app_start_enabled = self.check_installation()
+
+    @Slot()
+    def on_toggle_service_finished(self):
+        """cleans up when start service button is clicked"""
+        print(f"\n\n\ton_toggle_service_finished called ...\n\n")
+
+        self.app_service_thread.quit()
+        self.app_service_thread.wait()
+        self.app_service_thread.deleteLater()
+        self.app_service_thread = None
+
+        self.app_service_worker.deleteLater()
+        self.app_service_worker = None
+        # self.is_app_start_enabled = self.check_installation()
+
+        self.app_service_status = "enabled" if self.check_installation() and self.is_service_on() else "disabled"
+
+        print(f"\n\nself.app_service_status = {self.app_service_status}\n\n")
+
+        self.is_app_service_button_enabled = self.check_installation()
 
 
     # Open File

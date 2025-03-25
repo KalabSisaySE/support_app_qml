@@ -109,7 +109,7 @@ Item {
                         StatusIndicator {
                             id: serviceIndicator
                             size: 20
-                            // status: backend.app_installation_status
+                            status: backend.app_service_status
                             Layout.alignment: Qt.AlignVCenter
                             anchors.centerIn: parent
                         }
@@ -182,10 +182,47 @@ Item {
                         width: 185
                         height: 32
 
-                        enabled: backend.app_installation_status
+                        enabled: backend.is_app_start_enabled
 
                         onClicked: {
                             backend.start_app()
+                        }
+                    }
+                }
+
+                Row {
+                    id: startServiceLabelRow
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 25
+                    anchors.rightMargin: 25
+
+                    Label {
+                        id: startServiceLabel
+                        text: "Služba:"
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+
+                    CustomButton {
+                        id: startServiceButton
+
+                        text: "Spustiť službu"
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: 0
+
+                        Layout.fillWidth: true
+                        width: 185
+                        height: 32
+
+                        enabled: backend.is_app_start_enabled
+
+                        onClicked: {
+                            backend.toggle_service()
                         }
                     }
                 }
@@ -217,21 +254,39 @@ Item {
             }
         }
 
+        function onAppServiceStatusChanged(status) {
+            if (status === "enabled") {
+                startServiceButton.text = "Zastaviť službu"
+                startServiceButton.colorDefault = "#ff0000"
+            } else {
+                startServiceButton.text = "Spustiť službu"
+                startServiceButton.colorDefault = "#35b59d"
+            }
+        }
+
     }
 
 
     Component.onCompleted: {
 
         if (backend.app_installation_status === "enabled") {
-                macrosoftQuickSupportButton.text = "Odinštalovať"
-                macrosoftQuickSupportButton.colorDefault = "#ff0000"
+            macrosoftQuickSupportButton.text = "Odinštalovať"
+            macrosoftQuickSupportButton.colorDefault = "#ff0000"
 
-            } else {
-                macrosoftQuickSupportButton.text = "Inštalovať"
-                macrosoftQuickSupportButton.colorDefault = "#35b59d"
 
-            }
-        // Call the function when the component mounts
+        } else {
+            macrosoftQuickSupportButton.text = "Inštalovať"
+            macrosoftQuickSupportButton.colorDefault = "#35b59d"
+
+        }
+        if (backend.app_service_status  === "enabled") {
+            startServiceButton.text = "Zastaviť službu"
+            startServiceButton.colorDefault = "#ff0000"
+        } else {
+            startServiceButton.text = "Spustiť službu"
+            startServiceButton.colorDefault = "#35b59d"
+        }
+
     }
 }
 
