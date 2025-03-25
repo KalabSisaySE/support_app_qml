@@ -53,43 +53,6 @@ Item {
                 anchors.fill: parent
 
                 Row {
-                    id: macrosoftQuickSupportLabelRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 25
-                    anchors.rightMargin: 25
-
-                    Label {
-                        id: macrosoftQuickSupportLabel
-                        text: "Macrosoft QuickSupport:"
-                        anchors.verticalCenter: parent.verticalCenter
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-
-                    CustomButton {
-                        id: macrosoftQuickSupportButton
-
-                        text: "Inštalovať"
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
-                        anchors.rightMargin: 0
-
-                        Layout.fillWidth: true
-                        width: 150
-                        height: 30
-
-                        enabled: backend.is_app_installation_running
-
-                        onClicked: {
-                            backend.install_or_uninstall()
-                        }
-                    }
-                }
-
-                Row {
                     id: macrosoftQuickSupportIndicatorRow
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -120,6 +83,114 @@ Item {
                         }
                     }
                 }
+
+                Row {
+                    id: serviceIndicatorRow
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 25
+                    anchors.rightMargin: 25
+
+                    Label {
+                        id: serviceIndicatorLabel
+                        text: "Služba MacrosoftConnectQuickSupport:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        id: serviceIndicatorContainer
+                        width: 150
+                        height: 30
+                        anchors.right: parent.right
+                        anchors.rightMargin: 0
+
+                        StatusIndicator {
+                            id: serviceIndicator
+                            size: 20
+                            // status: backend.app_installation_status
+                            Layout.alignment: Qt.AlignVCenter
+                            anchors.centerIn: parent
+                        }
+                    }
+                }
+
+                Row {
+                    id: macrosoftQuickSupportLabelRow
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 25
+                    anchors.rightMargin: 25
+
+                    Label {
+                        id: macrosoftQuickSupportLabel
+                        text: "Macrosoft QuickSupport:"
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+
+                    CustomButton {
+                        id: macrosoftQuickSupportButton
+
+                        text: "Inštalovať"
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: 0
+
+                        Layout.fillWidth: true
+                        width: 185
+                        height: 32
+
+                        enabled: backend.is_app_installation_running
+
+                        onClicked: {
+                            backend.install_or_uninstall()
+                        }
+                    }
+                }
+
+                Row {
+                    id: startAppLabelRow
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: 25
+                    anchors.rightMargin: 25
+
+                    Label {
+                        id: startAppLabel
+                        text: "Spustiť Aplikáciu:"
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+
+                    CustomButton {
+                        id: startAppButton
+
+                        text: "Spustiť MacrosoftQuickSupport"
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: 0
+
+                        Layout.fillWidth: true
+                        width: 185
+                        height: 32
+
+                        enabled: backend.app_installation_status
+
+                        onClicked: {
+                            backend.start_app()
+                        }
+                    }
+                }
+
+
             }
         }
     }

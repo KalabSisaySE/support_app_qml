@@ -296,7 +296,7 @@ Window {
                                 btnServices.isActiveMenu = false
                                 btnRecording.isActiveMenu = false
                                 btnPermissions.isActiveMenu = false
-                                stackView.push(Qt.resolvedUrl("pages/infoPage.qml"))
+                                stackView.push(Qt.resolvedUrl("pages/appPage.qml"))
                             }
                         }
 
@@ -387,7 +387,7 @@ Window {
                     StackView {
                         id: stackView
                         anchors.fill: parent
-                        initialItem: Qt.resolvedUrl("pages/infoPage.qml")
+                        initialItem: Qt.resolvedUrl("pages/appPage.qml")
                     }
                 }
 
@@ -438,9 +438,9 @@ Window {
                             anchors.left: parent.left
                             anchors.right: parent.right
                             anchors.bottom: parent.bottom
-                            anchors.leftMargin: 5
-                            anchors.rightMargin: 5
-                            anchors.bottomMargin: 5
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
+                            anchors.bottomMargin: 10
 
                             ScrollView {
                                     id: scrollView
@@ -621,7 +621,7 @@ Window {
         }
 
         function onNewLogAdded(text) {
-            logTextArea.append(new Date().toLocaleTimeString() + text)
+            logTextArea.append(`(${(new Date().getHours() % 12 || 12)}:${String(new Date().getMinutes()).padStart(2, '0')}): ` + text)
         }
 
     }

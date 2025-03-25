@@ -117,6 +117,38 @@ class AppInstallationWorker(QObject):
 
         self.finished.emit()
 
+class StartAppWorker(QObject):
+    """manages macrosoft rustdesk starting"""
+    progress_changed = Signal(int)
+    log = Signal(str)
+    finished = Signal()
+
+    @Slot()
+    def start_macrosoftconnect(self):
+        """Start the MacrosoftConnectQuickSupport application."""
+        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+
+        if not os.path.exists(app_path):
+            self.log.emit(
+                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+            )
+
+        try:
+            subprocess.Popen(
+                [app_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+            self.log.emit("MacrosoftConnectQuickSupport bol spustený.")
+        except Exception as e:
+            self.log.emit(
+                f"Nepodarilo sa spustiť MacrosoftConnectQuickSupport: {e}"
+            )
+
+
+        self.finished.emit()
+
 class MainWindow(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -124,8 +156,6 @@ class MainWindow(QObject):
     printTime = Signal(str)
     isVisible = Signal(bool)
     readText = Signal(str)
-
-
 
     # custom signals
     progressChanged = Signal(int)
@@ -148,6 +178,9 @@ class MainWindow(QObject):
 
         self.app_installation_thread = None
         self.app_installation_worker = None
+
+        self.app_start_thread = None
+        self.app_start_worker = None
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -216,7 +249,7 @@ class MainWindow(QObject):
 
         self.app_installation_worker.progress_changed.connect(self.update_progress)
         self.app_installation_worker.log.connect(self.add_log)
-        self.app_installation_worker.finished.connect(self.on_task_finished)
+        self.app_installation_worker.finished.connect(self.on_installation_finished)
         # self.worker.finished.connect(self.install_thread.quit)
         # self.install_thread.finished.connect(self.install_thread.deleteLater)
 
@@ -224,6 +257,26 @@ class MainWindow(QObject):
         self.is_app_installation_running = True
         self.app_installation_thread.start()
 
+    @Slot()
+    def start_app(self):
+        """open Macrosoft RustDesk application"""
+        if self.app_start_thread and self.app_start_thread.isRunning():
+            self.app_start_thread.quit()
+            self.app_start_thread.wait()
+
+        self.app_start_thread = QThread()
+        self.app_start_worker = StartAppWorker()
+        self.app_start_worker.moveToThread(self.app_start_thread)
+
+        self.app_start_thread.started.connect(self.app_start_worker.start_macrosoftconnect)
+
+        self.app_start_worker.progress_changed.connect(self.update_progress)
+        self.app_start_worker.log.connect(self.add_log)
+        self.app_start_worker.finished.connect(self.on_start_app_finished)
+
+        # Start the thread
+        self.is_app_installation_running = True
+        self.app_start_thread.start()
 
     @Slot()
     def check_installation(self):
@@ -249,9 +302,9 @@ class MainWindow(QObject):
             self.app_installation_status = "disabled"
 
     @Slot()
-    def on_task_finished(self):
+    def on_installation_finished(self):
         """updates app state, cleans up, releases resources"""
-        print(f"\n\n\ton_task_finished called ...\n\n")
+        print(f"\n\n\ton_installation_finished called ...\n\n")
         if self.check_installation():
             self.app_installation_status = "enabled"
         else:
@@ -268,6 +321,11 @@ class MainWindow(QObject):
         self.app_installation_worker = None
 
         self.is_app_installation_running = False
+
+    @Slot()
+    def on_start_app_finished(self):
+        """cleans up when start app button is clicked"""
+
 
     # Open File
     @Slot(str)
