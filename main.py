@@ -10,29 +10,27 @@ import subprocess
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread
-from PySide6.QtQuickControls2 import QQuickStyle  # Import QQuickStyle
+from PySide6.QtQuickControls2 import QQuickStyle
 
 
-class InstallMacrosoftConnectWorker(QObject):
+class AppInstallationWorker(QObject):
+    """manages macrosoft rustdesk installation and uninstallation"""
     progress_changed = Signal(int)
+    log = Signal(str)
     finished = Signal()
 
-
     @Slot()
-    def run_task(self):
-        """Long-running task with progress updates"""
+    def install_app(self):
+        """installs and rust Macrosoft RustDesk"""
         # signals.log.emit("Začínam proces inštalácie...")
 
         download_url = (
             "https://online.macrosoft.sk/static/ztpt/output/downloads/macrosoftconnectquicksupport.exe"
         )
-        # (__file__)
+
         new_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
         temp_dir = os.environ.get("TEMP", new_path)
         temp_dir = new_path
-
-        print(f"\n\n\t\tnew_path: {new_path}")
-        print(f"\t\ttemp_dir: {temp_dir}\n\n")
 
         os.makedirs(temp_dir, exist_ok=True)
         installer_path = os.path.join(temp_dir, "macrosoftconnectquicksupport.exe")
@@ -80,25 +78,22 @@ class InstallMacrosoftConnectWorker(QObject):
             return
 
         self.finished.emit()
-class UninstallMacrosoftConnectWorker(QObject):
-    progress_changed = Signal(int)
-    finished = Signal()
 
     @Slot()
-    def run_task(self):
-        """Long-running task with progress updates"""
+    def uninstall_app(self):
+        """uninstalls and rust Macrosoft RustDesk"""
 
         uninstall_path = os.path.join(
             "C:\\Program Files\\MacrosoftConnectQuickSupport",
             "Uninstall MacrosoftConnectQuickSupport.lnk",
         )
 
-        print(uninstall_path)
+        # print(uninstall_path)
 
         if not os.path.exists(uninstall_path):
             print("not os.path.exists(uninstall_path)")
-        #     # signals.log.emit("Odinštalačný súbor nebol nájdený.")
-        #     # self.install_button.setEnabled(True)
+            #     # signals.log.emit("Odinštalačný súbor nebol nájdený.")
+            #     # self.install_button.setEnabled(True)
             return
         else:
             print("Yes os.path.exists(uninstall_path)")
@@ -123,8 +118,6 @@ class UninstallMacrosoftConnectWorker(QObject):
             pass
 
 
-
-
 class MainWindow(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -137,8 +130,10 @@ class MainWindow(QObject):
 
     # custom signals
     progressChanged = Signal(int)
-    macrosoftRustDeskStatusChanged = Signal(str)
-    installButtonOnProgress = Signal(bool)
+    appInstallationStatusChanged = Signal(str)
+    appInstallButtonOnProgress = Signal(bool)
+    newLogAdded = Signal(str)
+
     taskStarted = Signal()
     taskFinished = Signal()
 
@@ -149,10 +144,11 @@ class MainWindow(QObject):
 
         # values
         self._progress = 0
-        self._macrosoftRustDeskStatus = self.check_installation()
-        self._install_button_on_progress = False
-        self.thread = None
-        self.worker = None
+        self._app_installation_status = self.check_installation()
+        self._is_app_installation_running = False
+
+        self.app_installation_thread = None
+        self.app_installation_worker = None
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -171,106 +167,79 @@ class MainWindow(QObject):
             self._progress = value
             self.progressChanged.emit(value)
 
-    @Property(bool, notify=installButtonOnProgress)
-    def is_install_on_progress(self):
-        return not self._install_button_on_progress
+    @Property(bool, notify=appInstallButtonOnProgress)
+    def is_app_installation_running(self):
+        return not self._is_app_installation_running
 
-    @is_install_on_progress.setter
-    def is_install_on_progress(self, is_running):
-        if self._install_button_on_progress != is_running:
-            self._install_button_on_progress = is_running
-            self.installButtonOnProgress.emit(is_running)
+    @is_app_installation_running.setter
+    def is_app_installation_running(self, is_running):
+        if self._is_app_installation_running != is_running:
+            self._is_app_installation_running = is_running
+            self.appInstallButtonOnProgress.emit(is_running)
 
-    @Property(str, notify=macrosoftRustDeskStatusChanged)
+    @Property(str, notify=appInstallationStatusChanged)
     def macrosoft_rust_desk_status(self):
-        return self._macrosoftRustDeskStatus
+        return self._app_Installation_status
 
     @macrosoft_rust_desk_status.setter
     def macrosoft_rust_desk_status(self, status):
-        if self._macrosoftRustDeskStatus != status:
-            self._macrosoftRustDeskStatus = status
-            self.macrosoftRustDeskStatusChanged.emit(status)
+        if self._app_Installation_status != status:
+            self._app_Installation_status = status
+            self.appInstallationStatusChanged.emit(status)
 
     @Slot(bool)
     def update_is_install_on_progress(self, state):
-        self.is_install_on_progress = state
+        self.is_app_installation_running = state
 
-    @Slot()
-    def install_and_run_macrosoft_connect(self):
-        """installs and sets up macrosoft connect in a thread"""
-
-        print(f"\n\n\tinstall_and_run_macrosoft_connect: {self.macrosoft_rust_desk_status}\n\n")
-
-        # Clean up any previous thread
-        if self.thread is not None and self.thread.isRunning():
-            self.thread.quit()
-            self.thread.wait()
-
-        # Setup new thread and worker
-        self.thread = QThread()
-        self.worker = InstallMacrosoftConnectWorker()
-        self.worker.moveToThread(self.thread)
-
-        # Connect signals
-        self.thread.started.connect(self.worker.run_task)
-        self.worker.progress_changed.connect(self.update_progress)
-        self.worker.finished.connect(self.on_task_finished)
-        # self.worker.finished.connect(self.thread.quit)
-        # self.thread.finished.connect(self.thread.deleteLater)
-
-        # Start the thread
-        self.thread.start()
-        self.taskStarted.emit()
-
-    @Slot()
-    def uninstall_macrosoft_connect(self):
-        """uninstalls macrosoft connect in a thread"""
-        print("\n\n\n\n\n\tuninstall called\n")
-        self.macrosoft_rust_desk_status = "disabled"
+    @Slot(str)
+    def add_log(self, log):
+        """adds a new log to UI"""
+        self.newLogAdded.emit(log)
 
     @Slot()
     def install_or_uninstall(self):
-        """dynamically installs or uninstalls Macrosoft RustDesk"""
-        status = self.macrosoft_rust_desk_status
-        print(f"\n\n\n\tstatus: {status}\n\n")
+        """dynamically installs or uninstalls Macrosoft RustDesk based on the current status"""
+
+        status = self._app_Installation_status
+
         if status == "checking" or status == "disabled":
-            print(f"\n\n\n\tuninstall_macrosoft_connect\n\n")
-            if self.thread is not None and self.thread.isRunning():
-                self.thread.quit()
-                self.thread.wait()
+
+            if self.install_thread and self.install_thread.isRunning():
+                self.install_thread.quit()
+                self.install_thread.wait()
 
                 # Setup new thread and worker
-            self.thread = QThread()
-            self.worker = InstallMacrosoftConnectWorker()
-            self.worker.moveToThread(self.thread)
+            self.install_thread = QThread()
+            self.install_worker = InstallMacrosoftConnectWorker()
+            self.install_worker.moveToThread(self.install_thread)
 
             # Connect signals
-            self.thread.started.connect(self.worker.run_task)
-            self.worker.progress_changed.connect(self.update_progress)
-            self.worker.finished.connect(self.on_task_finished)
-            # self.worker.finished.connect(self.thread.quit)
-            # self.thread.finished.connect(self.thread.deleteLater)
+            self.install_thread.started.connect(self.install_worker.run_task)
+            self.install_worker.progress_changed.connect(self.update_progress)
+            self.install_worker.finished.connect(self.on_task_finished)
+            # self.worker.finished.connect(self.install_thread.quit)
+            # self.install_thread.finished.connect(self.install_thread.deleteLater)
 
             # Start the thread
-            self.thread.start()
-            self.taskStarted.emit()
+            self.install_thread.start()
             self.update_is_install_on_progress(True)
         else:
             print(f"\n\n\n\tuninstall_macrosoft_connect\n\n")
 
-            self.thread = QThread()
+            self.uninstall_thread = QThread()
             self.uninstall_worker = UninstallMacrosoftConnectWorker()
-            self.uninstall_worker.moveToThread(self.thread)
+            self.uninstall_worker.moveToThread(self.uninstall_thread)
 
             # Connect signals
-            self.thread.started.connect(self.uninstall_worker.run_task)
+            self.uninstall_thread.started.connect(self.uninstall_worker.run_task)
             self.uninstall_worker.progress_changed.connect(self.update_progress)
             self.uninstall_worker.finished.connect(self.on_task_finished)
 
             # Start the thread
-            self.thread.start()
-
+            self.uninstall_thread.start()
             self.update_is_install_on_progress(True)
+
+
     @Slot()
     def check_installation(self):
         """Check if the application is installed and update the UI accordingly."""
@@ -302,7 +271,7 @@ class MainWindow(QObject):
 
         self.update_is_install_on_progress(False)
         print(f"\n\n\ton_task_finished: {self.macrosoft_rust_desk_status}\n\n")
-        self.taskFinished.emit()
+
         self.worker.deleteLater()
         self.worker = None
 

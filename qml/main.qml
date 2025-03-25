@@ -408,17 +408,30 @@ Window {
                         color: "#00ffffff"
                         anchors.fill: parent
 
-                        CustomProgressBar {
-                            width: parent.width * 0.8 ;
-                            height: 20;
-                            value: backend.progress;
+                        Rectangle {
+
                             anchors.top: parent.top;
-                            anchors.topMargin: 10;
-                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.left: parent.left;
+                            anchors.right: parent.right;
+                            anchors.bottom: logContainer.top;
+                            color: "#00ffffff"
+
+                            CustomProgressBar {
+
+                                id: mainProgressBar
+
+                                width: parent.width * 0.8 ;
+                                height: 25;
+                                value: backend.progress;
+
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
                         }
 
                         Rectangle {
-                            id: rectangle2
+                            id: logContainer
                             height: parent.height * 0.75
                             color: "#ffffff"
                             radius: 4
@@ -463,13 +476,7 @@ Window {
                                     }
                                 }
 
-                                // Demo: Add log entries every 500ms
-                                Timer {
-                                    interval: 500
-                                    running: true
-                                    repeat: true
-                                    onTriggered: logTextArea.append("New log: " + new Date().toLocaleTimeString())
-                                }
+
                         }
                     }
                 }
@@ -612,6 +619,11 @@ Window {
         function onReadText(text){
             actualPage.setText = text
         }
+
+        function onNewLogAdded(text) {
+            logTextArea.append(new Date().toLocaleTimeString() + text)
+        }
+
     }
 
 }

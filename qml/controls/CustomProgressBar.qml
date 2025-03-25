@@ -36,8 +36,3 @@ Item {
     }
 }
 
-/*##^##
-Designer {
-    D{i:0;autoSize:true;height:40;width:200}
-}
-##^##*/
