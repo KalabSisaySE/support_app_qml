@@ -46,46 +46,42 @@ Item {
 
             }
 
+
             ColumnLayout {
                 id: columnLayout
-                spacing: 50
-                anchors.left: parent.left
-                anchors.right: parent.right
-                // anchors.margins: 50
+                spacing: -100
+                anchors.fill: parent
 
-                RowLayout {
+                Row {
                     id: macrosoftQuickSupportLabelRow
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: 25
                     anchors.leftMargin: 25
                     anchors.rightMargin: 25
-
-
-
 
                     Label {
                         id: macrosoftQuickSupportLabel
                         text: "Macrosoft QuickSupport:"
-                        font.pointSize: 14
+                        anchors.verticalCenter: parent.verticalCenter
+                        font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
-                        // font.bold: true
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
                     }
 
 
                     CustomButton {
                         id: macrosoftQuickSupportButton
+
                         text: "Inštalovať"
-                        Layout.maximumWidth: 140
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: 0
+
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 30
-                        Layout.preferredWidth: 150
+                        width: 150
+                        height: 30
+
+                        enabled: backend.is_install_on_progress
 
                         onClicked: {
                             backend.install_or_uninstall()
@@ -93,33 +89,27 @@ Item {
                     }
                 }
 
-                RowLayout {
+                Row {
                     id: macrosoftQuickSupportIndicatorRow
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.leftMargin: 25
                     anchors.rightMargin: 25
 
-
-
                     Label {
                         id: macrosoftQuickSupportIndicatorLabel
                         text: "Aplikácia MacrosoftConnectQuickSupport:"
-                        font.pointSize: 14
+                        font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
-                        // font.bold: true
                     }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
 
                     Item {
                         id: macrosoftQuickSupportIndicator
-                        width: 125
-                        height: width * 0.25
+                        width: 150
+                        height: 30
+                        anchors.right: parent.right
+                        anchors.rightMargin: 0
 
                         StatusIndicator {
                             id: appIndicator
@@ -130,42 +120,8 @@ Item {
                         }
                     }
                 }
-
-                RowLayout {
-                    id: a
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 25
-                    anchors.rightMargin: 25
-
-
-
-                    Label {
-                        id: ab
-                        text: backend.progress
-                        font.pointSize: 14
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                        // font.bold: true
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-
-                    Label {
-                        id: absd
-                        text: backend.macrosoft_rust_desk_status
-                        font.pointSize: 14
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                        // font.bold: true
-                    }
-                }
             }
         }
-
     }
 
 
@@ -184,28 +140,28 @@ Item {
             if (status === "enabled") {
                 macrosoftQuickSupportButton.text = "Odinštalovať"
                 macrosoftQuickSupportButton.colorDefault = "#ff0000"
-                // macrosoftQuickSupportButton.onClicked = () => {backend.uninstall_macrosoft_connect}
+            } else {
+                macrosoftQuickSupportButton.text = "Inštalovať"
+                macrosoftQuickSupportButton.colorDefault = "#35b59d"
+            }
+        }
+
+    }
+
+
+    Component.onCompleted: {
+
+        if (backend.macrosoft_rust_desk_status === "enabled") {
+                macrosoftQuickSupportButton.text = "Odinštalovať"
+                macrosoftQuickSupportButton.colorDefault = "#ff0000"
 
             } else {
                 macrosoftQuickSupportButton.text = "Inštalovať"
                 macrosoftQuickSupportButton.colorDefault = "#35b59d"
-                // macrosoftQuickSupportButton.onClicked = () => {backend.install_and_run_macrosoft_connect}
 
             }
-
-            macrosoftQuickSupportIndicatorLabel.text = status
-        }
-
-        //
-        // function onPrintTime(time){
-        //     labelDate.text = time
-        // }
-        //
-        // function onIsVisible(isVisible){
-        //     rectangleVisible.visible = isVisible
-        // }
+        // Call the function when the component mounts
     }
-
 }
 
 

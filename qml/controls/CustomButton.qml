@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 
 Button {
@@ -9,39 +9,37 @@ Button {
     property color colorDefault: "#35b59d"
     property color colorMouseOver: Qt.lighter(colorDefault, 1.2)
     property color colorPressed: Qt.darker(colorDefault, 1.2)
+    property color colorDisabled: "#b0b0b0"
 
     font.bold: true
 
-    QtObject{
+    QtObject {
         id: internal
 
-        property var dynamicColor: if(button.down){
-                                       button.down ? colorPressed : colorDefault
-                                   }else{
-                                       button.hovered ? colorMouseOver : colorDefault
-                                   }
+        property var dynamicColor: button.enabled
+            ? (button.down ? colorPressed : (button.hovered ? colorMouseOver : colorDefault))
+            : colorDisabled
     }
 
     text: qsTr("Button")
-    contentItem: Item{
+
+    contentItem: Item {
         Text {
             id: name
             text: button.text
             font: button.font
-
-            color: "#ffffff"
+            color: button.enabled ? "#ffffff" : "#d0d0d0"
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
         }
     }
 
-    background: Rectangle{
+    background: Rectangle {
         color: internal.dynamicColor
         radius: 4
     }
+
+    // Prevent interaction when disabled
+    onPressed: {if (!enabled) return}
+    onReleased: {if (!enabled) return}
 }
-/*##^##
-Designer {
-    D{i:0;autoSize:true;height:40;width:200}
-}
-##^##*/
