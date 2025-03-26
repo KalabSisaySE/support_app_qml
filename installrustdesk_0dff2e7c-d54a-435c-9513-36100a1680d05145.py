@@ -13,7 +13,7 @@ from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThrea
 from PySide6.QtQuickControls2 import QQuickStyle
 
 
-from support_app.utils import is_app_running, is_service_running
+from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name
 from support_app.rust_service_manager import ServiceManager
 
 
@@ -245,6 +245,75 @@ class AppServiceWorker(QObject):
         self.finished.emit()
 
 
+class UserInfoWorker(QObject):
+    """manages macrosoft rustdesk and userinfo"""
+    progress_changed = Signal(int)
+    log = Signal(str)
+    finished = Signal()
+    rustid_changed = Signal(str)
+
+    access = get_access_code(os.path.basename(sys.argv[0]))
+
+    @Slot()
+    def get_rustdesk_id(self):
+        """Retrieve the RustDesk ID."""
+        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+
+        if not os.path.exists(app_path):
+            self.log.emit(
+                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+            )
+
+        try:
+            result = subprocess.run(
+                [app_path, "--get-id"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            rustdesk_id = result.stdout.strip() if result.stdout else ""
+            self.rustid_changed.emit(rustdesk_id)
+
+            self.log.emit(f"Vaše ID je: {rustdesk_id}")
+            self.report_rustdesk_id(rustdesk_id)
+
+        except Exception as e:
+            self.log.emit(f"Nepodarilo sa získať ID: {e}")
+
+        self.finished.emit()
+
+    @Slot()
+    def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
+        """Report the RustDesk ID to the server."""
+        if self.access:
+            url = f"https://online.macrosoft.sk/rustdesk/?access={self.access}&rustdesk={rustdesk_id}"
+            attempt = 0
+            while attempt < max_attempts:
+                attempt += 1
+                try:
+                    with urllib.request.urlopen(url) as response:
+                        if response.status == 200:
+                            self.log.emit("ID bolo úspešne odoslané.")
+                        else:
+                            self.log.emit(f"Odozva servera: {response.status}")
+                            if attempt < max_attempts:
+                                time.sleep(1)
+                except Exception as e:
+                    self.log.emit(f"Nepodarilo sa odoslať ID: {e}")
+
+    @Slot()
+    def set_username(self):
+        """Fetch and set the user's full name."""
+        self.log.emit("Fetching username...")
+        full_name = get_full_name(self.access)
+        if full_name:
+            self.log.emit(f"Full name fetched: {full_name}")
+        else:
+            self.log.emit("Nepodarilo sa získať meno z API")
+
+        self.finished.emit()
+
+
 class MainWindow(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -261,6 +330,9 @@ class MainWindow(QObject):
     appServiceStatusChanged = Signal(str)
     appServiceButtonStatusChanged = Signal(bool)
     newLogAdded = Signal(str)
+    rustIdChanged = Signal(str)
+    accessCodeChanged = Signal(str)
+    usernameChanged = Signal(str)
 
     taskStarted = Signal()
     taskFinished = Signal()
@@ -279,6 +351,10 @@ class MainWindow(QObject):
         self._is_app_start_btn_enabled = self.check_installation()
         self._is_app_service_btn_enabled = self.check_installation()
 
+        self._access_code = ""
+        self._rust_id = "Nenájdené"
+        self._username = "Nenájdené"
+
         self.app_installation_thread = None
         self.app_installation_worker = None
 
@@ -293,7 +369,7 @@ class MainWindow(QObject):
         self.timer.timeout.connect(self.setTime)
         self.timer.start(1000)
 
-        self.app_status()
+        self.app_init()
 
     @Property(int, notify=progressChanged)
     def progress(self):
@@ -304,6 +380,36 @@ class MainWindow(QObject):
         if self._progress != value:
             self._progress = value
             self.progressChanged.emit(value)
+
+    @Property(str, notify=rustIdChanged)
+    def rust_id(self):
+        return self._rust_id
+
+    @rust_id.setter
+    def rust_id(self, id):
+        if self._rust_id != id:
+            self._rust_id = id
+            self.rustIdChanged.emit(id)
+
+    @Property(str, notify=accessCodeChanged)
+    def access_code(self):
+        return self._access_code
+
+    @access_code.setter
+    def access_code(self, code):
+        if self._access_code != code:
+            self._access_code = code
+            self.accessCodeChanged.emit(code)
+
+    @Property(str, notify=usernameChanged)
+    def username(self):
+        return self._username
+
+    @username.setter
+    def username(self, name):
+        if self._username != name:
+            self._username = name
+            self.usernameChanged.emit(name)
 
     @Property(bool, notify=appInstallationRunning)
     def is_app_install_btn_enabled(self):
@@ -357,7 +463,6 @@ class MainWindow(QObject):
             self._app_service_status = status
             self.appServiceStatusChanged.emit(status)
 
-
     @Slot(str)
     def add_log(self, log):
         """adds a new log to UI"""
@@ -383,8 +488,6 @@ class MainWindow(QObject):
         else:
             print(f"\n\n\n\tuninstall_macrosoft_connect\n\n")
             self.app_installation_thread.started.connect(self.app_installation_worker.uninstall_app)
-
-
 
         self.app_installation_worker.progress_changed.connect(self.update_progress)
         self.app_installation_worker.log.connect(self.add_log)
@@ -447,22 +550,55 @@ class MainWindow(QObject):
     def check_installation(self):
         """Check if the application is installed and update the UI accordingly."""
         app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-
         if os.path.exists(app_path):
             return True
-
 
     @Slot(int)
     def update_progress(self, value):
         self.progress = value
 
     @Slot()
-    def app_status(self):
+    def app_init(self):
 
         self.is_app_install_btn_enabled = True
 
         if self.check_installation():
             self.app_installation_status = "enabled"
+            code = ""
+
+            # get rust_id
+            try:
+                max_attempts = 3
+                app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+                script_name = os.path.basename(sys.argv[0])
+                result = subprocess.run(
+                    [app_path, "--get-id"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                rustdesk_id = result.stdout.strip() if result.stdout else ""
+                code = get_access_code(script_name)
+                self.rust_id = rustdesk_id
+                self.access_code = code
+
+                # report rustdesk
+                if code:
+                    url = f"https://online.macrosoft.sk/rustdesk/?access={code}&rustdesk={rustdesk_id}"
+                    attempt = 0
+                    while attempt < max_attempts:
+                        attempt += 1
+                        try:
+                            with urllib.request.urlopen(url) as response:
+                                if response.status != 200 and attempt < max_attempts:
+                                    time.sleep(1)
+                        except Exception as e:
+                            pass
+            except Exception as e:
+                pass
+
+            # get username
+            self.username = get_full_name(code)
         else:
             self.app_installation_status = "disabled"
 
@@ -507,7 +643,6 @@ class MainWindow(QObject):
 
         self.update_progress(0)
         self.is_app_install_btn_enabled = True
-
 
         self.app_installation_thread.quit()
         self.app_installation_thread.wait()

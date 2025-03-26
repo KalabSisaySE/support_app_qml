@@ -58,7 +58,8 @@ def get_full_name(access):
                 return 'Neznáme meno'
 
         except Exception as e:
-            return
+            return ""
+    return ""
 
 def open_website(access):
     if access:
@@ -100,3 +101,16 @@ def get_latest_access_code():
     except:
         return ""
 
+
+def get_access_code(script_name):
+    if "installrustdesk_" in script_name:
+        access = (
+            script_name.replace("installrustdesk_", "")
+            .replace(".py", "")
+            .replace(".exe", "")
+        )
+    else:
+        # access = get_latest_access_code()
+        access = ""
+
+    return access

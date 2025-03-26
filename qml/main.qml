@@ -296,9 +296,27 @@ Window {
                                 btnServices.isActiveMenu = false
                                 btnRecording.isActiveMenu = false
                                 btnPermissions.isActiveMenu = false
+                                stackView.push(Qt.resolvedUrl("pages/infoPage.qml"))
+                            }
+                        }
+
+                        LeftMenuBtn {
+                            id: btnServices
+                            width: leftMenu.width
+                            text: qsTr("Services")
+
+                            btnIconSource: "../../images/svg_images/services.svg"
+                            onClicked: {
+                                btnHome.isActiveMenu = false
+                                btnHelp.isActiveMenu = false
+                                btnRecording.isActiveMenu = false
+                                btnPermissions.isActiveMenu = false
+                                btnServices.isActiveMenu = true
+
                                 stackView.push(Qt.resolvedUrl("pages/appPage.qml"))
                             }
                         }
+
 
                         LeftMenuBtn {
                             id: btnPermissions
@@ -317,22 +335,6 @@ Window {
                             }
                         }
 
-                        LeftMenuBtn {
-                            id: btnServices
-                            width: leftMenu.width
-                            text: qsTr("Services")
-
-                            btnIconSource: "../../images/svg_images/services.svg"
-                            onClicked: {
-                                btnHome.isActiveMenu = false
-                                btnHelp.isActiveMenu = false
-                                btnRecording.isActiveMenu = false
-                                btnPermissions.isActiveMenu = false
-                                btnServices.isActiveMenu = true
-
-                                stackView.push(Qt.resolvedUrl("pages/servicesPage.qml"))
-                            }
-                        }
 
                         LeftMenuBtn {
                             id: btnRecording
