@@ -45,12 +45,14 @@ Item {
 
             ColumnLayout {
                 id: columnLayout
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.topMargin: 20
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                    topMargin: 20
+                    leftMargin: 10
+                    rightMargin: 10
+                }
                 Layout.fillWidth: true
                 spacing: mainContainer.columnSpacing
 
@@ -148,16 +150,10 @@ Item {
                             width: 185
                             height: 32
 
-                            enabled: backend.is_app_installation_running
-
-                            onClicked: {
-                                backend.install_or_uninstall()
-                            }
+                            enabled: backend.is_app_install_btn_enabled
+                            onClicked: { backend.install_or_uninstall() }
                         }
-
                     }
-
-
                 }
 
                 // Start button
@@ -193,10 +189,10 @@ Item {
                             width: 185
                             height: 32
 
-                            enabled: backend.is_app_installation_running
+                            enabled: backend.is_app_start_btn_enabled
 
                             onClicked: {
-                                backend.install_or_uninstall()
+                                backend.start_app()
                             }
                         }
 
@@ -211,7 +207,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Spustiť Aplikáciu:"
+                        text: "Služba:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -238,20 +234,63 @@ Item {
                             width: 185
                             height: 32
 
-                            enabled: backend.is_app_start_enabled
-
-                            onClicked: {
-                                backend.toggle_service()
-                            }
+                            enabled: backend.is_app_service_btn_enabled
+                            onClicked: { backend.toggle_service() }
                         }
-                //     }
+
 
                     }
-
 
                 }
             }
         }
+    }
+
+
+    Connections {
+        target: backend
+
+        function onAppInstallationStatusChanged(status) {
+            if (status === "enabled") {
+                macrosoftQuickSupportButton.text = "Odinštalovať"
+                macrosoftQuickSupportButton.colorDefault = "#ff0000"
+            } else {
+                macrosoftQuickSupportButton.text = "Inštalovať"
+                macrosoftQuickSupportButton.colorDefault = "#35b59d"
+            }
+        }
+
+        function onAppServiceStatusChanged(status) {
+            if (status === "enabled") {
+                startServiceButton.text = "Zastaviť službu"
+                startServiceButton.colorDefault = "#ff0000"
+            } else {
+                startServiceButton.text = "Spustiť službu"
+                startServiceButton.colorDefault = "#35b59d"
+            }
+        }
+
+    }
+
+
+    Component.onCompleted: {
+
+        if (backend.app_installation_status === "enabled") {
+            macrosoftQuickSupportButton.text = "Odinštalovať"
+            macrosoftQuickSupportButton.colorDefault = "#ff0000"
+        } else {
+            macrosoftQuickSupportButton.text = "Inštalovať"
+            macrosoftQuickSupportButton.colorDefault = "#35b59d"
+        }
+
+        if (backend.app_service_status  === "enabled") {
+            startServiceButton.text = "Zastaviť službu"
+            startServiceButton.colorDefault = "#ff0000"
+        } else {
+            startServiceButton.text = "Spustiť službu"
+            startServiceButton.colorDefault = "#35b59d"
+        }
+
     }
 }
 
