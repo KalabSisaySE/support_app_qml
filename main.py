@@ -495,7 +495,7 @@ class MainWindow(QObject):
         if self.check_installation():
             self.app_installation_status = "enabled"
             if self.is_service_on():
-                self.app_service_status = "disabled"
+                self.app_service_status = "enabled"
             self.is_app_start_btn_enabled = True
             self.is_app_start_btn_enabled = True
             self.is_app_service_btn_enabled = True
