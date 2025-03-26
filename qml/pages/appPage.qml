@@ -4,20 +4,20 @@ import "../controls"
 import QtQuick.Layouts
 
 Item {
-
     Rectangle {
-        id: rectangle
+        id: mainContainer
         color: "#2c313c"
         anchors.fill: parent
 
+        property real rowHeight: 35
+        property real columnSpacing: mainContainer.height * 0.02
+
         Rectangle {
             id: groupBox
-
             radius: 5
             border.color: "#16a086"
             border.width: 1
             color: "transparent"
-
             anchors {
                 fill: parent
                 topMargin: parent.height * 0.08
@@ -26,14 +26,12 @@ Item {
                 bottomMargin: parent.height * 0.08
             }
 
-            // Legend-style title
             Rectangle {
                 color: "#2c313c"
                 width: groupBoxTitle.width + 6
                 height: groupBoxTitle.height + 6
                 x: 15
                 y: -10
-
                 Text {
                     id: groupBoxTitle
                     horizontalAlignment: Text.AlignHCenter
@@ -43,24 +41,24 @@ Item {
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }
-
             }
-
 
             ColumnLayout {
                 id: columnLayout
-                spacing: -100
-                anchors.fill: parent
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: 20
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                Layout.fillWidth: true
+                spacing: mainContainer.columnSpacing
 
-                Row {
-                    id: macrosoftQuickSupportIndicatorRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 25
-                    anchors.rightMargin: 25
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        id: macrosoftQuickSupportIndicatorLabel
                         text: "Aplikácia MacrosoftConnectQuickSupport:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
@@ -68,11 +66,13 @@ Item {
                     }
 
                     Item {
-                        id: macrosoftQuickSupportIndicator
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
                         width: 150
                         height: 30
-                        anchors.right: parent.right
-                        anchors.rightMargin: 0
+                        Layout.alignment: Qt.AlignVCenter
 
                         StatusIndicator {
                             id: appIndicator
@@ -84,27 +84,26 @@ Item {
                     }
                 }
 
-                Row {
-                    id: serviceIndicatorRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 25
-                    anchors.rightMargin: 25
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        id: serviceIndicatorLabel
                         text: "Služba MacrosoftConnectQuickSupport:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
                     }
 
+
                     Item {
-                        id: serviceIndicatorContainer
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
                         width: 150
                         height: 30
-                        anchors.right: parent.right
-                        anchors.rightMargin: 0
+                        Layout.alignment: Qt.AlignVCenter
 
                         StatusIndicator {
                             id: serviceIndicator
@@ -116,179 +115,150 @@ Item {
                     }
                 }
 
-                Row {
-                    id: macrosoftQuickSupportLabelRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 25
-                    anchors.rightMargin: 25
+                // Install button
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        id: macrosoftQuickSupportLabel
                         text: "Macrosoft QuickSupport:"
-                        anchors.verticalCenter: parent.verticalCenter
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
                     }
 
-
-                    CustomButton {
-                        id: macrosoftQuickSupportButton
-
-                        text: "Inštalovať"
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
-                        anchors.rightMargin: 0
-
+                    Item {
                         Layout.fillWidth: true
+                    }
+
+                    Item {
                         width: 185
                         height: 32
+                        Layout.alignment: Qt.AlignVCenter
 
-                        enabled: backend.is_app_installation_running
+                        CustomButton {
+                            id: macrosoftQuickSupportButton
 
-                        onClicked: {
-                            backend.install_or_uninstall()
+                            text: "Inštalovať"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_app_installation_running
+
+                            onClicked: {
+                                backend.install_or_uninstall()
+                            }
                         }
+
                     }
+
+
                 }
 
-                Row {
-                    id: startAppLabelRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 25
-                    anchors.rightMargin: 25
+                // Start button
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        id: startAppLabel
                         text: "Spustiť Aplikáciu:"
-                        anchors.verticalCenter: parent.verticalCenter
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
                     }
 
-
-                    CustomButton {
-                        id: startAppButton
-
-                        text: "Spustiť MacrosoftQuickSupport"
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
-                        anchors.rightMargin: 0
-
+                    Item {
                         Layout.fillWidth: true
+                    }
+
+                    Item {
                         width: 185
                         height: 32
+                        Layout.alignment: Qt.AlignVCenter
 
-                        enabled: backend.is_app_start_enabled
+                        CustomButton {
+                            id: startAppButton
 
-                        onClicked: {
-                            backend.start_app()
+                            text: "Spustiť MacrosoftQuickSupport"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_app_installation_running
+
+                            onClicked: {
+                                backend.install_or_uninstall()
+                            }
                         }
+
                     }
+
+
                 }
 
-                Row {
-                    id: startServiceLabelRow
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 25
-                    anchors.rightMargin: 25
+                // Start Service button
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        id: startServiceLabel
-                        text: "Služba:"
-                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Spustiť Aplikáciu:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
                     }
 
-
-                    CustomButton {
-                        id: startServiceButton
-
-                        text: "Spustiť službu"
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
-                        anchors.rightMargin: 0
-
+                    Item {
                         Layout.fillWidth: true
+                    }
+
+                    Item {
                         width: 185
                         height: 32
+                        Layout.alignment: Qt.AlignVCenter
 
-                        enabled: backend.is_app_start_enabled
+                        CustomButton {
+                            id: startServiceButton
 
-                        onClicked: {
-                            backend.toggle_service()
+                            text: "Spustiť službu"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_app_start_enabled
+
+                            onClicked: {
+                                backend.toggle_service()
+                            }
                         }
+                //     }
+
                     }
+
+
                 }
-
-
             }
         }
-    }
-
-
-    Connections {
-        target: backend
-
-        function onSetName(name) {
-            indicatorLabel.text = name
-        }
-
-        function onAddCounter(text) {
-            abtnChangeName.colorDefault = "#ff0000"
-        }
-
-        function onAppInstallationStatusChanged(status) {
-            if (status === "enabled") {
-                macrosoftQuickSupportButton.text = "Odinštalovať"
-                macrosoftQuickSupportButton.colorDefault = "#ff0000"
-            } else {
-                macrosoftQuickSupportButton.text = "Inštalovať"
-                macrosoftQuickSupportButton.colorDefault = "#35b59d"
-            }
-        }
-
-        function onAppServiceStatusChanged(status) {
-            if (status === "enabled") {
-                startServiceButton.text = "Zastaviť službu"
-                startServiceButton.colorDefault = "#ff0000"
-            } else {
-                startServiceButton.text = "Spustiť službu"
-                startServiceButton.colorDefault = "#35b59d"
-            }
-        }
-
-    }
-
-
-    Component.onCompleted: {
-
-        if (backend.app_installation_status === "enabled") {
-            macrosoftQuickSupportButton.text = "Odinštalovať"
-            macrosoftQuickSupportButton.colorDefault = "#ff0000"
-
-
-        } else {
-            macrosoftQuickSupportButton.text = "Inštalovať"
-            macrosoftQuickSupportButton.colorDefault = "#35b59d"
-
-        }
-        if (backend.app_service_status  === "enabled") {
-            startServiceButton.text = "Zastaviť službu"
-            startServiceButton.colorDefault = "#ff0000"
-        } else {
-            startServiceButton.text = "Spustiť službu"
-            startServiceButton.colorDefault = "#35b59d"
-        }
-
     }
 }
+
+
+
+
+
 
 
 
