@@ -390,40 +390,44 @@ class UserInfoWorker(QObject):
     """manages macrosoft rustdesk and userinfo"""
     progress_changed = Signal(int)
     log = Signal(str)
-    finished = Signal()
-    rustid_changed = Signal(str)
+    finished = Signal(dict)
 
-    access = get_access_code(os.path.basename(sys.argv[0]))
+    def __init__(self):
+        super().__init__()
+        self.result_data = {
+            "username": "",
+            "rust_id": "Nenájdené"
+        }
+        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
 
     @Slot()
     def get_rustdesk_id(self):
         """Retrieve the RustDesk ID."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-
-        if not os.path.exists(app_path):
+        if not os.path.exists(self.app_path):
             self.log.emit(
                 "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
             )
+            self.finished.emit(self.result_data)
 
         try:
             result = subprocess.run(
-                [app_path, "--get-id"],
+                [self.app_path, "--get-id"],
                 capture_output=True,
                 text=True,
                 check=True,
             )
-            rustdesk_id = result.stdout.strip() if result.stdout else ""
-            self.rustid_changed.emit(rustdesk_id)
+            rustdesk_id = result.stdout.strip() if result.stdout else "Nenájdené"
 
             self.log.emit(f"Vaše ID je: {rustdesk_id}")
             self.report_rustdesk_id(rustdesk_id)
+            self.result_data["rust_id"] = rustdesk_id
 
         except Exception as e:
             self.log.emit(f"Nepodarilo sa získať ID: {e}")
 
-        self.finished.emit()
+        self.finished.emit(self.result_data)
 
-    @Slot()
     def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
         """Report the RustDesk ID to the server."""
         if self.access:
@@ -674,23 +678,24 @@ class MainWindow(QObject):
     @Slot()
     def get_rustid(self):
         """finds the apps rust id"""
-        if self.app_start_thread and self.app_start_thread.isRunning():
-            self.app_start_thread.quit()
-            self.app_start_thread.wait()
 
-        self.app_start_thread = QThread()
-        self.app_start_worker = StartAppWorker()
-        self.app_start_worker.moveToThread(self.app_start_thread)
+        if self.app_rust_id_thread and self.app_rust_id_thread.isRunning():
+            self.app_rust_id_thread.quit()
+            self.app_rust_id_thread.wait()
 
-        self.app_start_thread.started.connect(self.app_start_worker.start_macrosoftconnect)
+        self.app_rust_id_thread = QThread()
+        self.app_rust_id_worker = UserInfoWorker()
+        self.app_rust_id_worker.moveToThread(self.app_rust_id_thread)
 
-        self.app_start_worker.progress_changed.connect(self.update_progress)
-        self.app_start_worker.log.connect(self.add_log)
-        self.app_start_worker.finished.connect(self.on_start_app_finished)
+        self.app_rust_id_thread.started.connect(self.app_rust_id_worker.get_rustdesk_id)
+
+        self.app_rust_id_worker.progress_changed.connect(self.update_progress)
+        self.app_rust_id_worker.log.connect(self.add_log)
+        self.app_rust_id_worker.finished.connect(self.on_get_rustid_finished)
 
         # Start the thread
         self.is_app_rust_id_btn_enabled = False
-        self.app_start_thread.start()
+        self.app_rust_id_thread.start()
 
 
     @Slot()
@@ -859,6 +864,21 @@ class MainWindow(QObject):
         self.app_start_worker.deleteLater()
         self.app_start_worker = None
         self.is_app_start_btn_enabled = self.check_installation()
+
+    @Slot()
+    def on_get_rustid_finished(self):
+        """cleans up when start app button is clicked"""
+        print(f"\n\n\ton_get_rustid_finished called ...\n\n")
+
+        self.app_rust_id_thread.quit()
+        self.app_rust_id_thread.wait()
+        self.app_rust_id_thread.deleteLater()
+        self.app_rust_id_thread = None
+
+        self.app_rust_id_worker.deleteLater()
+        self.app_rust_id_worker = None
+        self.is_app_rust_id_btn_enabled = True
+
 
     @Slot()
     def on_toggle_service_finished(self):

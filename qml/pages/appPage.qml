@@ -117,6 +117,38 @@ Item {
                     }
                 }
 
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Vaše ID:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 150
+                        height: 30
+                        Layout.alignment: Qt.AlignVCenter
+
+                        Text {
+                            text: backend.rust_id
+                            Layout.alignment: Qt.AlignVCenter
+                            anchors.centerIn: parent
+                            font.pixelSize: 18  // Adjust size as needed
+                            font.italic: true
+                            font.bold: true
+                            color: "#13b899"
+                        }
+                    }
+                }
+
                 // Install button
                 RowLayout {
                     Layout.fillWidth: true
@@ -244,13 +276,13 @@ Item {
                 }
 
 
-                // Start Service button
+                // Rust Id button
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Získať ID pre prístup::"
+                        text: "Získať ID pre prístup:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -266,7 +298,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
-
+                            id: getRustIdButton
 
                             text: "Získať ID"
                             anchors.verticalCenter: parent.verticalCenter
@@ -277,8 +309,8 @@ Item {
                             width: 185
                             height: 32
 
-                            enabled: backend.is_app_service_btn_enabled
-                            onClicked: { backend.toggle_service() }
+                            enabled: backend.is_app_rust_id_btn_enabled
+                            onClicked: { backend.get_rustid() }
                         }
 
 
@@ -286,46 +318,6 @@ Item {
 
                 }
 
-                // Start Service button
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: "Služba:"
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 185
-                        height: 32
-                        Layout.alignment: Qt.AlignVCenter
-
-                        CustomButton {
-
-                            text: "Spustiť službu"
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-
-                            Layout.fillWidth: true
-                            width: 185
-                            height: 32
-
-                            enabled: backend.is_app_service_btn_enabled
-                            onClicked: { backend.toggle_service() }
-                        }
-
-
-                    }
-
-                }
             }
         }
     }
