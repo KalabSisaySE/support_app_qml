@@ -475,10 +475,13 @@ class MainWindow(QObject):
     appServiceStatusChanged = Signal(str)
     appServiceButtonStatusChanged = Signal(bool)
     appRustIdBtnEnabledChanged = Signal(bool)
+    enableMicrophoneOnlyBtnEnabledChanged = Signal(bool)
+    enableMicrophoneAndCameraBtnEnabledChanged = Signal(bool)
     newLogAdded = Signal(str)
     rustIdChanged = Signal(str)
     accessCodeChanged = Signal(str)
     usernameChanged = Signal(str)
+    permissionStatusChanged = Signal(str)
 
     taskStarted = Signal()
     taskFinished = Signal()
@@ -492,11 +495,14 @@ class MainWindow(QObject):
         self._progress = 0
         self._app_installation_status = "enabled" if self.check_installation() else "disabled"
         self._app_service_status = "enabled" if self.check_installation() and self.is_service_on() else "disabled"
+        self._permission_status = "checking"
 
         self._is_app_install_btn_enabled = False
         self._is_app_start_btn_enabled = self.check_installation()
         self._is_app_service_btn_enabled = self.check_installation()
         self._is_app_rust_id_btn_enabled = self.check_installation()
+        self._is_enable_microphone_only_btn_enabled = True
+        self._is_enable_microphone_and_camera_btn_enabled = True
 
         self._access_code = ""
         self._rust_id = "Nenájdené"
@@ -513,6 +519,12 @@ class MainWindow(QObject):
 
         self.app_rust_id_thread = None
         self.app_rust_id_worker = None
+
+        self.microphone_only_thread = None
+        self.microphone_only_worker = None
+
+        self.microphone_and_camera_thread = None
+        self.microphone_and_camera_worker = None
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -603,6 +615,26 @@ class MainWindow(QObject):
             self._is_app_rust_id_btn_enabled = is_enabled
             self.appRustIdBtnEnabledChanged.emit(is_enabled)
 
+    @Property(bool, notify=enableMicrophoneOnlyBtnEnabledChanged)
+    def is_enable_microphone_only_btn_enabled(self):
+        return self._is_enable_microphone_only_btn_enabled
+
+    @is_enable_microphone_only_btn_enabled.setter
+    def is_enable_microphone_only_btn_enabled(self, is_enabled):
+        if self._is_enable_microphone_only_btn_enabled != is_enabled:
+            self._is_enable_microphone_only_btn_enabled = is_enabled
+            self.enableMicrophoneOnlyBtnEnabledChanged.emit(is_enabled)
+
+    @Property(bool, notify=enableMicrophoneAndCameraBtnEnabledChanged)
+    def is_enable_microphone_and_camera_btn_enabled(self):
+        return self._is_enable_microphone_and_camera_btn_enabled
+
+    @is_enable_microphone_and_camera_btn_enabled.setter
+    def is_enable_microphone_and_camera_btn_enabled(self, is_enabled):
+        if self._is_enable_microphone_and_camera_btn_enabled != is_enabled:
+            self._is_enable_microphone_and_camera_btn_enabled = is_enabled
+            self.enableMicrophoneAndCameraBtnEnabledChanged.emit(is_enabled)
+
     @Property(str, notify=appInstallationStatusChanged)
     def app_installation_status(self):
         return self._app_installation_status
@@ -622,6 +654,16 @@ class MainWindow(QObject):
         if self._app_service_status != status:
             self._app_service_status = status
             self.appServiceStatusChanged.emit(status)
+
+    @Property(str, notify=permissionStatusChanged)
+    def permission_status(self):
+        return self._permission_status
+
+    @permission_status.setter
+    def permission_status(self, status):
+        if self._permission_status != status:
+            self._permission_status = status
+            self.permissionStatusChanged.emit(status)
 
     @Slot(str)
     def add_log(self, log):
@@ -721,6 +763,15 @@ class MainWindow(QObject):
         # self.is_app_install_btn_enabled = True
         self.is_app_service_btn_enabled = False
         self.app_service_thread.start()
+
+
+    @Slot()
+    def enable_microphone_only(self):
+        """changes user devices settings to enable mic access"""
+
+    @Slot()
+    def enable_microphone_and_camera(self):
+        """changes user devices settings to enable mic and camera access"""
 
     @Slot()
     def check_installation(self):
