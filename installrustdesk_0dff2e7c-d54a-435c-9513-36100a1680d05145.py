@@ -13,7 +13,7 @@ from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThrea
 from PySide6.QtQuickControls2 import QQuickStyle
 
 
-from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name
+from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, check_installation
 from support_app.rust_service_manager import ServiceManager
 
 
@@ -21,20 +21,40 @@ class AppInstallationWorker(QObject):
     """manages macrosoft rustdesk installation and uninstallation"""
     progress_changed = Signal(int)
     log = Signal(str)
-    finished = Signal()
+    finished = Signal(dict)
+
+    def __init__(self):
+        super().__init__()
+        self.result_data = {
+            "app_installed": False,
+            "app_service_on": False,
+            "rust_id": "Nenájdené"
+        }
+        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.manager = ServiceManager(
+            service_name="MacrosoftConnectQuickSupport",
+            display_name="MacrosoftConnectQuickSupport Service",
+            binary_path=(
+                r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
+            ),
+        )
 
     @Slot()
+    def handle_install(self):
+        """handles installation state"""
+        if check_installation():
+            self.uninstall_app()
+        else:
+            self.install_app()
+
     def install_app(self):
         """installs and rust Macrosoft RustDesk"""
         self.log.emit("Začínam proces inštalácie...")
 
-        download_url = (
-            "https://online.macrosoft.sk/static/ztpt/output/downloads/macrosoftconnectquicksupport.exe"
-        )
-
+        base_url = "https://online.macrosoft.sk/static/"
+        download_url = f"{base_url}ztpt/output/downloads/macrosoftconnectquicksupport.exe"
         new_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
         temp_dir = os.environ.get("TEMP", new_path)
-        temp_dir = new_path
 
         os.makedirs(temp_dir, exist_ok=True)
         installer_path = os.path.join(temp_dir, "macrosoftconnectquicksupport.exe")
@@ -56,7 +76,7 @@ class AppInstallationWorker(QObject):
                             self.progress_changed.emit(percent)
         except Exception as e:
             self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
-            self.finished.emit()
+            self.finished.emit(self.result_data)
             return
 
         try:
@@ -77,26 +97,25 @@ class AppInstallationWorker(QObject):
             )
 
             time.sleep(10)  # Wait 10 seconds after installation
+            self.result_data["app_installed"] = True
+            self.result_data["app_service_on"] = self.start_service()
+            self.result_data["rust_id"] = self.get_rustdesk_id()
+
         except Exception as e:
             self.log.emit(f"Chyba počas inštalácie: {e}")
-            self.finished.emit()
-            return
 
-        self.finished.emit()
+        self.finished.emit(self.result_data)
 
-    @Slot()
     def uninstall_app(self):
         """uninstalls and rust Macrosoft RustDesk"""
-
         uninstall_path = os.path.join(
             "C:\\Program Files\\MacrosoftConnectQuickSupport",
             "Uninstall MacrosoftConnectQuickSupport.lnk",
         )
 
         if not os.path.exists(uninstall_path):
-            print("not os.path.exists(uninstall_path)")
             self.log.emit("Odinštalačný súbor nebol nájdený.")
-            self.finished.emit()
+            self.finished.emit(self.result_data)
             return
 
         try:
@@ -117,9 +136,131 @@ class AppInstallationWorker(QObject):
             self.log.emit("MacrosoftConnectQuickSupport bol odinštalovaný úspešne.")
         except Exception as e:
             self.log.emit(f"Nepodarilo sa spustiť odinštalátor: {e}")
-            pass
 
-        self.finished.emit()
+        self.finished.emit(self.result_data)
+
+    def get_rustdesk_id(self):
+        """Retrieve the RustDesk ID."""
+        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+
+        if not os.path.exists(app_path):
+            self.log.emit(
+                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+            )
+            return "Nenájdené"
+
+        try:
+            result = subprocess.run(
+                [app_path, "--get-id"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            rustdesk_id = result.stdout.strip() if result.stdout else "Nenájdené"
+
+
+            self.log.emit(f"Vaše ID je: {rustdesk_id}")
+            self.report_rustdesk_id(rustdesk_id)
+            return rustdesk_id
+
+        except Exception as e:
+            self.log.emit(f"Nepodarilo sa získať ID: {e}")
+            return "Nenájdené"
+
+    def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
+        """report the RustDesk ID to the server."""
+        if self.access:
+            base_url = "https://online.macrosoft.sk/rustdesk/"
+            url = f"{base_url}?access={self.access}&rustdesk={rustdesk_id}"
+            attempt = 0
+
+            while attempt < max_attempts:
+                attempt += 1
+                try:
+                    with urllib.request.urlopen(url) as response:
+                        if response.status == 200:
+                            self.log.emit("ID bolo úspešne odoslané.")
+                        else:
+                            self.log.emit(f"Odozva servera: {response.status}")
+                            if attempt < max_attempts:
+                                time.sleep(1)
+                except Exception as e:
+                    self.log.emit(f"Nepodarilo sa odoslať ID: {e}")
+
+    def check_installation(self):
+        """Check if the application is installed and update the UI accordingly."""
+        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+
+        if os.path.exists(app_path):
+            return True
+
+    def start_macrosoftconnect(self):
+        """Start the MacrosoftConnectQuickSupport application."""
+        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+        if not os.path.exists(app_path):
+            return
+
+        try:
+            subprocess.Popen(
+                [app_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+            return True
+        except Exception as e:
+            return
+
+    def start_service(self):
+        """Start the MacrosoftConnectQuickSupport service."""
+        try:
+            if is_service_running("MacrosoftConnectQuickSupport"):
+                self.log.emit("Service is running...")
+                return True
+
+            if not self.check_installation():
+                self.log.emit("App is not installed. Install app first...")
+                return
+
+            if not is_app_running():
+                self.log.emit("App is not running. Running app...")
+                if not self.start_macrosoftconnect():
+                    self.log.emit("Couldn't start app automatically...")
+                    return
+
+            if not self.manager.is_service_installed():
+                self.log.emit("Creating Service...")
+                self.manager.create_service()
+
+            self.manager.start_service()
+            self.log.emit("MacrosoftConnectQuickSupport Service is running")
+            return True
+
+        except Exception as e:
+            self.log.emit(f"Failed to start MacrosoftConnectQuickSupport Service, {e}")
+
+
+    def stop_service(self):
+        """Stop the MacrosoftConnectQuickSupport service."""
+        try:
+            if is_service_running("MacrosoftConnectQuickSupport"):
+                self.log.emit("service is running")
+                if is_app_running():
+                    self.log.emit("app is running")
+                    self.manager.stop_service()
+                    self.log.emit("MacrosoftConnectQuickSupport Service has stopped")
+                    return True
+                else:
+                    self.log.emit("Service is not running...")
+
+            else:
+                self.log.emit("Service is not running...")
+                return True
+        except Exception as e:
+            self.log.emit(
+                f"Failed to stop MacrosoftConnectQuickSupport Service {e}"
+            )
+
 
 
 class StartAppWorker(QObject):
@@ -329,6 +470,7 @@ class MainWindow(QObject):
     appStartBtnEnabledChanged = Signal(bool)
     appServiceStatusChanged = Signal(str)
     appServiceButtonStatusChanged = Signal(bool)
+    appRustIdBtnEnabledChanged = Signal(bool)
     newLogAdded = Signal(str)
     rustIdChanged = Signal(str)
     accessCodeChanged = Signal(str)
@@ -350,6 +492,7 @@ class MainWindow(QObject):
         self._is_app_install_btn_enabled = False
         self._is_app_start_btn_enabled = self.check_installation()
         self._is_app_service_btn_enabled = self.check_installation()
+        self._is_app_rust_id_btn_enabled = self.check_installation()
 
         self._access_code = ""
         self._rust_id = "Nenájdené"
@@ -363,6 +506,9 @@ class MainWindow(QObject):
 
         self.app_service_thread = None
         self.app_service_worker = None
+
+        self.app_rust_id_thread = None
+        self.app_rust_id_worker = None
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -443,6 +589,16 @@ class MainWindow(QObject):
             self._is_app_service_btn_enabled = status
             self.appServiceButtonStatusChanged.emit(status)
 
+    @Property(bool, notify=appRustIdBtnEnabledChanged)
+    def is_app_rust_id_btn_enabled(self):
+        return self._is_app_rust_id_btn_enabled
+
+    @is_app_rust_id_btn_enabled.setter
+    def is_app_rust_id_btn_enabled(self, is_enabled):
+        if self._is_app_rust_id_btn_enabled != is_enabled:
+            self._is_app_rust_id_btn_enabled = is_enabled
+            self.appRustIdBtnEnabledChanged.emit(is_enabled)
+
     @Property(str, notify=appInstallationStatusChanged)
     def app_installation_status(self):
         return self._app_installation_status
@@ -472,8 +628,6 @@ class MainWindow(QObject):
     def install_or_uninstall(self):
         """dynamically installs or uninstalls Macrosoft RustDesk based on the current status"""
 
-        status = self.app_installation_status
-
         if self.app_installation_thread and self.app_installation_thread.isRunning():
             self.app_installation_thread.quit()
             self.app_installation_thread.wait()
@@ -482,12 +636,7 @@ class MainWindow(QObject):
         self.app_installation_worker = AppInstallationWorker()
         self.app_installation_worker.moveToThread(self.app_installation_thread)
 
-        if status == "checking" or status == "disabled":
-            print(f"\n\n\n\tinstall_macrosoft_connect\n\n")
-            self.app_installation_thread.started.connect(self.app_installation_worker.install_app)
-        else:
-            print(f"\n\n\n\tuninstall_macrosoft_connect\n\n")
-            self.app_installation_thread.started.connect(self.app_installation_worker.uninstall_app)
+        self.app_installation_thread.started.connect(self.app_installation_worker.handle_install)
 
         self.app_installation_worker.progress_changed.connect(self.update_progress)
         self.app_installation_worker.log.connect(self.add_log)
@@ -521,6 +670,28 @@ class MainWindow(QObject):
         # Start the thread
         self.is_app_start_btn_enabled = False
         self.app_start_thread.start()
+
+    @Slot()
+    def get_rustid(self):
+        """finds the apps rust id"""
+        if self.app_start_thread and self.app_start_thread.isRunning():
+            self.app_start_thread.quit()
+            self.app_start_thread.wait()
+
+        self.app_start_thread = QThread()
+        self.app_start_worker = StartAppWorker()
+        self.app_start_worker.moveToThread(self.app_start_thread)
+
+        self.app_start_thread.started.connect(self.app_start_worker.start_macrosoftconnect)
+
+        self.app_start_worker.progress_changed.connect(self.update_progress)
+        self.app_start_worker.log.connect(self.add_log)
+        self.app_start_worker.finished.connect(self.on_start_app_finished)
+
+        # Start the thread
+        self.is_app_rust_id_btn_enabled = False
+        self.app_start_thread.start()
+
 
     @Slot()
     def toggle_service(self):
@@ -562,15 +733,19 @@ class MainWindow(QObject):
 
         self.is_app_install_btn_enabled = True
 
+        script_name = os.path.basename(sys.argv[0])
+        code = get_access_code(script_name)
+        rustdesk_id = ""
+        is_rust_id_reported = False
+
         if self.check_installation():
             self.app_installation_status = "enabled"
-            code = ""
 
             # get rust_id
             try:
                 max_attempts = 3
                 app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-                script_name = os.path.basename(sys.argv[0])
+
                 result = subprocess.run(
                     [app_path, "--get-id"],
                     capture_output=True,
@@ -578,7 +753,7 @@ class MainWindow(QObject):
                     check=True,
                 )
                 rustdesk_id = result.stdout.strip() if result.stdout else ""
-                code = get_access_code(script_name)
+
                 self.rust_id = rustdesk_id
                 self.access_code = code
 
@@ -592,15 +767,25 @@ class MainWindow(QObject):
                             with urllib.request.urlopen(url) as response:
                                 if response.status != 200 and attempt < max_attempts:
                                     time.sleep(1)
+                                else:
+                                    is_rust_id_reported = True
                         except Exception as e:
                             pass
             except Exception as e:
                 pass
 
-            # get username
-            self.username = get_full_name(code)
         else:
             self.app_installation_status = "disabled"
+
+        # get username
+        self.username = get_full_name(code)
+
+        print("\n\n\nApplication init:")
+        print(f"\tcode: {code}")
+        print(f"\tusername: {self.username}")
+        print(f"\trust_id: {rustdesk_id}")
+        print(f"\tis_rust_id_reported: {is_rust_id_reported}")
+        print("\n\n\n")
 
     @Slot()
     def refresh_app_status(self):
@@ -624,20 +809,28 @@ class MainWindow(QObject):
         """checks if Macrosoft rustdesk service is running"""
         return is_service_running("MacrosoftConnectQuickSupport")
 
-    @Slot()
-    def on_installation_finished(self):
+    @Slot(dict)
+    def on_installation_finished(self, result_data):
         """updates app state, cleans up, releases resources"""
         print(f"\n\n\ton_installation_finished called ...\n\n")
-        if self.check_installation():
+        print(f"\n\n\n\t{result_data}\n\n\n")
+
+        if result_data.get("app_installed"):
             self.app_installation_status = "enabled"
-            if self.is_service_on():
+
+            if result_data.get("app_service_on"):
                 self.app_service_status = "enabled"
+
+            if result_data.get("rust_id"):
+                self.rust_id = result_data.get("rust_id")
+
             self.is_app_start_btn_enabled = True
             self.is_app_start_btn_enabled = True
             self.is_app_service_btn_enabled = True
         else:
             self.app_installation_status = "disabled"
             self.app_service_status = "disabled"
+            self.rust_id = result_data.get("rust_id")
             self.is_app_start_btn_enabled = False
             self.is_app_service_btn_enabled = False
 

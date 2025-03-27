@@ -3,6 +3,7 @@ import psutil
 import requests
 import socket
 import webbrowser
+import os
 
 
 def get_process_command_lines(process_name):
@@ -114,3 +115,9 @@ def get_access_code(script_name):
         access = ""
 
     return access
+
+
+def check_installation():
+    """Check if the application is installed on user's computer."""
+    app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+    return  os.path.exists(app_path)

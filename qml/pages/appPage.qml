@@ -242,6 +242,90 @@ Item {
                     }
 
                 }
+
+
+                // Start Service button
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Získať ID pre prístup::"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 185
+                        height: 32
+                        Layout.alignment: Qt.AlignVCenter
+
+                        CustomButton {
+
+
+                            text: "Získať ID"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_app_service_btn_enabled
+                            onClicked: { backend.toggle_service() }
+                        }
+
+
+                    }
+
+                }
+
+                // Start Service button
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Služba:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 185
+                        height: 32
+                        Layout.alignment: Qt.AlignVCenter
+
+                        CustomButton {
+
+                            text: "Spustiť službu"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_app_service_btn_enabled
+                            onClicked: { backend.toggle_service() }
+                        }
+
+
+                    }
+
+                }
             }
         }
     }

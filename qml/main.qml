@@ -8,9 +8,9 @@ import QtQuick.Dialogs
 Window {
     id: mainWindow
     width: 1000
-    height: 620
-    minimumWidth: 820
-    minimumHeight: 565
+    height: 720
+    minimumWidth: 900
+    minimumHeight: 710
     visible: true
     color: "#00000000"
     title: qsTr("Macrosoft Support")
@@ -149,8 +149,12 @@ Window {
 
                     Label {
                         id: labelRightInfo
+
+                        property string currentTime: ""
+
+
                         color: "#5f6a82"
-                        text: qsTr("| HOME")
+                        text: `| ${currentTime}`
                         anchors.left: labelTopInfo.right
                         anchors.right: parent.right
                         anchors.top: parent.top
@@ -161,6 +165,18 @@ Window {
                         anchors.rightMargin: 10
                         anchors.leftMargin: 0
                         anchors.bottomMargin: 0
+
+
+                        Timer {
+                            interval: 1000 // Update every 1 second
+                            running: true
+                            repeat: true
+                            onTriggered: {
+                                labelRightInfo.currentTime = Qt.formatDateTime(new Date(), "dd.MM.yyyy - hh:mm:ss")
+                            }
+                        }
+
+                        Component.onCompleted: {labelRightInfo.currentTime = Qt.formatDateTime(new Date(), "dd.MM.yyyy - hh:mm:ss")}
                     }
                 }
 
