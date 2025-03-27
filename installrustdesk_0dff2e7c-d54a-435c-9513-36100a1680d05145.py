@@ -10,6 +10,8 @@ import subprocess
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread
+from PySide6.QtWebSockets import QWebSocket
+from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
 
 
@@ -535,6 +537,56 @@ class PermissionWorker(QObject):
         self.log.emit(f"browser_permissions_allowed: {is_browser_permissions_allowed}")
 
 
+class WebSocketWorker(QObject):
+    connection = Signal(bool)
+    message_received = Signal(str)
+    error_occurred = Signal(str)
+    log = Signal(str)
+
+    def __init__(self):
+        super().__init__()
+        script_name = os.path.basename(sys.argv[0])
+        self.access = get_access_code(script_name)
+
+        self.url = f"wss://online.macrosoft.sk/ws/support/?access_code={self.access}"
+        self.websocket = QWebSocket()
+        self.websocket.connected.connect(self.on_connected)
+        self.websocket.disconnected.connect(self.on_disconnected)
+        self.websocket.textMessageReceived.connect(self.on_text_message_received)
+        self.websocket.errorOccurred.connect(self.on_error)
+
+    @Slot()
+    def connect(self):
+        self.websocket.open(QUrl(self.url))
+
+    @Slot()
+    def disconnect(self):
+        self.websocket.close()
+
+    @Slot()
+    def on_connected(self):
+        self.connection.emit(True)
+
+    @Slot()
+    def on_disconnected(self):
+        self.connection.emit(False)
+
+    @Slot()
+    def on_text_message_received(self, message):
+        self.message_received.emit(message)
+
+    @Slot(str)
+    def on_error(self, error):
+        self.error_occurred.emit(error.errorString())
+
+    @Slot(str)
+    def send_message(self, message):
+        if self.websocket.state() == QAbstractSocket.ConnectedState:
+            self.websocket.sendTextMessage(message)
+        else:
+            self.error_occurred.emit("Not connected to WebSocket server")
+
+
 class MainWindow(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -546,19 +598,23 @@ class MainWindow(QObject):
     # custom signals
     progressChanged = Signal(int)
     appInstallationStatusChanged = Signal(str)
-    appInstallationRunning = Signal(bool)
-    appStartBtnEnabledChanged = Signal(bool)
     appServiceStatusChanged = Signal(str)
-    appServiceButtonStatusChanged = Signal(bool)
+    appWebsocketStatusChanged = Signal(str)
+    permissionStatusChanged = Signal(str)
+
+
+    appInstallBtnEnabledChanged = Signal(bool)
+    appServiceBtnEnabledChanged = Signal(bool)
+    appStartBtnEnabledChanged = Signal(bool)
     appRustIdBtnEnabledChanged = Signal(bool)
     enableMicrophoneOnlyBtnEnabledChanged = Signal(bool)
     enableMicrophoneAndCameraBtnEnabledChanged = Signal(bool)
     openBrowserBtnEnabledChanged = Signal(bool)
+
     newLogAdded = Signal(str)
     rustIdChanged = Signal(str)
     accessCodeChanged = Signal(str)
     usernameChanged = Signal(str)
-    permissionStatusChanged = Signal(str)
 
     taskStarted = Signal()
     taskFinished = Signal()
@@ -572,7 +628,8 @@ class MainWindow(QObject):
         self._progress = 0
         self._app_installation_status = "enabled" if self.check_installation() else "disabled"
         self._app_service_status = "enabled" if self.check_installation() and self.is_service_on() else "disabled"
-        self._permission_status = "checking"
+        self._app_websocket_status = "disabled"
+        self._permission_status = "disabled"
 
         self._is_app_install_btn_enabled = False
         self._is_app_start_btn_enabled = self.check_installation()
@@ -595,6 +652,9 @@ class MainWindow(QObject):
         self.app_service_thread = None
         self.app_service_worker = None
 
+        self.app_websocket_thread = None
+        self.app_websocket_worker = None
+
         self.app_rust_id_thread = None
         self.app_rust_id_worker = None
 
@@ -606,6 +666,9 @@ class MainWindow(QObject):
 
         self.open_browser_thread = None
         self.open_browser_worker = None
+
+        # Cross-thread communication
+        self.sendMessageRequested = Signal(str)
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -654,7 +717,7 @@ class MainWindow(QObject):
             self._username = name
             self.usernameChanged.emit(name)
 
-    @Property(bool, notify=appInstallationRunning)
+    @Property(bool, notify=appInstallBtnEnabledChanged)
     def is_app_install_btn_enabled(self):
         return self._is_app_install_btn_enabled
 
@@ -662,7 +725,7 @@ class MainWindow(QObject):
     def is_app_install_btn_enabled(self, is_running):
         if self._is_app_install_btn_enabled != is_running:
             self._is_app_install_btn_enabled = is_running
-            self.appInstallationRunning.emit(is_running)
+            self.appInstallBtnEnabledChanged.emit(is_running)
 
     @Property(bool, notify=appStartBtnEnabledChanged)
     def is_app_start_btn_enabled(self):
@@ -676,7 +739,7 @@ class MainWindow(QObject):
             self._is_app_start_btn_enabled = status
             self.appStartBtnEnabledChanged.emit(status)
 
-    @Property(bool, notify=appServiceButtonStatusChanged)
+    @Property(bool, notify=appServiceBtnEnabledChanged)
     def is_app_service_btn_enabled(self):
         return self._is_app_service_btn_enabled
 
@@ -684,7 +747,7 @@ class MainWindow(QObject):
     def is_app_service_btn_enabled(self, status):
         if self._is_app_service_btn_enabled != status:
             self._is_app_service_btn_enabled = status
-            self.appServiceButtonStatusChanged.emit(status)
+            self.appServiceBtnEnabledChanged.emit(status)
 
     @Property(bool, notify=appRustIdBtnEnabledChanged)
     def is_app_rust_id_btn_enabled(self):
@@ -755,6 +818,17 @@ class MainWindow(QObject):
         if self._permission_status != status:
             self._permission_status = status
             self.permissionStatusChanged.emit(status)
+
+    @Property(str, notify=appWebsocketStatusChanged)
+    def app_websocket_status(self):
+        return self._app_websocket_status
+
+    @app_websocket_status.setter
+    def app_websocket_status(self, status):
+        if self._app_websocket_status != status:
+            self._app_websocket_status = status
+            self.appWebsocketStatusChanged.emit(status)
+
 
     @Slot(str)
     def add_log(self, log):
@@ -995,9 +1069,7 @@ class MainWindow(QObject):
 
         self.add_log(f"\tmicrophone_allowed: {microphone_allowed}")
         self.add_log(f"\twebcam_allowed: {webcam_allowed}")
-        self.add_log(
-            f"\tbrowser_permissions_allowed: {browser_permissions_allowed}"
-        )
+        self.add_log(f"\tbrowser_permissions_allowed: {browser_permissions_allowed}")
 
         if microphone_allowed and webcam_allowed and browser_permissions_allowed:
             self.permission_status = "enabled"
@@ -1006,12 +1078,45 @@ class MainWindow(QObject):
         else:
             self.permission_status = "disabled"
 
+        # setup websocket
+        if code:
+
+            self.app_websocket_worker = WebSocketWorker()
+            self.app_websocket_thread = QThread()
+            self.app_websocket_worker.moveToThread(self.app_websocket_thread)
+
+            # Connect signals
+            self.app_websocket_thread.started.connect(self.app_websocket_worker.connect)
+            # self.app_websocket_worker.connection.connect(self.websocket_on_change_status)
+            # self.app_websocket_worker.message_received.connect(self.websocket_on_message_received)
+            # self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
+            # self.app_websocket_worker.log.connect(self.add_log)
+
+            # self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
+            self.app_websocket_thread.start()
+
         print("\n\n\nApplication init:")
         print(f"\tcode: {code}")
         print(f"\tusername: {self.username}")
         print(f"\trust_id: {rustdesk_id}")
         print(f"\tis_rust_id_reported: {is_rust_id_reported}")
+        print(f"\twebsocket status: {self._app_websocket_status}")
         print("\n\n\n")
+
+    @Slot(bool)
+    def websocket_on_change_status(self, status):
+        if status:
+            self.app_websocket_status = "enabled"
+        else:
+            self.app_websocket_status = "disabled"
+
+    @Slot(str)
+    def websocket_on_message_received(self, message):
+        self.add_log(message)
+
+    @Slot(str)
+    def websocket_on_error(self, message):
+        self.add_log(message)
 
     @Slot()
     def refresh_app_status(self):
@@ -1238,8 +1343,21 @@ class MainWindow(QObject):
         i = random.randint(1, 10)
         self.addCounter.emit(f"Counter: {i}")
 
+    def cleanup(self):
+        """handles threads, worker cleanup"""
+        print(f"\n\n\nbackend.cleanup\n\n")
+        time.sleep(5)
+        app_threads = []
+        for thread in app_threads:
+            if thread and thread.isRunning():
+                thread.quit()
+                thread.wait()
+                thread.deleteLater()
 
-
+        # handle websocket
+        # self.worker.disconnect()
+        # self.thread.quit()
+        # self.thread.wait()
 
 
 if __name__ == "__main__":
@@ -1251,9 +1369,9 @@ if __name__ == "__main__":
     engine = QQmlApplicationEngine()
 
     # 3. Get Context
-    main = MainWindow()
+    backend = MainWindow()
 
-    engine.rootContext().setContextProperty("backend", main)
+    engine.rootContext().setContextProperty("backend", backend)
 
     # 4. Set App Extra Info
     app.setOrganizationName("Wanderson M. Pimenta")
@@ -1262,6 +1380,8 @@ if __name__ == "__main__":
     # 5. Load QML File
     qml_file = os.path.join(os.path.dirname(__file__), "qml/main.qml")
     engine.load(QUrl.fromLocalFile(qml_file))
+
+    app.aboutToQuit.connect(backend.cleanup)
 
     if not engine.rootObjects():
         sys.exit(-1)

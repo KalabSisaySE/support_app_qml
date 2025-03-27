@@ -211,6 +211,35 @@ Item {
                     }
                 }
 
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Websocket Status:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 150
+                        height: 30
+                        Layout.alignment: Qt.AlignVCenter
+
+                        StatusIndicator {
+                            size: 20
+                            status: backend.app_websocket_status
+                            Layout.alignment: Qt.AlignVCenter
+                            anchors.centerIn: parent
+                        }
+                    }
+                }
+
             }
         }
     }
