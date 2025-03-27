@@ -13,8 +13,10 @@ from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThrea
 from PySide6.QtQuickControls2 import QQuickStyle
 
 
-from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, check_installation
+from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, check_installation, open_website
 from support_app.rust_service_manager import ServiceManager
+from support_app.registry_permission_manager import RegistryPermissionManager
+from support_app.browser_permission_manager import BrowserPermissionManager
 
 
 class AppInstallationWorker(QObject):
@@ -262,7 +264,6 @@ class AppInstallationWorker(QObject):
             )
 
 
-
 class StartAppWorker(QObject):
     """manages macrosoft rustdesk starting"""
     progress_changed = Signal(int)
@@ -459,6 +460,81 @@ class UserInfoWorker(QObject):
         self.finished.emit()
 
 
+class OpenBrowserWorker(QObject):
+    """manages opening/closing a browser"""
+    progress_changed = Signal(int)
+    log = Signal(str)
+    finished = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self.access = get_access_code(os.path.basename(sys.argv[0]))
+
+    @Slot()
+    def open_browser(self):
+        """Open the default page in user's default browser."""
+        try:
+            self.log.emit("Opening website ...")
+            if open_website(self.access):
+                self.log.emit("Website Opened")
+            else:
+                self.log.emit("Website Failed to open")
+
+        except Exception as e:
+            self.log.emit("Website Failed to open")
+
+        self.finished.emit()
+
+
+class PermissionWorker(QObject):
+    """manages opening/closing a browser"""
+    progress_changed = Signal(int)
+    log = Signal(str)
+    finished = Signal(dict)
+
+    def __init__(self):
+        super().__init__()
+        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.registry_permission = RegistryPermissionManager()
+        self.browser_permission = BrowserPermissionManager()
+        self.result_data = {
+            "is_webcam_allowed": False,
+            "is_microphone_allowed": False,
+            "is_browser_permissions_allowed": False,
+        }
+
+    @Slot()
+    def set_microphone_access_only(self):
+        """Set microphone access permissions only."""
+        self.log.emit("Setting microphone access only.")
+        self.registry_permission.set_microphone_only_access_powershell()
+        self.check_permissions()
+        self.finished.emit(self.result_data)
+
+    @Slot()
+    def set_microphone_and_camera_access_only(self):
+        """Set all necessary permissions."""
+        self.log.emit("Setting all permissions...")
+        self.registry_permission.set_microphone_and_webcam_access_powershell()
+        self.browser_permission.set_browser_permissions()
+        self.check_permissions()
+        self.finished.emit(self.result_data)
+
+    def check_permissions(self):
+        """checks permissions statuses"""
+        is_microphone_allowed = self.registry_permission.is_microphone_allowed()
+        is_webcam_allowed = self.registry_permission.is_webcam_allowed()
+        is_browser_permissions_allowed = self.browser_permission.is_browser_permissions_allowed()
+
+        self.result_data["is_microphone_allowed"] = is_microphone_allowed
+        self.result_data["is_webcam_allowed"] = is_webcam_allowed
+        self.result_data["is_browser_permissions_allowed"] = is_browser_permissions_allowed
+
+        self.log.emit(f"microphone_allowed: {is_microphone_allowed}")
+        self.log.emit(f"webcam_allowed: {is_webcam_allowed}")
+        self.log.emit(f"browser_permissions_allowed: {is_browser_permissions_allowed}")
+
+
 class MainWindow(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -477,6 +553,7 @@ class MainWindow(QObject):
     appRustIdBtnEnabledChanged = Signal(bool)
     enableMicrophoneOnlyBtnEnabledChanged = Signal(bool)
     enableMicrophoneAndCameraBtnEnabledChanged = Signal(bool)
+    openBrowserBtnEnabledChanged = Signal(bool)
     newLogAdded = Signal(str)
     rustIdChanged = Signal(str)
     accessCodeChanged = Signal(str)
@@ -503,6 +580,7 @@ class MainWindow(QObject):
         self._is_app_rust_id_btn_enabled = self.check_installation()
         self._is_enable_microphone_only_btn_enabled = True
         self._is_enable_microphone_and_camera_btn_enabled = True
+        self._is_open_browser_btn_enabled = True
 
         self._access_code = ""
         self._rust_id = "Nenájdené"
@@ -525,6 +603,9 @@ class MainWindow(QObject):
 
         self.microphone_and_camera_thread = None
         self.microphone_and_camera_worker = None
+
+        self.open_browser_thread = None
+        self.open_browser_worker = None
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -635,6 +716,16 @@ class MainWindow(QObject):
             self._is_enable_microphone_and_camera_btn_enabled = is_enabled
             self.enableMicrophoneAndCameraBtnEnabledChanged.emit(is_enabled)
 
+    @Property(bool, notify=openBrowserBtnEnabledChanged)
+    def is_open_browser_btn_enabled(self):
+        return self._is_open_browser_btn_enabled
+
+    @is_open_browser_btn_enabled.setter
+    def is_open_browser_btn_enabled(self, is_enabled):
+        if self._is_open_browser_btn_enabled != is_enabled:
+            self._is_open_browser_btn_enabled = is_enabled
+            self.openBrowserBtnEnabledChanged.emit(is_enabled)
+
     @Property(str, notify=appInstallationStatusChanged)
     def app_installation_status(self):
         return self._app_installation_status
@@ -694,6 +785,7 @@ class MainWindow(QObject):
         self.is_app_install_btn_enabled = False
         self.is_app_start_btn_enabled = False
         self.is_app_service_btn_enabled = False
+        self.is_app_rust_id_btn_enabled = False
         self.app_installation_thread.start()
 
     @Slot()
@@ -720,7 +812,6 @@ class MainWindow(QObject):
     @Slot()
     def get_rustid(self):
         """finds the apps rust id"""
-
         if self.app_rust_id_thread and self.app_rust_id_thread.isRunning():
             self.app_rust_id_thread.quit()
             self.app_rust_id_thread.wait()
@@ -764,14 +855,71 @@ class MainWindow(QObject):
         self.is_app_service_btn_enabled = False
         self.app_service_thread.start()
 
+    @Slot()
+    def open_webpage(self):
+        """opens Macrosoft website in user's browser"""
+        if self.open_browser_thread and self.open_browser_thread.isRunning():
+            self.open_browser_thread.quit()
+            self.open_browser_thread.wait()
+
+        self.open_browser_thread = QThread()
+        self.open_browser_worker = OpenBrowserWorker()
+        self.open_browser_worker.moveToThread(self.open_browser_thread)
+
+        self.open_browser_thread.started.connect(self.open_browser_worker.open_browser)
+
+        self.open_browser_worker.progress_changed.connect(self.update_progress)
+        self.open_browser_worker.log.connect(self.add_log)
+        self.open_browser_worker.finished.connect(self.on_open_webpage_finished)
+
+        self.is_open_browser_btn_enabled = False
+        self.open_browser_thread.start()
+
 
     @Slot()
     def enable_microphone_only(self):
         """changes user devices settings to enable mic access"""
+        if self.microphone_only_thread and self.microphone_only_thread.isRunning():
+            self.microphone_only_thread.quit()
+            self.microphone_only_thread.wait()
+
+        self.microphone_only_thread = QThread()
+        self.microphone_only_worker = PermissionWorker()
+        self.microphone_only_worker.moveToThread(self.microphone_only_thread)
+
+        self.microphone_only_thread.started.connect(self.microphone_only_worker.set_microphone_access_only)
+
+        self.microphone_only_worker.progress_changed.connect(self.update_progress)
+        self.microphone_only_worker.log.connect(self.add_log)
+        self.microphone_only_worker.finished.connect(self.on_enable_microphone_only_finished)
+
+        self.is_enable_microphone_only_btn_enabled = False
+        self.is_enable_microphone_and_camera_btn_enabled = False
+        self.microphone_only_thread.start()
+
 
     @Slot()
     def enable_microphone_and_camera(self):
         """changes user devices settings to enable mic and camera access"""
+        if self.microphone_and_camera_thread and self.microphone_and_camera_thread.isRunning():
+            self.microphone_and_camera_thread.quit()
+            self.microphone_and_camera_thread.wait()
+
+        self.microphone_and_camera_thread = QThread()
+        self.microphone_and_camera_worker = PermissionWorker()
+        self.microphone_and_camera_worker.moveToThread(self.microphone_and_camera_thread)
+
+        self.microphone_and_camera_thread.started.connect(
+            self.microphone_and_camera_worker.set_microphone_and_camera_access_only
+        )
+
+        self.microphone_and_camera_worker.progress_changed.connect(self.update_progress)
+        self.microphone_and_camera_worker.log.connect(self.add_log)
+        self.microphone_and_camera_worker.finished.connect(self.on_enable_microphone_and_camera_finished)
+
+        self.is_enable_microphone_only_btn_enabled = False
+        self.is_enable_microphone_and_camera_btn_enabled = False
+        self.microphone_and_camera_thread.start()
 
     @Slot()
     def check_installation(self):
@@ -782,7 +930,7 @@ class MainWindow(QObject):
 
     @Slot(int)
     def update_progress(self, value):
-        self.progress = value
+        self.progress = (self.progress + value) // 2
 
     @Slot()
     def app_init(self):
@@ -836,6 +984,28 @@ class MainWindow(QObject):
         # get username
         self.username = get_full_name(code)
 
+        # check permissions
+        registry_permission = RegistryPermissionManager()
+        browser_permission = BrowserPermissionManager()
+        microphone_allowed = registry_permission.is_microphone_allowed()
+        webcam_allowed = registry_permission.is_webcam_allowed()
+        browser_permissions_allowed = (
+            browser_permission.is_browser_permissions_allowed()
+        )
+
+        self.add_log(f"\tmicrophone_allowed: {microphone_allowed}")
+        self.add_log(f"\twebcam_allowed: {webcam_allowed}")
+        self.add_log(
+            f"\tbrowser_permissions_allowed: {browser_permissions_allowed}"
+        )
+
+        if microphone_allowed and webcam_allowed and browser_permissions_allowed:
+            self.permission_status = "enabled"
+        elif microphone_allowed:
+            self.permission_status = "checking"
+        else:
+            self.permission_status = "disabled"
+
         print("\n\n\nApplication init:")
         print(f"\tcode: {code}")
         print(f"\tusername: {self.username}")
@@ -881,14 +1051,15 @@ class MainWindow(QObject):
                 self.rust_id = result_data.get("rust_id")
 
             self.is_app_start_btn_enabled = True
-            self.is_app_start_btn_enabled = True
             self.is_app_service_btn_enabled = True
+            self.is_app_rust_id_btn_enabled = True
         else:
             self.app_installation_status = "disabled"
             self.app_service_status = "disabled"
             self.rust_id = result_data.get("rust_id")
             self.is_app_start_btn_enabled = False
             self.is_app_service_btn_enabled = False
+            self.is_app_rust_id_btn_enabled = False
 
         self.update_progress(0)
         self.is_app_install_btn_enabled = True
@@ -900,7 +1071,6 @@ class MainWindow(QObject):
 
         self.app_installation_worker.deleteLater()
         self.app_installation_worker = None
-
 
     @Slot()
     def on_start_app_finished(self):
@@ -930,7 +1100,6 @@ class MainWindow(QObject):
         self.app_rust_id_worker = None
         self.is_app_rust_id_btn_enabled = True
 
-
     @Slot()
     def on_toggle_service_finished(self):
         """cleans up when start service button is clicked"""
@@ -949,8 +1118,70 @@ class MainWindow(QObject):
 
         self.is_app_service_btn_enabled = True
 
+    @Slot()
+    def on_open_webpage_finished(self):
 
-    # Open File
+        self.open_browser_thread.quit()
+        self.open_browser_thread.wait()
+        self.open_browser_thread.deleteLater()
+        self.open_browser_thread = None
+
+        self.open_browser_worker.deleteLater()
+        self.open_browser_worker = None
+
+        self.is_open_browser_btn_enabled = True
+
+    @Slot(dict)
+    def on_enable_microphone_only_finished(self, result):
+        print(f"\n\n\non_enable_microphone_only_finished")
+        print(f"\t{result}")
+
+        self.update_permission_status(result)
+
+        print(f"\n\tpermission_status: {self.permission_status}\n\n")
+
+        self.microphone_only_thread.quit()
+        self.microphone_only_thread.wait()
+        self.microphone_only_thread.deleteLater()
+        self.microphone_only_thread = None
+
+        self.microphone_only_worker.deleteLater()
+        self.microphone_only_worker = None
+
+        self.is_enable_microphone_only_btn_enabled = True
+        self.is_enable_microphone_and_camera_btn_enabled = True
+
+    @Slot(dict)
+    def on_enable_microphone_and_camera_finished(self, result):
+        print(f"\n\n\non_enable_microphone_and_camera_finished")
+        print(f"\t{result}")
+        self.update_permission_status(result)
+        print(f"\n\tpermission_status: {self.permission_status}\n\n")
+
+        self.microphone_and_camera_thread.quit()
+        self.microphone_and_camera_thread.wait()
+        self.microphone_and_camera_thread.deleteLater()
+        self.microphone_and_camera_thread = None
+
+        self.microphone_and_camera_worker.deleteLater()
+        self.microphone_and_camera_worker = None
+
+        self.is_enable_microphone_only_btn_enabled = True
+        self.is_enable_microphone_and_camera_btn_enabled = True
+
+    def update_permission_status(self, result):
+        """updates permission status based on the given data"""
+        webcam_allowed = result.get("is_webcam_allowed")
+        microphone_allowed = result.get("is_microphone_allowed")
+        browser_permissions_allowed = result.get("is_browser_permissions_allowed")
+
+        if microphone_allowed and webcam_allowed and browser_permissions_allowed:
+            self.permission_status = "enabled"
+        elif microphone_allowed:
+            self.permission_status = "checking"
+        else:
+            self.permission_status = "disabled"
+
     @Slot(str)
     def openFile(self, filePath):
         try:

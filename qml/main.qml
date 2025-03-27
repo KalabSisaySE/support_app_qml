@@ -7,9 +7,9 @@ import QtQuick.Dialogs
 
 Window {
     id: mainWindow
-    width: 1000
+    width: 1050
     height: 720
-    minimumWidth: 900
+    minimumWidth: 1000
     minimumHeight: 710
     visible: true
     color: "#00000000"

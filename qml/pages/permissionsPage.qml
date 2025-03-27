@@ -61,7 +61,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Stav povolenia mikrofónu: "
+                        text: "Stav Povolenia Mikrofónu:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -163,6 +163,49 @@ Item {
 
                             onClicked: {
                                 backend.enable_microphone_and_camera()
+                            }
+                        }
+
+                    }
+
+
+                }
+
+                // Open Website Button
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Webstránka:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 185
+                        height: 32
+                        Layout.alignment: Qt.AlignVCenter
+
+                        CustomButton {
+                            text: "Otvoriť webstránku"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_open_browser_btn_enabled
+
+                            onClicked: {
+                                backend.open_webpage()
                             }
                         }
 
