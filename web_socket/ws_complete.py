@@ -11,7 +11,10 @@ class WebSocketWorker(QObject):
     def __init__(self, url):
         super().__init__()
         self.url = url
-        self.websocket = QWebSocket()  # No parent!
+        # self.websocket = QWebSocket()  # No parent!
+        self.websocket = QWebSocket(parent=self)  # No parent!
+        print("__init__ WebSocketWorker")
+        print(f"websocket thread: {self.websocket.thread()}\n")
 
         # Connect internal signals
         self.websocket.connected.connect(self.on_connected)
@@ -58,6 +61,10 @@ def main():
     worker.message_received.connect(
         lambda msg: print(f"Received: {msg}")
     )
+
+    print(f"app.thread (main): {app.thread()}")
+    print(f"worker.thread: {worker.thread()}")
+    print(f"thread: {thread}")
 
     # Graceful shutdown
     app.aboutToQuit.connect(worker.close_connection)
