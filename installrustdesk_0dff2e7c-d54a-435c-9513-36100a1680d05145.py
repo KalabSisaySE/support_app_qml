@@ -10,7 +10,7 @@ import subprocess
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery
-from PySide6.QtWebSockets import QWebSocket
+from PySide6.QtWebSockets import QWebSocket, QWebSocketProtocol
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
 
@@ -536,7 +536,6 @@ class PermissionWorker(QObject):
         self.log.emit(f"webcam_allowed: {is_webcam_allowed}")
         self.log.emit(f"browser_permissions_allowed: {is_browser_permissions_allowed}")
 
-
 class WebSocketWorker(QObject):
     connection = Signal(bool)
     message_received = Signal(str)
@@ -548,6 +547,7 @@ class WebSocketWorker(QObject):
         script_name = os.path.basename(sys.argv[0])
         self.access = get_access_code(script_name)
 
+        # WebSocket setup
         url = QUrl("wss://online.macrosoft.sk/ws/support/")
         query = QUrlQuery()
         query.addQueryItem("access_code", self.access)
@@ -559,37 +559,104 @@ class WebSocketWorker(QObject):
         self.websocket.disconnected.connect(self.on_disconnected)
         self.websocket.textMessageReceived.connect(self.on_text_message_received)
         self.websocket.errorOccurred.connect(self.on_error)
-        self.log.emit(f"WebSocketWorker __init__")
+
+        # Reconnection settings
+        self.reconnect_enabled = True  # Master toggle
+        self.initial_reconnect_delay = 1000  # 1 second
+        self.max_reconnect_delay = 30000  # 30 seconds cap
+        self.current_reconnect_delay = self.initial_reconnect_delay
+        self.reconnect_needed = False  # Flag for network-related errors
+        self.manual_disconnect = False  # Track user-initiated disconnects
+
+        # Reconnection timer
+        self.reconnect_timer = QTimer(self)
+        self.reconnect_timer.setSingleShot(True)
+        self.reconnect_timer.timeout.connect(self.start_connection)
+
+        self.log.emit("WebSocketWorker initialized")
 
     @Slot()
     def start_connection(self):
-        self.log.emit(f"WebSocketWorker start_connection")
+        self.log.emit("Attempting WebSocket connection...")
         self.websocket.open(QUrl(self.url))
 
     @Slot()
     def disconnect(self):
-        self.log.emit(f"WebSocketWorker disconnect")
+        # Manual disconnection (disable reconnection)
+        self.manual_disconnect = True
+        self.reconnect_enabled = False
+        self.reconnect_timer.stop()
         self.websocket.close()
+        self.log.emit("Manual disconnect requested")
 
     @Slot()
     def on_connected(self):
-        self.log.emit(f"WebSocketWorker on_connected")
+        self.log.emit("Connected to WebSocket server")
+        self.current_reconnect_delay = self.initial_reconnect_delay  # Reset delay
+        self.reconnect_needed = False  # Clear error flag
         self.connection.emit(True)
 
     @Slot()
     def on_disconnected(self):
-        self.log.emit(f"WebSocketWorker on_disconnected")
+        self.log.emit("Disconnected from WebSocket server")
         self.connection.emit(False)
 
+        close_code = self.websocket.closeCode()
+        close_reason = self.websocket.closeReason()
+        self.log.emit(f"Close code: {close_code}, reason: {close_reason}")
+
+        # Do not reconnect if:
+        # 1. User manually disconnected
+        # 2. Server closed gracefully (non-network issue)
+        # 3. Error was non-network-related (e.g., invalid access code)
+        if self.manual_disconnect:
+            self.manual_disconnect = False  # Reset for next session
+            self.log.emit("Manual disconnect: No reconnection")
+            return
+
+        if close_code != QWebSocketProtocol.CloseCodeAbnormalClosure:
+            self.log.emit("Server-initiated disconnect: No reconnection")
+            return
+
+        if not self.reconnect_needed:
+            self.log.emit("Non-network error: No reconnection")
+            return
+
+        # Proceed with reconnection for network failures
+        if self.reconnect_enabled:
+            delay = self.current_reconnect_delay
+            self.log.emit(f"Reconnecting in {delay / 1000} seconds...")
+            self.reconnect_timer.start(delay)
+            self.current_reconnect_delay = min(
+                self.current_reconnect_delay * 2,
+                self.max_reconnect_delay
+            )
+
+    @Slot(QAbstractSocket.SocketError)
+    def on_error(self, error_code):
+        error_msg = self.websocket.errorString()
+        self.log.emit(f"WebSocket error: {error_msg}")
+        self.error_occurred.emit(error_msg)
+
+        # Classify errors: Set reconnect_needed only for network issues
+        network_errors = [
+            QAbstractSocket.HostNotFoundError,
+            QAbstractSocket.NetworkError,
+            QAbstractSocket.SocketTimeoutError,
+            QAbstractSocket.TemporaryError,
+        ]
+        self.reconnect_needed = error_code in network_errors
+
+        # Force cleanup if needed
+        if self.websocket.state() != QAbstractSocket.UnconnectedState:
+            self.websocket.abort()
+
+    # ... (rest of existing methods like send_message)
     @Slot(str)
     def on_text_message_received(self, message):
         self.log.emit(f"WebSocketWorker on_text_message_received")
         self.message_received.emit(message)
 
-    @Slot(QAbstractSocket.SocketError)
-    def on_error(self, error_code):
-        self.log.emit(f"WebSocketWorker on_error")
-        self.error_occurred.emit(self.websocket.errorString())
 
     @Slot(str)
     def send_message(self, message):
