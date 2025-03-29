@@ -9,7 +9,7 @@ import subprocess
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread
+from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery
 from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -548,15 +548,20 @@ class WebSocketWorker(QObject):
         script_name = os.path.basename(sys.argv[0])
         self.access = get_access_code(script_name)
 
-        self.url = f"wss://online.macrosoft.sk/ws/support/?access_code={self.access}"
-        self.websocket = QWebSocket()
+        url = QUrl("wss://online.macrosoft.sk/ws/support/")
+        query = QUrlQuery()
+        query.addQueryItem("access_code", self.access)
+        url.setQuery(query)
+        self.url = url
+
+        self.websocket = QWebSocket(parent=self)
         self.websocket.connected.connect(self.on_connected)
         self.websocket.disconnected.connect(self.on_disconnected)
         self.websocket.textMessageReceived.connect(self.on_text_message_received)
         self.websocket.errorOccurred.connect(self.on_error)
 
     @Slot()
-    def connect(self):
+    def start_connection(self):
         self.websocket.open(QUrl(self.url))
 
     @Slot()
@@ -571,7 +576,7 @@ class WebSocketWorker(QObject):
     def on_disconnected(self):
         self.connection.emit(False)
 
-    @Slot()
+    @Slot(str)
     def on_text_message_received(self, message):
         self.message_received.emit(message)
 
@@ -1086,11 +1091,11 @@ class MainWindow(QObject):
             self.app_websocket_worker.moveToThread(self.app_websocket_thread)
 
             # Connect signals
-            self.app_websocket_thread.started.connect(self.app_websocket_worker.connect)
-            # self.app_websocket_worker.connection.connect(self.websocket_on_change_status)
-            # self.app_websocket_worker.message_received.connect(self.websocket_on_message_received)
-            # self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
-            # self.app_websocket_worker.log.connect(self.add_log)
+            self.app_websocket_thread.started.connect(self.app_websocket_worker.start_connection)
+            self.app_websocket_worker.connection.connect(self.websocket_on_change_status)
+            self.app_websocket_worker.message_received.connect(self.websocket_on_message_received)
+            self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
+            self.app_websocket_worker.log.connect(self.add_log)
 
             # self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
             self.app_websocket_thread.start()
@@ -1346,13 +1351,18 @@ class MainWindow(QObject):
     def cleanup(self):
         """handles threads, worker cleanup"""
         print(f"\n\n\nbackend.cleanup\n\n")
-        time.sleep(5)
-        app_threads = []
+        # time.sleep(5)
+        app_threads = [self.app_websocket_thread]
+        app_workers = [self.app_websocket_worker]
         for thread in app_threads:
             if thread and thread.isRunning():
                 thread.quit()
                 thread.wait()
                 thread.deleteLater()
+
+        for worker in app_workers:
+            if worker:
+                worker.deleteLater()
 
         # handle websocket
         # self.worker.disconnect()
