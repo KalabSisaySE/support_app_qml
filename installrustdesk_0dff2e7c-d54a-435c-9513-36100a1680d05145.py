@@ -559,33 +559,41 @@ class WebSocketWorker(QObject):
         self.websocket.disconnected.connect(self.on_disconnected)
         self.websocket.textMessageReceived.connect(self.on_text_message_received)
         self.websocket.errorOccurred.connect(self.on_error)
+        self.log.emit(f"WebSocketWorker __init__")
 
     @Slot()
     def start_connection(self):
+        self.log.emit(f"WebSocketWorker start_connection")
         self.websocket.open(QUrl(self.url))
 
     @Slot()
     def disconnect(self):
+        self.log.emit(f"WebSocketWorker disconnect")
         self.websocket.close()
 
     @Slot()
     def on_connected(self):
+        self.log.emit(f"WebSocketWorker on_connected")
         self.connection.emit(True)
 
     @Slot()
     def on_disconnected(self):
+        self.log.emit(f"WebSocketWorker on_disconnected")
         self.connection.emit(False)
 
     @Slot(str)
     def on_text_message_received(self, message):
+        self.log.emit(f"WebSocketWorker on_text_message_received")
         self.message_received.emit(message)
 
-    @Slot(str)
-    def on_error(self, error):
-        self.error_occurred.emit(error.errorString())
+    @Slot(QAbstractSocket.SocketError)
+    def on_error(self, error_code):
+        self.log.emit(f"WebSocketWorker on_error")
+        self.error_occurred.emit(self.websocket.errorString())
 
     @Slot(str)
     def send_message(self, message):
+        self.log.emit(f"WebSocketWorker send_message")
         if self.websocket.state() == QAbstractSocket.ConnectedState:
             self.websocket.sendTextMessage(message)
         else:
@@ -1084,8 +1092,24 @@ class MainWindow(QObject):
             self.permission_status = "disabled"
 
         # setup websocket
-        if code:
+        self.setup_websockets(code)
 
+
+        print("\n\n\nApplication init:")
+        print(f"\tcode: {code}")
+        print(f"\tusername: {self.username}")
+        print(f"\trust_id: {rustdesk_id}")
+        print(f"\tis_rust_id_reported: {is_rust_id_reported}")
+        print(f"\twebsocket status: {self._app_websocket_status}")
+        print("\n\n\n")
+
+    def setup_websockets(self, code):
+        """sets up websockets"""
+        if self.app_websocket_thread and self.app_websocket_thread.isRunning():
+            self.app_websocket_thread.quit()
+            self.app_websocket_thread.wait()
+
+        if code:
             self.app_websocket_worker = WebSocketWorker()
             self.app_websocket_thread = QThread()
             self.app_websocket_worker.moveToThread(self.app_websocket_thread)
@@ -1100,16 +1124,9 @@ class MainWindow(QObject):
             # self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
             self.app_websocket_thread.start()
 
-        print("\n\n\nApplication init:")
-        print(f"\tcode: {code}")
-        print(f"\tusername: {self.username}")
-        print(f"\trust_id: {rustdesk_id}")
-        print(f"\tis_rust_id_reported: {is_rust_id_reported}")
-        print(f"\twebsocket status: {self._app_websocket_status}")
-        print("\n\n\n")
-
     @Slot(bool)
     def websocket_on_change_status(self, status):
+        self.add_log(f"websocket_on_change_status: {status}")
         if status:
             self.app_websocket_status = "enabled"
         else:
