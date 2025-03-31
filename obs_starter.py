@@ -49,7 +49,13 @@ def is_obs_running():
 
 def start_obs():
     """Start OBS application"""
-    subprocess.Popen([OBS_WINDOWS_PATH])
+    # subprocess.Popen([OBS_WINDOWS_PATH])
+    subprocess.Popen(
+        [OBS_WINDOWS_PATH],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
 
 
 def obs_connect():
