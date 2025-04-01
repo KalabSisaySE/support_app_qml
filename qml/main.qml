@@ -392,7 +392,7 @@ Window {
 
                 Rectangle {
                     id: contentPages
-                    height: parent.height * 0.6
+                    height: parent.height * 0.7
                     color: "#00000000"
                     anchors.left: leftMenu.right
                     anchors.right: parent.right

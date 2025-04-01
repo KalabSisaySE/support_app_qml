@@ -14,8 +14,7 @@ from PySide6.QtWebSockets import QWebSocket, QWebSocketProtocol
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
 
-
-from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, check_installation, open_website
+from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, check_installation, open_website, is_obs_running, is_obs_installed, start_obs, close_obs
 from support_app.rust_service_manager import ServiceManager
 from support_app.registry_permission_manager import RegistryPermissionManager
 from support_app.browser_permission_manager import BrowserPermissionManager
@@ -265,7 +264,6 @@ class AppInstallationWorker(QObject):
                 f"Failed to stop MacrosoftConnectQuickSupport Service {e}"
             )
 
-
 class StartAppWorker(QObject):
     """manages macrosoft rustdesk starting"""
     progress_changed = Signal(int)
@@ -297,7 +295,6 @@ class StartAppWorker(QObject):
 
 
         self.finished.emit()
-
 
 class AppServiceWorker(QObject):
     """manages macrosoft rustdesk service"""
@@ -388,7 +385,6 @@ class AppServiceWorker(QObject):
 
         self.finished.emit()
 
-
 class UserInfoWorker(QObject):
     """manages macrosoft rustdesk and userinfo"""
     progress_changed = Signal(int)
@@ -461,7 +457,6 @@ class UserInfoWorker(QObject):
 
         self.finished.emit()
 
-
 class OpenBrowserWorker(QObject):
     """manages opening/closing a browser"""
     progress_changed = Signal(int)
@@ -486,7 +481,6 @@ class OpenBrowserWorker(QObject):
             self.log.emit("Website Failed to open")
 
         self.finished.emit()
-
 
 class PermissionWorker(QObject):
     """manages opening/closing a browser"""
@@ -681,6 +675,8 @@ class MainWindow(QObject):
     appServiceStatusChanged = Signal(str)
     appWebsocketStatusChanged = Signal(str)
     permissionStatusChanged = Signal(str)
+    obsInstallationStatusChanged = Signal(str)
+    recordingStatusChanged = Signal(str)
 
 
     appInstallBtnEnabledChanged = Signal(bool)
@@ -710,6 +706,8 @@ class MainWindow(QObject):
         self._app_service_status = "enabled" if self.check_installation() and self.is_service_on() else "disabled"
         self._app_websocket_status = "disabled"
         self._permission_status = "disabled"
+        self._obs_installation_status = "disabled"
+        self._recording_status = "disabled"
 
         self._is_app_install_btn_enabled = False
         self._is_app_start_btn_enabled = self.check_installation()
@@ -909,6 +907,25 @@ class MainWindow(QObject):
             self._app_websocket_status = status
             self.appWebsocketStatusChanged.emit(status)
 
+    @Property(str, notify=obsInstallationStatusChanged)
+    def obs_installation_status(self):
+        return self._obs_installation_status
+
+    @obs_installation_status.setter
+    def obs_installation_status(self, status):
+        if self._obs_installation_status != status:
+            self._obs_installation_status = status
+            self.obsInstallationStatusChanged.emit(status)
+
+    @Property(str, notify=recordingStatusChanged)
+    def recording_status(self):
+        return self._recording_status
+
+    @recording_status.setter
+    def recording_status(self, status):
+        if self._recording_status != status:
+            self._recording_status = status
+            self.recordingStatusChanged.emit(status)
 
     @Slot(str)
     def add_log(self, log):
@@ -1084,7 +1101,7 @@ class MainWindow(QObject):
 
     @Slot(int)
     def update_progress(self, value):
-        self.progress = (self.progress + value) // 2
+        self.progress = value
 
     @Slot()
     def app_init(self):
@@ -1158,6 +1175,10 @@ class MainWindow(QObject):
         else:
             self.permission_status = "disabled"
 
+        # OBS setup
+        self.obs_installation_status = "enabled" if is_obs_installed() else "disabled"
+
+
         # setup websocket
         self.setup_websockets(code)
 
@@ -1168,6 +1189,7 @@ class MainWindow(QObject):
         print(f"\trust_id: {rustdesk_id}")
         print(f"\tis_rust_id_reported: {is_rust_id_reported}")
         print(f"\twebsocket status: {self._app_websocket_status}")
+        print(f"\tOBS status: {self._obs_installation_status}")
         print("\n\n\n")
 
     def setup_websockets(self, code):
@@ -1228,6 +1250,8 @@ class MainWindow(QObject):
     def is_service_on(self):
         """checks if Macrosoft rustdesk service is running"""
         return is_service_running("MacrosoftConnectQuickSupport")
+
+
 
     @Slot(dict)
     def on_installation_finished(self, result_data):
