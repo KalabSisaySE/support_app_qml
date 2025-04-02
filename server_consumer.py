@@ -129,7 +129,6 @@ class SupportConsumer(AsyncWebsocketConsumer):
                         **data
                     }
                 )
-
         else:
             # echo back
             await self.send(text_data=text_data)

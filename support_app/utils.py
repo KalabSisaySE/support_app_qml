@@ -8,7 +8,9 @@ import time
 import subprocess
 import win32gui
 import win32con
-
+import json
+import string
+import secrets
 
 def get_process_command_lines(process_name):
     try:
@@ -217,3 +219,43 @@ def close_obs():
         for proc in psutil.process_iter(['pid', 'name']):
             if proc.info['name'] in obs_processes:
                 proc.terminate()
+
+
+def setup_obs_config():
+    config_path = os.path.join(
+        os.environ['APPDATA'],
+        'obs-studio',
+        'plugin_config',
+        'obs-websocket',
+        'config.json'
+    )
+
+    chars = string.ascii_letters + string.digits
+    generated_password = ''.join(secrets.choice(chars) for _ in range(16))
+
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+        else:
+            os.makedirs(os.path.dirname(config_path), exist_ok=True)
+            config_data = {
+                "alerts_enabled": True,
+                "auth_required": False,
+                "first_load": False,
+                "server_enabled": True,
+                "server_password": generated_password,
+                "server_port": 4455
+            }
+    except Exception as e:
+        config_data = {}
+
+    config_data["server_enabled"] = True
+    config_data["auth_required"] = False
+    config_data["alerts_enabled"] = True
+    config_data["server_password"] = config_data.get("server_password", generated_password)
+    config_data["server_port"] = 4455
+
+    with open(config_path, 'w') as f:
+        json.dump(config_data, f, indent=4)
+

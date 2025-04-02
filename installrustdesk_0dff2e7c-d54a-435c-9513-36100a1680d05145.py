@@ -1,5 +1,6 @@
 # This Python file uses the following encoding: utf-8
 import ctypes
+import json
 import time
 import sys
 import os
@@ -14,7 +15,9 @@ from PySide6.QtWebSockets import QWebSocket, QWebSocketProtocol
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, check_installation, open_website, is_obs_running, is_obs_installed, start_obs, close_obs
+from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, \
+    check_installation, open_website, is_obs_running, is_obs_installed, start_obs, close_obs, \
+    setup_obs_config
 from support_app.rust_service_manager import ServiceManager
 from support_app.registry_permission_manager import RegistryPermissionManager
 from support_app.browser_permission_manager import BrowserPermissionManager
@@ -660,6 +663,75 @@ class WebSocketWorker(QObject):
         else:
             self.error_occurred.emit("Not connected to WebSocket server")
 
+class OBSRecorderWorker(QObject):
+    """managed OBS connection"""
+    connection = Signal(bool)
+    message_received = Signal(str)
+    error_occurred = Signal(str)
+    log = Signal(str)
+
+    def __init__(self):
+        super().__init__()
+        script_name = os.path.basename(sys.argv[0])
+        self.access = get_access_code(script_name)
+
+        # WebSocket setup
+        self.url = QUrl("ws://localhost:4455")
+
+        self.websocket = QWebSocket(parent=self)
+        self.websocket.connected.connect(self.on_connected)
+        self.websocket.disconnected.connect(self.on_disconnected)
+        self.websocket.textMessageReceived.connect(self.on_text_message_received)
+        self.websocket.errorOccurred.connect(self.on_error)
+
+
+        self.log.emit("OBS WebSocket connected")
+
+    @Slot()
+    def start_connection(self):
+        self.log.emit("Attempting WebSocket connection...")
+        self.websocket.open(QUrl(self.url))
+
+    @Slot()
+    def disconnect(self):
+        self.websocket.close()
+        self.log.emit("Manual disconnect requested")
+
+    @Slot()
+    def on_connected(self):
+        self.log.emit("Connected to WebSocket server")
+        self.connection.emit(True)
+
+    @Slot()
+    def on_disconnected(self):
+        self.log.emit("Disconnected from WebSocket server")
+        self.connection.emit(False)
+
+        close_code = self.websocket.closeCode()
+        close_reason = self.websocket.closeReason()
+        self.log.emit(f"Close code: {close_code}, reason: {close_reason}")
+
+
+    @Slot(QAbstractSocket.SocketError)
+    def on_error(self, error_code):
+        error_msg = self.websocket.errorString()
+        self.log.emit(f"WebSocket error: {error_msg}")
+        self.error_occurred.emit(error_msg)
+
+    @Slot(str)
+    def on_text_message_received(self, message):
+        self.log.emit(f"WebSocketWorker on_text_message_received")
+        self.message_received.emit(message)
+
+
+    @Slot(str)
+    def send_message(self, message):
+        self.log.emit(f"WebSocketWorker send_message")
+        if self.websocket.state() == QAbstractSocket.ConnectedState:
+            self.websocket.sendTextMessage(message)
+        else:
+            self.error_occurred.emit("Not connected to WebSocket server")
+
 
 class MainWindow(QObject):
     # Signal Set Name
@@ -720,6 +792,8 @@ class MainWindow(QObject):
         self._access_code = ""
         self._rust_id = "Nenájdené"
         self._username = "Nenájdené"
+
+        self.lectoure_ws_data = None
 
         self.app_installation_thread = None
         self.app_installation_worker = None
@@ -1176,8 +1250,7 @@ class MainWindow(QObject):
             self.permission_status = "disabled"
 
         # OBS setup
-        self.obs_installation_status = "enabled" if is_obs_installed() else "disabled"
-
+        self.setup_obs()
 
         # setup websocket
         self.setup_websockets(code)
@@ -1213,6 +1286,21 @@ class MainWindow(QObject):
             # self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
             self.app_websocket_thread.start()
 
+    def setup_obs(self):
+        """sets up OBS config and other data"""
+        is_installed = is_obs_installed()
+        self.obs_installation_status = "enabled" if is_installed else "disabled"
+        if is_installed:
+            is_running = is_obs_running()
+            if is_running:
+                close_obs()
+                setup_obs_config()
+                start_obs()
+            else:
+                setup_obs_config()
+
+
+
     @Slot(bool)
     def websocket_on_change_status(self, status):
         self.add_log(f"websocket_on_change_status: {status}")
@@ -1223,7 +1311,27 @@ class MainWindow(QObject):
 
     @Slot(str)
     def websocket_on_message_received(self, message):
-        self.add_log(message)
+        self.add_log(f"Websocket received: {message}")
+        try:
+            data = json.loads(message)
+
+            message_type = data.get("message_type")
+            self.lectoure_ws_data = data
+            if message_type in ["start_recording", "stop_recording"]:
+                pass
+                # self.toggle_obs_recording(action=message_type)
+            else:
+                msg = json.dumps(
+                    {
+                        "client": "device",
+                        "access_code": self._access_code,
+                        "success": False,
+                        "message": "Invalid message type, accept only start_recording or stop_recording",
+                    }
+                )
+                self.send_message_to_server(msg)
+        except json.JSONDecodeError:
+            pass
 
     @Slot(str)
     def websocket_on_error(self, message):
