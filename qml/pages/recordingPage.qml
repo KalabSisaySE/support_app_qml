@@ -366,6 +366,14 @@ Item {
             recordingButton.colorDefault = "#35b59d"
         }
 
+        if (backend.obs_installation_status === "enabled") {
+            obsInstallBtn.text = "Uninstall OBS"
+                obsInstallBtn.colorDefault = "#ff0000"
+            } else {
+                obsInstallBtn.text = "Install OBS"
+                obsInstallBtn.colorDefault = "#35b59d"
+            }
+
 
     }
 

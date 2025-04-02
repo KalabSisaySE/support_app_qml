@@ -73,7 +73,7 @@ class RtmpUrlGenerator:
                     rtmp_url = api_response.rtmp_url
                     stream_key = api_response.stream_key
 
-                    return f"{rtmp_url}/{stream_key}"
+                    return [rtmp_url, stream_key]
 
                 except Exception as e:
                     print("Exception when calling LiveVideosApi->videos_live_id_get: %s\n" % e)

@@ -757,12 +757,13 @@ class OBSInstallationWorker(QObject):
             startupinfo.wShowWindow = SW_HIDE
 
             # Run the installer
-            process = subprocess.Popen(
+            process = subprocess.run(
                 [installer_path, "/S"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                stdin=subprocess.DEVNULL,
-                startupinfo=startupinfo,
+                # stdout=subprocess.PIPE,
+                # stderr=subprocess.STDOUT,
+                # stdin=subprocess.DEVNULL,
+                # startupinfo=startupinfo,
+                
             )
 
             time.sleep(10)  # Wait 10 seconds after installation
@@ -874,10 +875,12 @@ class OBSClientWorker(QObject):
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
-        # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        # rtmp_url = rtmp_url_generator.get_rtmp_url()
-        # if rtmp_url:
-        #     server_url, stream_key = rtmp_url.split("/")
+        rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
+        rtmp_url = rtmp_url_generator.get_rtmp_url()
+        if rtmp_url:
+            print(f"\n\nrtmp_url: {rtmp_url}\n\n")
+            server_url = rtmp_url[0]
+            stream_key = rtmp_url[1]
         #     request_id = str(uuid.uuid4())
         #     payload = {
         #         "op": 6,
@@ -896,27 +899,25 @@ class OBSClientWorker(QObject):
         #     self.send_json(payload)
         #     self.responses[request_id] = None
 
-        server_url = "rtmp://live.restream.io/live"
-        stream_key = "re_9442228_eventbc50b5ebd0644931aa1c7fcfd47961f8"
 
-        request_id = str(uuid.uuid4())
-        payload = {
-            "op": 6,
-            "d": {
-                "requestType": "SetStreamServiceSettings",
-                "requestId": request_id,
-                "requestData": {
-                    "streamServiceType": "rtmp_custom",
-                    "streamServiceSettings": {
-                        "server": server_url,
-                        "key": stream_key
+            request_id = str(uuid.uuid4())
+            payload = {
+                "op": 6,
+                "d": {
+                    "requestType": "SetStreamServiceSettings",
+                    "requestId": request_id,
+                    "requestData": {
+                        "streamServiceType": "rtmp_custom",
+                        "streamServiceSettings": {
+                            "server": server_url,
+                            "key": stream_key
+                        }
                     }
                 }
             }
-        }
-        self.send_json(payload)
-        self.responses[request_id] = None
-        return True
+            self.send_json(payload)
+            self.responses[request_id] = None
+            return True
 
     @Slot()
     def start_stream(self):
