@@ -1,8 +1,8 @@
 import sys
 import json
 import uuid
-from PyQt5.QtCore import QObject, Signal, Slot, QThread, QCoreApplication
-from PyQt5.QtWebSockets import QWebSocket
+from PySide6.QtCore import QObject, Signal, Slot, QThread, QCoreApplication
+from PySide6.QtWebSockets import QWebSocket
 
 
 class OBSClient(QObject):

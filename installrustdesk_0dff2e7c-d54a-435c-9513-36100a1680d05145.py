@@ -732,6 +732,23 @@ class OBSRecorderWorker(QObject):
         else:
             self.error_occurred.emit("Not connected to WebSocket server")
 
+    def setup_obs(self):
+        """sets up OBS config and other data"""
+        is_installed = is_obs_installed()
+        self.obs_installation_status = "enabled" if is_installed else "disabled"
+
+        if is_installed:
+            is_running = is_obs_running()
+            if is_running:
+                close_obs()
+                setup_obs_config()
+                start_obs()
+            else:
+                setup_obs_config()
+
+
+
+
 
 class MainWindow(QObject):
     # Signal Set Name
@@ -748,6 +765,7 @@ class MainWindow(QObject):
     appWebsocketStatusChanged = Signal(str)
     permissionStatusChanged = Signal(str)
     obsInstallationStatusChanged = Signal(str)
+    obsWebsocketStatusChanged = Signal(str)
     recordingStatusChanged = Signal(str)
 
 
@@ -763,6 +781,8 @@ class MainWindow(QObject):
     rustIdChanged = Signal(str)
     accessCodeChanged = Signal(str)
     usernameChanged = Signal(str)
+    streamingUrlChanged = Signal(str)
+    courseNameChanged = Signal(str)
 
     taskStarted = Signal()
     taskFinished = Signal()
@@ -779,6 +799,7 @@ class MainWindow(QObject):
         self._app_websocket_status = "disabled"
         self._permission_status = "disabled"
         self._obs_installation_status = "disabled"
+        self._obs_websocket_status = "disabled"
         self._recording_status = "disabled"
 
         self._is_app_install_btn_enabled = False
@@ -792,6 +813,8 @@ class MainWindow(QObject):
         self._access_code = ""
         self._rust_id = "Nenájdené"
         self._username = "Nenájdené"
+        self._streaming_url = "Not streaming"
+        self._course_name = "Unknown"
 
         self.lectoure_ws_data = None
 
@@ -848,6 +871,26 @@ class MainWindow(QObject):
         if self._rust_id != id:
             self._rust_id = id
             self.rustIdChanged.emit(id)
+
+    @Property(str, notify=streamingUrlChanged)
+    def streaming_url(self):
+        return self._streaming_url
+
+    @streaming_url.setter
+    def streaming_url(self, url):
+        if self._streaming_url != url:
+            self._streaming_url = url
+            self.streamingUrlChanged.emit(url)
+
+    @Property(str, notify=courseNameChanged)
+    def course_name(self):
+        return self._course_name
+
+    @course_name.setter
+    def course_name(self, name):
+        if self._course_name != name:
+            self._course_name = name
+            self.courseNameChanged.emit(name)
 
     @Property(str, notify=accessCodeChanged)
     def access_code(self):
@@ -990,6 +1033,16 @@ class MainWindow(QObject):
         if self._obs_installation_status != status:
             self._obs_installation_status = status
             self.obsInstallationStatusChanged.emit(status)
+
+    @Property(str, notify=obsWebsocketStatusChanged)
+    def obs_websocket_status(self):
+        return self._obs_websocket_status
+
+    @obs_websocket_status.setter
+    def obs_websocket_status(self, status):
+        if self._obs_websocket_status != status:
+            self._obs_websocket_status = status
+            self.obsWebsocketStatusChanged.emit(status)
 
     @Property(str, notify=recordingStatusChanged)
     def recording_status(self):
@@ -1167,6 +1220,17 @@ class MainWindow(QObject):
         self.microphone_and_camera_thread.start()
 
     @Slot()
+    def toggle_recording(self):
+        """handles button click to start/stop recording"""
+        if self._recording_status != "enabled":
+            if is_obs_installed():
+                pass
+            else:
+                self.add_log("OBS installation is not found on your device.")
+        else:
+            pass
+
+    @Slot()
     def check_installation(self):
         """Check if the application is installed and update the UI accordingly."""
         app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
@@ -1283,7 +1347,7 @@ class MainWindow(QObject):
             self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
             self.app_websocket_worker.log.connect(self.add_log)
 
-            # self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
+            self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
             self.app_websocket_thread.start()
 
     def setup_obs(self):

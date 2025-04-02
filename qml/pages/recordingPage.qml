@@ -56,6 +56,69 @@ Item {
                 Layout.fillWidth: true
                 spacing: mainContainer.columnSpacing
 
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Streaming Url:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 150
+                        height: 30
+                        Layout.alignment: Qt.AlignVCenter
+
+                        Text {
+                            text: backend.streaming_url
+                            Layout.alignment: Qt.AlignVCenter
+                            anchors.centerIn: parent
+                            font.pixelSize: 18  // Adjust size as needed
+                            font.italic: true
+                            font.bold: true
+                            color: "#13b899"
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Course Name:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 150
+                        height: 30
+                        Layout.alignment: Qt.AlignVCenter
+
+                        Text {
+                            text: backend.course_name
+                            Layout.alignment: Qt.AlignVCenter
+                            anchors.centerIn: parent
+                            font.pixelSize: 18  // Adjust size as needed
+                            font.italic: true
+                            font.bold: true
+                            color: "#13b899"
+                        }
+                    }
+                }
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -80,6 +143,35 @@ Item {
                         StatusIndicator {
                             size: 20
                             status: backend.obs_installation_status
+                            Layout.alignment: Qt.AlignVCenter
+                            anchors.centerIn: parent
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "OBS Websocket:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 150
+                        height: 30
+                        Layout.alignment: Qt.AlignVCenter
+
+                        StatusIndicator {
+                            size: 20
+                            status: backend.obs_websocket_status
                             Layout.alignment: Qt.AlignVCenter
                             anchors.centerIn: parent
                         }
@@ -120,7 +212,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Webstránka:"
+                        text: "OBS Application:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -136,7 +228,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
-                            text: "Otvoriť webstránku"
+                            text: "Install OBS"
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -151,15 +243,120 @@ Item {
                                 backend.open_webpage()
                             }
                         }
+                    }
+                }
 
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "OBS:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
                     }
 
+                    Item {
+                        Layout.fillWidth: true
+                    }
 
+                    Item {
+                        width: 185
+                        height: 32
+                        Layout.alignment: Qt.AlignVCenter
+
+                        CustomButton {
+                            text: "Open OBS"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_open_browser_btn_enabled
+
+                            onClicked: {
+                                backend.open_webpage()
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+
+                    Label {
+                        text: "Recording:"
+                        font.pointSize: 13
+                        Layout.alignment: Qt.AlignVCenter
+                        color: "#ffffff"
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    Item {
+                        width: 185
+                        height: 32
+                        Layout.alignment: Qt.AlignVCenter
+
+                        CustomButton {
+                            id: recordingButton
+                            text: "Spustiť nahrávanie"
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 0
+
+                            Layout.fillWidth: true
+                            width: 185
+                            height: 32
+
+                            enabled: backend.is_open_browser_btn_enabled
+
+                            onClicked: {
+                                backend.toggle_recording()
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
+    Connections {
+
+        target: backend
+
+        function onRecordingStatusChanged(status) {
+            if (status === "enabled") {
+                recordingButton.text = "Zastaviť nahrávanie"
+                recordingButton.colorDefault = "#ff0000"
+            } else {
+                recordingButton.text = "Spustiť nahrávanie"
+                recordingButton.colorDefault = "#35b59d"
+            }
+        }
+
+    }
+
+
+    Component.onCompleted: {
+
+        if (backend.recording_status === "enabled") {
+            recordingButton.text = "Zastaviť nahrávanie"
+            recordingButton.colorDefault = "#ff0000"
+        } else {
+            recordingButton.text = "Spustiť nahrávanie"
+            recordingButton.colorDefault = "#35b59d"
+        }
+
+
+    }
 
 
 }
