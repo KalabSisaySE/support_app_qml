@@ -228,6 +228,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
+                            id: obsInstallBtn
                             text: "Install OBS"
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
@@ -237,10 +238,10 @@ Item {
                             width: 185
                             height: 32
 
-                            enabled: backend.is_open_browser_btn_enabled
+                            enabled: backend.is_obs_install_btn_enabled
 
                             onClicked: {
-                                backend.open_webpage()
+                                backend.install_obs()
                             }
                         }
                     }
@@ -276,10 +277,10 @@ Item {
                             width: 185
                             height: 32
 
-                            enabled: backend.is_open_browser_btn_enabled
+                            enabled: backend.is_open_obs_btn_enabled
 
                             onClicked: {
-                                backend.open_webpage()
+                                backend.open_obs()
                             }
                         }
                     }
@@ -339,6 +340,16 @@ Item {
             } else {
                 recordingButton.text = "Spustiť nahrávanie"
                 recordingButton.colorDefault = "#35b59d"
+            }
+        }
+
+        function onObsInstallationStatusChanged(status) {
+            if (status === "enabled") {
+                obsInstallBtn.text = "Uninstall OBS"
+                obsInstallBtn.colorDefault = "#ff0000"
+            } else {
+                obsInstallBtn.text = "Install OBS"
+                obsInstallBtn.colorDefault = "#35b59d"
             }
         }
 
