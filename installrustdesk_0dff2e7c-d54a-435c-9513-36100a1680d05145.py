@@ -11,7 +11,7 @@ import subprocess
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery
+from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery, QEventLoop, QCoreApplication
 from PySide6.QtWebSockets import QWebSocket, QWebSocketProtocol
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -669,77 +669,52 @@ class WebSocketWorker(QObject):
         else:
             self.error_occurred.emit("Not connected to WebSocket server")
 
+
 class OBSClientWorker(QObject):
+    connected = Signal()
+    disconnected = Signal()
+    error_occurred = Signal(str)
+    stream_started = Signal()
+    stream_stopped = Signal()
+    log_message = Signal(str)
 
-    connection = Signal(bool)
-    errorOccurred = Signal(str)
-    log = Signal(str)
-    streamStatusChange = Signal(bool)
-    streamStatusUpdated = Signal(dict)
-
-    def __init__(self, lectoure_data=None):
+    def __init__(self):
         super().__init__()
-
-        self.url = QUrl("ws://localhost:4455")
-        self.ws = QWebSocket(parent=self)
-        self.responses = {}
+        self.ws = QWebSocket()
+        self.pending_requests = {}
         self.identified = False
-        self.lectoure_data = lectoure_data if lectoure_data else {}
-        self.file_name = None
+        self.rtmp_url = ""
+        self.stream_key = ""
 
-        class_id = self.lectoure_data.get("class_id")
-        class_type = self.lectoure_data.get("class_type")
-        date_info = datetime.datetime.now().strftime("%d.%m.%Y.%H.%M.%S")
-
-        if class_id and class_type:
-            self.file_name = f"{class_type}_{class_id}_{date_info}"
-
-        # Connect websocket signals
+        # WebSocket connections
         self.ws.connected.connect(self.on_connected)
         self.ws.disconnected.connect(self.on_disconnected)
-        self.ws.textMessageReceived.connect(self.on_text_message_received)
-        self.ws.error.connect(self.handle_error)
+        self.ws.textMessageReceived.connect(self.on_message_received)
+        self.ws.errorOccurred.connect(self.on_error)
 
-    def connect_to_host(self):
-        if not is_obs_running():
-            start_obs()
-            time.sleep(2)
-
-        self.ws.open(self.url)
+    @Slot()
+    def connect_to_obs(self):
+        url = "ws://localhost:4455"
+        if self.ws.state() == QAbstractSocket.ConnectingState:
+            return
+        self.log_message.emit(f"Connecting to OBS at {url}")
+        self.ws.open(QUrl(url))
 
     def on_connected(self):
-        print("Connected to WebSocket server")
-
-    def on_disconnected(self):
-        print("Disconnected from WebSocket server")
-        self.connection.emit(False)
-
-    def handle_error(self, error):
-        error_msg = self.ws.errorString()
-        self.errorOccurred.emit(error_msg)
-        print("WebSocket error:", error_msg)
-
-    def on_text_message_received(self, message):
-        data = json.loads(message)
-        op_code = data.get('op')
-
-        print(f"\n\t\t\t\t// on_text_message_received: {message} //\n")
-
-        self.log.emit(F"obs websocket: {data}")
-
-        if op_code == 0:  # Hello
-            self.handle_hello(data)
-        elif op_code == 2:  # Identified
-            self.handle_identified(data)
-        elif op_code == 7:  # RequestResponse
-            self.handle_request_response(data['d'])
-
-    def handle_hello(self, data):
-        print("Received Hello message")
+        self.log_message.emit("Connected to OBS WebSocket")
         self.send_identify()
 
+    def on_disconnected(self):
+        self.log_message.emit("Disconnected from OBS WebSocket")
+        self.disconnected.emit()
+
+    def on_error(self, error):
+        error_msg = self.ws.errorString()
+        self.log_message.emit(f"WebSocket error: {error_msg}")
+        self.error_occurred.emit(error_msg)
+
     def send_identify(self):
-        identify_payload = {
+        identify = {
             "op": 1,
             "d": {
                 "rpcVersion": 1,
@@ -747,126 +722,206 @@ class OBSClientWorker(QObject):
                 "eventSubscriptions": 0
             }
         }
-        self.send_json(identify_payload)
+        self.send_command(identify)
 
-    def handle_identified(self, data):
-        print("Successfully identified with OBS")
+    def on_message_received(self, message):
+        try:
+            data = json.loads(message)
+            self.log_message.emit(f"Received: {json.dumps(data, indent=2)}")
+
+            if data['op'] == 0:  # Hello
+                self.handle_hello()
+            elif data['op'] == 2:  # Identified
+                self.handle_identified()
+            elif data['op'] == 7:  # RequestResponse
+                self.handle_request_response(data['d'])
+
+        except Exception as e:
+            self.error_occurred.emit(f"Message handling error: {str(e)}")
+
+    def handle_hello(self):
+        self.log_message.emit("Received OBS hello")
+        self.send_identify()
+
+    def handle_identified(self):
+        self.log_message.emit("Successfully identified with OBS")
         self.identified = True
-        self.connection.emit(True)
+        self.connected.emit()
 
     def handle_request_response(self, data):
         request_id = data.get('requestId')
-        if request_id in self.responses:
-            self.responses[request_id] = data
-            # Emit response received signal or handle callback here
+        request_type = data.get('requestType')
+        status = data.get('requestStatus', {})
 
-    def send_json(self, data):
-        print(f"\n\t\t\t\t// send_json: {data} //\n")
-        self.ws.sendTextMessage(json.dumps(data))
+        if request_id in self.pending_requests:
+            callback = self.pending_requests.pop(request_id)
+            if callback:
+                callback(status.get('result', False), status.get('comment', ''))
 
-    def set_custom_rtmp(self):
-        # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        # rtmp_url = rtmp_url_generator.get_rtmp_url()
-        # if rtmp_url:
-        #     server_url, stream_key = rtmp_url.split("/")
-        #     request_id = str(uuid.uuid4())
-        #     payload = {
-        #         "op": 6,
-        #         "d": {
-        #             "requestType": "SetStreamServiceSettings",
-        #             "requestId": request_id,
-        #             "requestData": {
-        #                 "streamServiceType": "rtmp_custom",
-        #                 "streamServiceSettings": {
-        #                     "server": server_url,
-        #                     "key": stream_key
-        #                 }
-        #             }
-        #         }
-        #     }
-        #     self.send_json(payload)
-        #     self.responses[request_id] = None
+    def send_command(self, data, callback=None):
+        if not self.identified and data['op'] != 1:
+            self.error_occurred.emit("Not identified with OBS")
+            return None
 
-        server_url = "rtmp://live.restream.io/live"
-        stream_key = "re_9442228_eventbc50b5ebd0644931aa1c7fcfd47961f8"
+        request_id = data['d'].get('requestId', str(uuid.uuid4()))
+        data['d']['requestId'] = request_id
+        self.pending_requests[request_id] = callback
 
-        request_id = str(uuid.uuid4())
+        try:
+            self.ws.sendTextMessage(json.dumps(data))
+            self.log_message.emit(f"Sent: {json.dumps(data, indent=2)}")
+            return request_id
+        except Exception as e:
+            self.error_occurred.emit(f"Send error: {str(e)}")
+            return None
+
+    def wait_for_response(self, request_id, timeout=4000):
+        loop = QEventLoop()
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(loop.quit)
+
+        def check_completion(success, _):
+            if request_id not in self.pending_requests:
+                timer.stop()
+                loop.quit()
+
+        # Check every 100ms
+        check_timer = QTimer()
+        check_timer.timeout.connect(lambda: check_completion(False, None))
+        check_timer.start(100)
+
+        timer.start(timeout)
+        loop.exec_()
+        check_timer.stop()
+
+        return request_id not in self.pending_requests
+
+    def set_rtmp_settings(self, server, key):
+        self.rtmp_url = server
+        self.stream_key = key
+
         payload = {
             "op": 6,
             "d": {
                 "requestType": "SetStreamServiceSettings",
-                "requestId": request_id,
                 "requestData": {
                     "streamServiceType": "rtmp_custom",
                     "streamServiceSettings": {
-                        "server": server_url,
-                        "key": stream_key
+                        "server": server,
+                        "key": key
                     }
                 }
             }
         }
-        self.send_json(payload)
-        self.responses[request_id] = None
+
+        request_id = self.send_command(payload)
+        if not request_id:
+            return False
+
+        success = self.wait_for_response(request_id)
+        if not success:
+            self.error_occurred.emit("Timeout setting RTMP settings")
+            return False
+
         return True
 
-    @Slot()
     def start_stream(self):
-        print(f"// start_stream ... //")
-        self.log.emit("OBSClient start_stream")
-        if is_obs_installed():
-            print(f"// obs is installed //")
-            is_rtmp_set = self.set_custom_rtmp()
-            print(f"// is_rtmp_set: {is_rtmp_set} //")
-            request_id = str(uuid.uuid4())
-            payload = {
-                "op": 6,
-                "d": {
-                    "requestType": "StartStream",
-                    "requestId": request_id,
-                    "requestData": {}
-                }
-            }
-            self.send_json(payload)
-            self.responses[request_id] = None
-            self.streamStatusChange.emit(False)
-        else:
-            print(f"// obs is not installed //")
-            self.log.emit("can not start stream OBS is not installed")
+        if not self.rtmp_url or not self.stream_key:
+            self.error_occurred.emit("RTMP settings not configured")
+            return False
 
-    @Slot()
+        payload = {
+            "op": 6,
+            "d": {
+                "requestType": "StartStream",
+                "requestData": {}
+            }
+        }
+
+        request_id = self.send_command(payload)
+        if not request_id:
+            return False
+
+        success = self.wait_for_response(request_id)
+        if success:
+            self.stream_started.emit()
+            return True
+
+        self.error_occurred.emit("Timeout starting stream")
+        return False
+
     def stop_stream(self):
-        print(f"// start_stream ... //")
-        request_id = str(uuid.uuid4())
         payload = {
             "op": 6,
             "d": {
                 "requestType": "StopStream",
-                "requestId": request_id,
                 "requestData": {}
             }
         }
-        self.send_json(payload)
-        self.responses[request_id] = None
-        self.streamStatusChange.emit(False)
+
+        request_id = self.send_command(payload)
+        if not request_id:
+            return False
+
+        success = self.wait_for_response(request_id)
+        if success:
+            self.stream_stopped.emit()
+            return True
+
+        self.error_occurred.emit("Timeout stopping stream")
+        return False
+
+    def disconnect(self):
+        if self.ws.state() == QWebSocket.ConnectedState:
+            self.ws.close()
+
+
+# Usage example:
+class OBSController:
+    def __init__(self):
+        self.worker = OBSClientWorker()
+        self.thread = QThread()
+        self.worker.moveToThread(self.thread)
+
+        # Connect signals
+        self.worker.connected.connect(self.on_connected)
+        self.worker.error_occurred.connect(self.on_error)
+        self.worker.stream_started.connect(self.on_stream_started)
+        self.worker.stream_stopped.connect(self.on_stream_stopped)
+
+        self.thread.started.connect(self.init_connection)
 
     @Slot()
-    def get_stream_status(self):
-        request_id = str(uuid.uuid4())
-        payload = {
-            "op": 6,
-            "d": {
-                "requestType": "GetStreamStatus",
-                "requestId": request_id,
-                "requestData": {}
-            }
-        }
-        self.send_json(payload)
-        self.responses[request_id] = None
+    def init_connection(self):
+        self.worker.connect_to_obs()
 
-    def disconnect_ws(self):
-        self.ws.close()
+    def start_streaming(self, rtmp_url, stream_key):
+        def try_start():
+            if self.worker.set_rtmp_settings(rtmp_url, stream_key):
+                self.worker.start_stream()
 
+        QTimer.singleShot(0, try_start)
 
+    def on_connected(self):
+        print("Connected to OBS")
+
+    def on_error(self, message):
+        print(f"Error: {message}")
+
+    def on_stream_started(self):
+        print("Stream started successfully")
+
+    def on_stream_stopped(self):
+        print("Stream stopped successfully")
+
+    def start(self):
+        self.thread.start()
+
+    def stop(self):
+        self.worker.disconnect()
+        self.thread.quit()
+        self.thread.wait()
 
 
 class MainWindow(QObject):
@@ -1343,37 +1398,18 @@ class MainWindow(QObject):
 
     @Slot()
     def toggle_recording(self):
-        """handles button click to start/stop recording"""
-        print("\n\n")
-        print(f"\t\ttoggle_recording")
-        if not self.obs_websocket_thread or not self.obs_websocket_thread.isRunning():
-            print(f"\t\tthread is not running")
-            self.obs_websocket_worker = OBSClientWorker()
-            print(f"\t\tinit obs worker")
-            self.obs_websocket_thread = QThread()
-            print(f"\t\tinit obs thread")
-            self.obs_websocket_worker.moveToThread(self.obs_websocket_thread)
-            print(f"\t\tmove obs worker to thread")
-
-            # Connect signals
-            self.obs_websocket_thread.started.connect(self.obs_websocket_worker.connect_to_host)
-            self.obs_websocket_worker.connection.connect(self.on_obs_websocket_status_change)
-            self.obs_websocket_worker.streamStatusChange.connect(self.on_obs_stream_status_change)
-            self.obs_websocket_worker.log.connect(self.add_log)
-            self.obs_websocket_worker.errorOccurred.connect(self.on_obs_websocket_error)
-            print(f"\t\tfinish connecting slots")
-            self.obs_websocket_thread.start()
-            print(f"\t\tstart websocket thread")
+        if not hasattr(self, 'obs_controller'):
+            self.obs_controller = OBSController()
+            self.obs_controller.start()
 
         if self._recording_status != "enabled":
-            print(f"\t\trecording was not running")
-            self.obs_websocket_worker.start_stream()
-            print(f"\t\tstart_stream called")
+            # Use your actual RTMP URL and stream key
+            self.obs_controller.start_streaming(
+                "rtmp://live.restream.io/live",
+                "re_9442228_eventbc50b5ebd0644931aa1c7fcfd47961f8"
+            )
         else:
-            print(f"\t\trecording was running")
-            self.obs_websocket_worker.stop_stream()
-            print(f"\t\tstop_stream called")
-
+            self.obs_controller.worker.stop_stream()
 
     @Slot(bool)
     def on_obs_websocket_status_change(self, status):
