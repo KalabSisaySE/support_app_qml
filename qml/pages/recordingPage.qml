@@ -317,7 +317,7 @@ Item {
                             width: 185
                             height: 32
 
-                            enabled: backend.is_open_browser_btn_enabled
+                            enabled: backend.is_obs_record_btn_enabled
 
                             onClicked: {
                                 backend.toggle_recording()

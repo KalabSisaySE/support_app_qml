@@ -154,31 +154,34 @@ def set_obs_exit_confirmation():
         if proc.info['name'] in ['obs64.exe', 'obs32.exe', 'obs.exe']:
             proc.kill()
 
-    # Read the file as text (preserving formatting)
-    with open(obs_settings_path, 'r', encoding='utf-8-sig') as f:
-        lines = f.readlines()
+    if os.path.exists(obs_settings_path):
 
-    # Find and update the ConfirmOnExit line under [General]
-    in_general_section = False
-    for i, line in enumerate(lines):
-        line_stripped = line.strip()
-        if line_stripped == '[General]':
-            in_general_section = True
-        elif in_general_section and line_stripped.startswith('ConfirmOnExit'):
-            # Update the line to ConfirmOnExit=false
-            lines[i] = 'ConfirmOnExit=false\n'
-            break  # Stop after the first occurrence in [General]
+        # Read the file as text (preserving formatting)
+        with open(obs_settings_path, 'r', encoding='utf-8-sig') as f:
+            lines = f.readlines()
 
-    # Write the modified content back to the file
-    with open(obs_settings_path, 'w', encoding='utf-8-sig') as f:
-        f.writelines(lines)
+        # Find and update the ConfirmOnExit line under [General]
+        in_general_section = False
+        for i, line in enumerate(lines):
+            line_stripped = line.strip()
+            if line_stripped == '[General]':
+                in_general_section = True
+            elif in_general_section and line_stripped.startswith('ConfirmOnExit'):
+                # Update the line to ConfirmOnExit=false
+                lines[i] = 'ConfirmOnExit=false\n'
+                break  # Stop after the first occurrence in [General]
 
-    print("OBS closed and ConfirmOnExit set to false.")
+        # Write the modified content back to the file
+        with open(obs_settings_path, 'w', encoding='utf-8-sig') as f:
+            f.writelines(lines)
 
-def start_obs():
+        print("OBS closed and ConfirmOnExit set to false.")
+
+def start_obs(first_time=False):
     """Start OBS with confirmation dialog disabled."""
     # Ensure OBS does NOT show exit confirmation
-    set_obs_exit_confirmation()
+    if not first_time:
+        set_obs_exit_confirmation()
 
     # Launch OBS
     OBS_WINDOWS_PATH = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"

@@ -669,7 +669,6 @@ class WebSocketWorker(QObject):
         else:
             self.error_occurred.emit("Not connected to WebSocket server")
 
-
 class OpenOBSWorker(QObject):
     """manages opening/closing a browser"""
     progress_changed = Signal(int)
@@ -685,14 +684,15 @@ class OpenOBSWorker(QObject):
         """Open the default page in user's default browser."""
         try:
             self.log.emit("Opening OBS ...")
-            start_obs()
-            self.log.emit("OBS Opened")
-
+            if not is_obs_running():
+                start_obs()
+                self.log.emit("OBS started ...")
+            else:
+                self.log.emit("OBS is already running")
         except Exception as e:
-            self.log.emit("OBS Failed to open")
+            self.log.emit("OBS Failed to start")
 
         self.finished.emit()
-
 
 class OBSInstallationWorker(QObject):
     """manages macrosoft rustdesk installation and uninstallation"""
@@ -757,26 +757,17 @@ class OBSInstallationWorker(QObject):
             startupinfo.wShowWindow = SW_HIDE
 
             # Run the installer
-            process = subprocess.run(
-                [installer_path, "/S"],
-                # stdout=subprocess.PIPE,
-                # stderr=subprocess.STDOUT,
-                # stdin=subprocess.DEVNULL,
-                # startupinfo=startupinfo,
-                
-            )
+            process = subprocess.run( [installer_path, "/S"], )
 
-            time.sleep(10)  # Wait 10 seconds after installation
+            time.sleep(5)
 
-            setup_obs_config
-            start_obs()
+            setup_obs_config()
+            start_obs(first_time=True)
 
         except Exception as e:
             self.log.emit(f"Chyba počas inštalácie: {e}")
 
         self.finished.emit()
-
-
 
 class OBSClientWorker(QObject):
 
@@ -785,6 +776,8 @@ class OBSClientWorker(QObject):
     log = Signal(str)
     streamStatusChange = Signal(bool)
     streamStatusUpdated = Signal(dict)
+    rtmpUrlFetched = Signal(str)
+    complete = Signal()
 
     def __init__(self, lectoure_data=None):
         super().__init__()
@@ -798,6 +791,7 @@ class OBSClientWorker(QObject):
 
         class_id = self.lectoure_data.get("class_id")
         class_type = self.lectoure_data.get("class_type")
+        course_name = self.lectoure_data.get("course_name")
         date_info = datetime.datetime.now().strftime("%d.%m.%Y.%H.%M.%S")
 
         if class_id and class_type:
@@ -829,6 +823,7 @@ class OBSClientWorker(QObject):
         print("WebSocket error:", error_msg)
 
     def on_text_message_received(self, message):
+
         data = json.loads(message)
         op_code = data.get('op')
 
@@ -875,30 +870,16 @@ class OBSClientWorker(QObject):
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
-        rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        rtmp_url = rtmp_url_generator.get_rtmp_url()
+        # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
+        # rtmp_url = rtmp_url_generator.get_rtmp_url()
+        rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_eventbc50b5ebd0644931aa1c7fcfd47961f8"]
         if rtmp_url:
-            print(f"\n\nrtmp_url: {rtmp_url}\n\n")
             server_url = rtmp_url[0]
             stream_key = rtmp_url[1]
-        #     request_id = str(uuid.uuid4())
-        #     payload = {
-        #         "op": 6,
-        #         "d": {
-        #             "requestType": "SetStreamServiceSettings",
-        #             "requestId": request_id,
-        #             "requestData": {
-        #                 "streamServiceType": "rtmp_custom",
-        #                 "streamServiceSettings": {
-        #                     "server": server_url,
-        #                     "key": stream_key
-        #                 }
-        #             }
-        #         }
-        #     }
-        #     self.send_json(payload)
-        #     self.responses[request_id] = None
 
+            self.log.emit(f"streaming url: {server_url}/{stream_key} created .... ")
+
+            self.rtmpUrlFetched.emit(server_url)
 
             request_id = str(uuid.uuid4())
             payload = {
@@ -939,9 +920,12 @@ class OBSClientWorker(QObject):
             self.send_json(payload)
             self.responses[request_id] = None
             self.streamStatusChange.emit(True)
+
         else:
             print(f"// obs is not installed //")
             self.log.emit("can not start stream OBS is not installed")
+
+        self.complete.emit()
 
     @Slot()
     def stop_stream(self):
@@ -958,6 +942,8 @@ class OBSClientWorker(QObject):
         self.send_json(payload)
         self.responses[request_id] = None
         self.streamStatusChange.emit(False)
+
+        self.complete.emit()
 
     @Slot()
     def get_stream_status(self):
@@ -1045,6 +1031,7 @@ class MainWindow(QObject):
         self._is_open_browser_btn_enabled = True
         self._is_open_obs_btn_enabled = is_obs_installed()
         self._is_obs_install_btn_enabled = True if not is_obs_installed() else False
+        self._is_obs_record_btn_enabled = is_obs_installed()
 
         self._access_code = ""
         self._rust_id = "Nenájdené"
@@ -1249,6 +1236,16 @@ class MainWindow(QObject):
             self._is_obs_install_btn_enabled = is_enabled
             self.obsInstallBtnEnabledChanged.emit(is_enabled)
 
+    @Property(bool, notify=obsInstallBtnEnabledChanged)
+    def is_obs_record_btn_enabled(self):
+        return self._is_obs_record_btn_enabled
+
+    @is_obs_record_btn_enabled.setter
+    def is_obs_record_btn_enabled(self, is_enabled):
+        if self._is_obs_record_btn_enabled != is_enabled:
+            self._is_obs_record_btn_enabled = is_enabled
+            self.obsInstallBtnEnabledChanged.emit(is_enabled)
+
     @Property(str, notify=appInstallationStatusChanged)
     def app_installation_status(self):
         return self._app_installation_status
@@ -1373,6 +1370,7 @@ class MainWindow(QObject):
         # Start the thread
         self.is_obs_install_btn_enabled = False
         self.is_open_obs_btn_enabled = False
+        self.is_obs_record_btn_enabled = False
         self.obs_installation_thread.start()
 
     @Slot()
@@ -1528,8 +1526,12 @@ class MainWindow(QObject):
             self.obs_websocket_worker.streamStatusChange.connect(self.on_obs_stream_status_change)
             self.obs_websocket_worker.log.connect(self.add_log)
             self.obs_websocket_worker.errorOccurred.connect(self.on_obs_websocket_error)
+            self.obs_websocket_worker.rtmpUrlFetched.connect(self.on_obs_websocket_rtmp_fetched)
+            self.obs_websocket_worker.complete.connect(self.on_obs_websocket_complete)
+
             self.startStream.connect(self.obs_websocket_worker.start_stream)
             self.stopStream.connect(self.obs_websocket_worker.stop_stream)
+
             print(f"\t\tfinish connecting slots")
             self.obs_websocket_thread.start()
             print(f"\t\tstart websocket thread")
@@ -1543,6 +1545,8 @@ class MainWindow(QObject):
             print(f"\t\trecording was running")
             self.stopStream.emit()
             print(f"\t\tstop_stream called")
+
+        self.is_obs_record_btn_enabled = False
 
     @Slot()
     def open_obs(self):
@@ -1585,6 +1589,15 @@ class MainWindow(QObject):
     def on_obs_websocket_error(self, message):
         self.add_log(f"OBS on_obs_websocket_error: {message}")
         self.add_log(message)
+
+    @Slot(str)
+    def on_obs_websocket_rtmp_fetched(self, rtmp_url):
+        self.streaming_url = rtmp_url
+
+    @Slot()
+    def on_obs_websocket_complete(self):
+        self.is_obs_record_btn_enabled = True
+
 
     @Slot()
     def check_installation(self):
@@ -1832,6 +1845,7 @@ class MainWindow(QObject):
         self.obs_installation_status = "enabled" if is_obs_installed() else "disabled"
         self.is_obs_install_btn_enabled = False
         self.is_open_obs_btn_enabled = True
+        self.is_obs_record_btn_enabled = True
 
     @Slot()
     def on_start_app_finished(self):
