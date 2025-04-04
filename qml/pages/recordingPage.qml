@@ -72,7 +72,7 @@ Item {
                     }
 
                     Item {
-                        width: 225
+                        width: 240
                         height: 30
                         Layout.alignment: Qt.AlignVCenter
 
@@ -105,18 +105,19 @@ Item {
                     }
 
                     Item {
-                        width: 225
+                        width: 240
                         height: 30
                         Layout.alignment: Qt.AlignVCenter
 
                         Text {
                             text: backend.course_name
-                            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-                            anchors.fill: parent
-                            font.pixelSize: 18  // Adjust size as needed
+                            anchors.centerIn: parent // Centers the text in the Item
+                            font.pixelSize: 18
                             font.italic: true
                             font.bold: true
                             color: "#13b899"
+                            horizontalAlignment: Text.AlignHCenter // Center text horizontally
+                            verticalAlignment: Text.AlignVCenter   // Center text vertically
                         }
                     }
                 }

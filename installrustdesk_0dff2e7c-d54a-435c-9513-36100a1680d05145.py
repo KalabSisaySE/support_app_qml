@@ -600,28 +600,28 @@ class WebSocketWorker(QObject):
         # 1. User manually disconnected
         # 2. Server closed gracefully (non-network issue)
         # 3. Error was non-network-related (e.g., invalid access code)
-        if self.manual_disconnect:
-            self.manual_disconnect = False  # Reset for next session
-            self.log.emit("Manual disconnect: No reconnection")
-            return
-
-        if close_code != QWebSocketProtocol.CloseCodeAbnormalClosure:
-            self.log.emit("Server-initiated disconnect: No reconnection")
-            return
-
-        if not self.reconnect_needed:
-            self.log.emit("Non-network error: No reconnection")
-            return
-
-        # Proceed with reconnection for network failures
-        if self.reconnect_enabled:
-            delay = self.current_reconnect_delay
-            self.log.emit(f"Reconnecting in {delay / 1000} seconds...")
-            self.reconnect_timer.start(delay)
-            self.current_reconnect_delay = min(
-                self.current_reconnect_delay * 2,
-                self.max_reconnect_delay
-            )
+        # if self.manual_disconnect:
+        #     self.manual_disconnect = False  # Reset for next session
+        #     self.log.emit("Manual disconnect: No reconnection")
+        #     return
+        #
+        # if close_code != QWebSocketProtocol.CloseCodeAbnormalClosure:
+        #     self.log.emit("Server-initiated disconnect: No reconnection")
+        #     return
+        #
+        # if not self.reconnect_needed:
+        #     self.log.emit("Non-network error: No reconnection")
+        #     return
+        #
+        # # Proceed with reconnection for network failures
+        # if self.reconnect_enabled:
+        #     delay = self.current_reconnect_delay
+        #     self.log.emit(f"Reconnecting in {delay / 1000} seconds...")
+        #     self.reconnect_timer.start(delay)
+        #     self.current_reconnect_delay = min(
+        #         self.current_reconnect_delay * 2,
+        #         self.max_reconnect_delay
+        #     )
 
     @Slot(QAbstractSocket.SocketError)
     def on_error(self, error_code):
@@ -646,10 +646,13 @@ class WebSocketWorker(QObject):
     def on_text_message_received(self, message):
         self.log.emit(f"WebSocketWorker on_text_message_received")
 
+        print(f"\n\n\n*** WebSocketWorker on_text_message_received *** ")
+        print(f"\t{message}\n\n\n")
 
-        self.message_received.emit(message)
+
         try:
             data = json.loads(message)
+            self.receivedCourseData.emit(data)
             message_type = data.get("message_type")
             self.lectoure_ws_data = data
             if message_type in ["start_recording", "stop_recording"]:
@@ -663,8 +666,10 @@ class WebSocketWorker(QObject):
                 })
 
                 self.send_message(msg)
-        except json.JSONDecodeError:
-            pass
+                self.message_received.emit(message)
+        except Exception as e:
+            print(f"\n\n\ton_text_message_received error: {e}\n\n")
+            self.message_received.emit(message)
 
 
 
@@ -915,9 +920,9 @@ class OBSClientWorker(QObject):
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
-        # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        # rtmp_url = rtmp_url_generator.get_rtmp_url()
-        rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_eventbc50b5ebd0644931aa1c7fcfd47961f8"]
+        rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
+        rtmp_url = rtmp_url_generator.get_rtmp_url()
+        # rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_eventbc50b5ebd0644931aa1c7fcfd47961f8"]
         if rtmp_url:
             server_url = rtmp_url[0]
             stream_key = rtmp_url[1]
@@ -1627,6 +1632,8 @@ class MainWindow(QObject):
             is_installed = is_obs_installed()
             self.is_open_obs_btn_enabled = is_installed
             self.is_obs_record_btn_enabled = is_installed
+            self.streaming_url = "Not streaming"
+            self.course_name = "Unkown"
 
     @Slot(bool)
     def on_obs_ws_stream_status_change(self, status):
@@ -1649,6 +1656,8 @@ class MainWindow(QObject):
                 "message": "Recording stopped successfully"
             }
             )
+            self.streaming_url = "Not streaming"
+            self.course_name = "Unkown"
 
         self.is_obs_record_btn_enabled = True
         self.is_open_obs_btn_enabled = True
@@ -1803,6 +1812,7 @@ class MainWindow(QObject):
             self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
             self.app_websocket_worker.log.connect(self.add_log)
             self.app_websocket_worker.toggleRecording.connect(self.websocket_on_toggle_recording)
+            self.app_websocket_worker.receivedCourseData.connect(self.websocket_on_received_course_data)
             self.sendMessage.connect(self.app_websocket_worker.send_msg_to_server)
 
             self.app_websocket_thread.start()
@@ -1840,7 +1850,7 @@ class MainWindow(QObject):
             data = json.loads(message)
 
             message_type = data.get("message_type")
-            if message_type:
+            if not self.lectoure_ws_data and message_type:
                 self.lectoure_ws_data = data
         except json.JSONDecodeError:
             pass
@@ -1848,6 +1858,15 @@ class MainWindow(QObject):
     @Slot(str)
     def websocket_on_error(self, message):
         self.add_log(message)
+
+    @Slot(dict)
+    def websocket_on_received_course_data(self, course_data):
+        self.add_log("\t\twebsocket_on_received_course_data\n")
+        self.lectoure_ws_data = course_data
+        name = course_data.get("course_name", "course_name")
+        if name != "course_name":
+            self.course_name = name[:25] + "..." if len(name) > 25 else name
+
 
     @Slot()
     def refresh_app_status(self):
