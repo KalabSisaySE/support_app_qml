@@ -532,6 +532,7 @@ class WebSocketWorker(QObject):
     error_occurred = Signal(str)
     log = Signal(str)
     toggleRecording = Signal()
+    receivedCourseData = Signal(dict)
 
     def __init__(self):
         super().__init__()
@@ -568,7 +569,6 @@ class WebSocketWorker(QObject):
 
     @Slot()
     def start_connection(self):
-        self.log.emit("Attempting WebSocket connection...")
         self.websocket.open(QUrl(self.url))
 
     @Slot()
@@ -582,14 +582,14 @@ class WebSocketWorker(QObject):
 
     @Slot()
     def on_connected(self):
-        self.log.emit("Connected to WebSocket server")
+        self.log.emit("Connected to Macrosoft WebSocket server")
         self.current_reconnect_delay = self.initial_reconnect_delay  # Reset delay
         self.reconnect_needed = False  # Clear error flag
         self.connection.emit(True)
 
     @Slot()
     def on_disconnected(self):
-        self.log.emit("Disconnected from WebSocket server")
+        self.log.emit("Disconnected from Macrosoft WebSocket server")
         self.connection.emit(False)
 
         close_code = self.websocket.closeCode()
@@ -642,41 +642,46 @@ class WebSocketWorker(QObject):
         if self.websocket.state() != QAbstractSocket.UnconnectedState:
             self.websocket.abort()
 
-    # ... (rest of existing methods like send_message)
     @Slot(str)
     def on_text_message_received(self, message):
         self.log.emit(f"WebSocketWorker on_text_message_received")
+
+
         self.message_received.emit(message)
         try:
             data = json.loads(message)
-
             message_type = data.get("message_type")
             self.lectoure_ws_data = data
             if message_type in ["start_recording", "stop_recording"]:
                 self.toggleRecording.emit()
             else:
-                msg = {
+                msg = json.dumps({
                     "client": "device",
                     "access_code": self.access,
                     "success": False,
                     "message": "Invalid message type, accept only start_recording or stop_recording",
-                }
+                })
 
                 self.send_message(msg)
         except json.JSONDecodeError:
             pass
 
-        self.toggleRecording.emit()
 
 
-    @Slot(dict)
-    def send_message(self, msg):
-        message = json.dumps(msg) if type(msg) == dict else msg
+    def send_message(self, message):
         self.log.emit(f"WebSocketWorker send_message")
         if self.websocket.state() == QAbstractSocket.ConnectedState:
             self.websocket.sendTextMessage(message)
         else:
             self.error_occurred.emit("Not connected to WebSocket server")
+
+    @Slot(dict)
+    def send_msg_to_server(self, msg):
+        """receives message from main thread and sends it to server"""
+        print(f"\n\n\n*** WebSocketWorker send_msg_to_server *** ")
+        print(f"\t{msg}\n\n\n")
+        message = json.dumps(msg)
+        self.send_message(message)
 
 class OpenOBSWorker(QObject):
     """manages opening/closing a browser"""
@@ -833,7 +838,7 @@ class OBSClientWorker(QObject):
         self.ws.open(self.url)
 
     def on_connected(self):
-        print("Connected to WebSocket server")
+        self.log.emit("Connected to OBS WebSocket server")
 
     def on_disconnected(self):
         print("Disconnected from WebSocket server")
@@ -874,7 +879,7 @@ class OBSClientWorker(QObject):
             self.handle_request_response(data['d'])
 
     def handle_hello(self, data):
-        print("Received Hello message")
+        self.log.emit("Received Hello message from OBS Websocket Server ...")
         self.send_identify()
 
     def send_identify(self):
@@ -919,7 +924,9 @@ class OBSClientWorker(QObject):
 
             self.log.emit(f"streaming url: {server_url}/{stream_key} created .... ")
 
-            self.rtmpUrlFetched.emit(server_url)
+            trimmed_server_url = server_url[:25] + "..." if len(server_url) > 25 else server_url
+
+            self.rtmpUrlFetched.emit(trimmed_server_url)
 
             request_id = str(uuid.uuid4())
             payload = {
@@ -957,7 +964,6 @@ class OBSClientWorker(QObject):
 
     @Slot()
     def start_stream(self):
-
         if not self.identified:
             self.is_start_stream_called_on_init = True
             return
@@ -1124,11 +1130,9 @@ class MainWindow(QObject):
         self.open_obs_thread = None
         self.open_obs_worker = None
 
-        self.obs_websocket_thread = None
-        self.obs_websocket_worker = None
+        self.obs_ws_thread = None
+        self.obs_ws_worker = None
 
-        # Cross-thread communication
-        self.sendMessageRequested = Signal(str)
 
         # QTimer - Run Timer
         self.timer = QTimer()
@@ -1562,26 +1566,30 @@ class MainWindow(QObject):
     @Slot()
     def toggle_recording(self):
         """handles button click to start/stop recording"""
-        print(f"")
-        if not self.obs_websocket_thread or not self.obs_websocket_thread.isRunning():
-            self.obs_websocket_worker = OBSClientWorker(self.lectoure_ws_data)
-            self.obs_websocket_thread = QThread()
-            self.obs_websocket_worker.moveToThread(self.obs_websocket_thread)
+        print(f"\ntoggle_recording\n")
+        self.recording_toggle()
+
+    def recording_toggle(self):
+        if not self.obs_ws_thread or not self.obs_ws_thread.isRunning():
+
+            self.obs_ws_worker = OBSClientWorker()
+            self.obs_ws_thread = QThread()
+            self.obs_ws_worker.moveToThread(self.obs_ws_thread)
 
             # Connect signals
-            self.obs_websocket_thread.started.connect(self.obs_websocket_worker.connect_to_host)
-            self.obs_websocket_worker.connection.connect(self.on_obs_websocket_status_change)
-            self.obs_websocket_worker.streamStatusChange.connect(self.on_obs_stream_status_change)
-            self.obs_websocket_worker.streamStateInTransition.connect(self.on_obs_stream_state_transitioning)
-            self.obs_websocket_worker.log.connect(self.add_log)
-            self.obs_websocket_worker.errorOccurred.connect(self.on_obs_websocket_error)
-            self.obs_websocket_worker.rtmpUrlFetched.connect(self.on_obs_websocket_rtmp_fetched)
-            self.obs_websocket_worker.complete.connect(self.on_obs_websocket_complete)
+            self.obs_ws_thread.started.connect(self.obs_ws_worker.connect_to_host)
+            self.obs_ws_worker.connection.connect(self.on_obs_ws_status_change)
+            self.obs_ws_worker.streamStatusChange.connect(self.on_obs_ws_stream_status_change)
+            self.obs_ws_worker.streamStateInTransition.connect(self.on_obs_ws_stream_state_transitioning)
+            self.obs_ws_worker.log.connect(self.add_log)
+            self.obs_ws_worker.errorOccurred.connect(self.on_obs_ws_error)
+            self.obs_ws_worker.rtmpUrlFetched.connect(self.on_obs_ws_rtmp_fetched)
+            self.obs_ws_worker.complete.connect(self.on_obs_ws_complete)
 
-            self.startStream.connect(self.obs_websocket_worker.start_stream)
-            self.stopStream.connect(self.obs_websocket_worker.stop_stream)
+            self.startStream.connect(self.obs_ws_worker.start_stream)
+            self.stopStream.connect(self.obs_ws_worker.stop_stream)
 
-            self.obs_websocket_thread.start()
+            self.obs_ws_thread.start()
 
         if self._recording_status != "enabled":
             self.startStream.emit()
@@ -1589,42 +1597,45 @@ class MainWindow(QObject):
             self.stopStream.emit()
 
         self.is_obs_record_btn_enabled = False
+        self.is_open_obs_btn_enabled = False
 
     @Slot(bool)
-    def on_obs_websocket_status_change(self, status):
-        self.add_log(f"OBS on_obs_websocket_status_change: {status}")
+    def on_obs_ws_status_change(self, status):
         if status:
             self.obs_websocket_status = "enabled"
         else:
             self.sendMessage.emit({
+                "client": "device",
+                "access_code": self._access_code,
                 "success": False,
                 "message": "OBS disconnected"
             }
             )
             self.obs_websocket_status = "disabled"
             self.recording_status = "disabled"
-            if self.obs_websocket_thread and self.obs_websocket_thread.isRunning():
+            if self.obs_ws_thread and self.obs_ws_thread.isRunning():
                 self.add_log("websocket disconnected, removing thread")
-                self.obs_websocket_thread.quit()
-                self.obs_websocket_thread.wait()
-                self.obs_websocket_thread.deleteLater()
-                self.obs_websocket_thread = None
+                self.obs_ws_thread.quit()
+                self.obs_ws_thread.wait()
+                self.obs_ws_thread.deleteLater()
+                self.obs_ws_thread = None
 
-            if self.obs_websocket_worker:
+            if self.obs_ws_worker:
                 self.add_log("websocket disconnected, removing worker")
-                self.obs_websocket_worker.deleteLater()
-                self.obs_websocket_worker = None
+                self.obs_ws_worker.deleteLater()
+                self.obs_ws_worker = None
             is_installed = is_obs_installed()
             self.is_open_obs_btn_enabled = is_installed
             self.is_obs_record_btn_enabled = is_installed
 
-
     @Slot(bool)
-    def on_obs_stream_status_change(self, status):
-        self.add_log(f"OBS on_obs_stream_status_change: {status}")
+    def on_obs_ws_stream_status_change(self, status):
+        self.add_log(f"on_obs_ws_stream_status_change: {status}")
         if status:
             self.recording_status = "enabled"
             self.sendMessage.emit({
+                    "client": "device",
+                    "access_code": self._access_code,
                     "success": True,
                     "message": "Recording started successfully"
                 }
@@ -1632,6 +1643,8 @@ class MainWindow(QObject):
         else:
             self.recording_status = "disabled"
             self.sendMessage.emit({
+                "client": "device",
+                "access_code": self._access_code,
                 "success": True,
                 "message": "Recording stopped successfully"
             }
@@ -1641,23 +1654,22 @@ class MainWindow(QObject):
         self.is_open_obs_btn_enabled = True
 
     @Slot()
-    def on_obs_stream_state_transitioning(self):
+    def on_obs_ws_stream_state_transitioning(self):
         self.is_obs_record_btn_enabled = False
         self.is_open_obs_btn_enabled = False
 
     @Slot(str)
-    def on_obs_websocket_error(self, message):
+    def on_obs_ws_error(self, message):
         self.add_log(f"on_obs_websocket_error: {message}")
         self.add_log(message)
 
     @Slot(str)
-    def on_obs_websocket_rtmp_fetched(self, rtmp_url):
+    def on_obs_ws_rtmp_fetched(self, rtmp_url):
         self.streaming_url = rtmp_url
 
     @Slot()
-    def on_obs_websocket_complete(self):
+    def on_obs_ws_complete(self):
         self.is_obs_record_btn_enabled = True
-
 
 
     @Slot()
@@ -1681,8 +1693,6 @@ class MainWindow(QObject):
         self.open_obs_thread.start()
 
 
-
-
     @Slot(int)
     def update_progress(self, value):
         self.progress = value
@@ -1694,6 +1704,7 @@ class MainWindow(QObject):
 
         script_name = os.path.basename(sys.argv[0])
         code = get_access_code(script_name)
+        self.access_code = code
         rustdesk_id = ""
         is_rust_id_reported = False
 
@@ -1792,9 +1803,8 @@ class MainWindow(QObject):
             self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
             self.app_websocket_worker.log.connect(self.add_log)
             self.app_websocket_worker.toggleRecording.connect(self.websocket_on_toggle_recording)
-            self.sendMessage.connect(self.app_websocket_worker.send_message)
+            self.sendMessage.connect(self.app_websocket_worker.send_msg_to_server)
 
-            # self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
             self.app_websocket_thread.start()
 
     def setup_obs(self):
@@ -1812,43 +1822,8 @@ class MainWindow(QObject):
 
     @Slot()
     def websocket_on_toggle_recording(self):
-        if not self.obs_websocket_thread or not self.obs_websocket_thread.isRunning():
-            self.add_log(f"\t\tobs_websocket thread is not running")
-            self.obs_websocket_worker = OBSClientWorker(self.lectoure_ws_data)
-            self.add_log(f"\t\tinit obs worker")
-            self.obs_websocket_thread = QThread()
-            self.add_log(f"\t\tinit obs thread")
-            self.obs_websocket_worker.moveToThread(self.obs_websocket_thread)
-            self.add_log(f"\t\tmove obs worker to thread")
-
-            # Connect signals
-            self.obs_websocket_thread.started.connect(self.obs_websocket_worker.connect_to_host)
-            self.obs_websocket_worker.connection.connect(self.on_obs_websocket_status_change)
-            self.obs_websocket_worker.streamStatusChange.connect(self.on_obs_stream_status_change)
-            self.obs_websocket_worker.streamStateInTransition.connect(self.on_obs_stream_state_transitioning)
-            self.obs_websocket_worker.log.connect(self.add_log)
-            self.obs_websocket_worker.errorOccurred.connect(self.on_obs_websocket_error)
-            self.obs_websocket_worker.rtmpUrlFetched.connect(self.on_obs_websocket_rtmp_fetched)
-            self.obs_websocket_worker.complete.connect(self.on_obs_websocket_complete)
-
-            self.startStream.connect(self.obs_websocket_worker.start_stream)
-            self.stopStream.connect(self.obs_websocket_worker.stop_stream)
-
-            self.add_log(f"\t\tfinish connecting slots")
-            self.obs_websocket_thread.start()
-            self.add_log(f"\t\tstart websocket thread")
-
-        if self._recording_status != "enabled":
-            print(f"\t\trecording was not running")
-            # self.obs_websocket_worker.start_stream.emit()
-            self.startStream.emit()
-            print(f"\t\tstart_stream called")
-        else:
-            print(f"\t\trecording was running")
-            self.stopStream.emit()
-            print(f"\t\tstop_stream called")
-
-        self.is_obs_record_btn_enabled = False
+        self.add_log("websocket_on_toggle_recording")
+        self.recording_toggle()
 
     @Slot(bool)
     def websocket_on_change_status(self, status):
@@ -2133,8 +2108,8 @@ class MainWindow(QObject):
         """handles threads, worker cleanup"""
         print(f"\n\n\nbackend.cleanup\n\n")
         # time.sleep(5)
-        app_threads = [self.app_websocket_thread, self.obs_websocket_thread]
-        app_workers = [self.app_websocket_worker, self.obs_websocket_worker]
+        app_threads = [self.app_websocket_thread, self.obs_ws_thread]
+        app_workers = [self.app_websocket_worker, self.obs_ws_worker]
         for thread in app_threads:
             if thread and thread.isRunning():
                 thread.quit()

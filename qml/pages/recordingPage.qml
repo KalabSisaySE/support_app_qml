@@ -72,18 +72,19 @@ Item {
                     }
 
                     Item {
-                        width: 150
+                        width: 225
                         height: 30
                         Layout.alignment: Qt.AlignVCenter
 
                         Text {
                             text: backend.streaming_url
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                            font.pixelSize: 18  // Adjust size as needed
+                            anchors.centerIn: parent // Centers the text in the Item
+                            font.pixelSize: 18
                             font.italic: true
                             font.bold: true
                             color: "#13b899"
+                            horizontalAlignment: Text.AlignHCenter // Center text horizontally
+                            verticalAlignment: Text.AlignVCenter   // Center text vertically
                         }
                     }
                 }
@@ -104,14 +105,14 @@ Item {
                     }
 
                     Item {
-                        width: 150
+                        width: 225
                         height: 30
                         Layout.alignment: Qt.AlignVCenter
 
                         Text {
                             text: backend.course_name
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
+                            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+                            anchors.fill: parent
                             font.pixelSize: 18  // Adjust size as needed
                             font.italic: true
                             font.bold: true
