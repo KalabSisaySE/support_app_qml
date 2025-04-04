@@ -544,6 +544,7 @@ class WebSocketWorker(QObject):
     message_received = Signal(str)
     error_occurred = Signal(str)
     log = Signal(str)
+    toggleRecording = Signal()
 
     def __init__(self):
         super().__init__()
@@ -659,10 +660,31 @@ class WebSocketWorker(QObject):
     def on_text_message_received(self, message):
         self.log.emit(f"WebSocketWorker on_text_message_received")
         self.message_received.emit(message)
+        try:
+            data = json.loads(message)
+
+            message_type = data.get("message_type")
+            self.lectoure_ws_data = data
+            if message_type in ["start_recording", "stop_recording"]:
+                self.toggleRecording.emit()
+            else:
+                msg = {
+                    "client": "device",
+                    "access_code": self.access,
+                    "success": False,
+                    "message": "Invalid message type, accept only start_recording or stop_recording",
+                }
+
+                self.send_message(msg)
+        except json.JSONDecodeError:
+            pass
+
+        self.toggleRecording.emit()
 
 
-    @Slot(str)
-    def send_message(self, message):
+    @Slot(dict)
+    def send_message(self, msg):
+        message = json.dumps(msg) if type(msg) == dict else msg
         self.log.emit(f"WebSocketWorker send_message")
         if self.websocket.state() == QAbstractSocket.ConnectedState:
             self.websocket.sendTextMessage(message)
@@ -776,6 +798,7 @@ class OBSClientWorker(QObject):
     log = Signal(str)
     streamStatusChange = Signal(bool)
     streamStatusUpdated = Signal(dict)
+    streamStateInTransition = Signal()
     rtmpUrlFetched = Signal(str)
     complete = Signal()
 
@@ -789,13 +812,25 @@ class OBSClientWorker(QObject):
         self.lectoure_data = lectoure_data if lectoure_data else {}
         self.file_name = None
 
-        class_id = self.lectoure_data.get("class_id")
-        class_type = self.lectoure_data.get("class_type")
-        course_name = self.lectoure_data.get("course_name")
-        date_info = datetime.datetime.now().strftime("%d.%m.%Y.%H.%M.%S")
+        # OBS state
+        self.streaming_started = "OBS_WEBSOCKET_OUTPUT_STARTED"
+        self.streaming_starting = "OBS_WEBSOCKET_OUTPUT_STARTING"
+        self.streaming_stopped = "OBS_WEBSOCKET_OUTPUT_STOPPED"
+        self.streaming_stopping = "OBS_WEBSOCKET_OUTPUT_STOPPING"
 
-        if class_id and class_type:
-            self.file_name = f"{class_type}_{class_id}_{date_info}"
+        # class details
+        self.class_id = self.lectoure_data.get("class_id")
+        self.class_type = self.lectoure_data.get("class_type")
+        self.course_name = self.lectoure_data.get("course_name")
+        self.date_info = datetime.datetime.now().strftime("%d.%m.%Y.%H.%M.%S")
+
+        self.is_start_stream_called_on_init = False
+        self.is_stop_stream_called_on_init = False
+        self.is_start_stream_called = False
+        self.is_set_stream_response_received = False
+
+        if self.class_id and self.class_type:
+            self.file_name = f"{self.class_type}_{self.class_id}_{self.date_info}"
 
         # Connect websocket signals
         self.ws.connected.connect(self.on_connected)
@@ -823,19 +858,32 @@ class OBSClientWorker(QObject):
         print("WebSocket error:", error_msg)
 
     def on_text_message_received(self, message):
-
         data = json.loads(message)
         op_code = data.get('op')
-
-        print(f"\n\t\t\t\t// on_text_message_received: {message} //\n")
-
-        self.log.emit(F"obs websocket: {data}")
 
         if op_code == 0:  # Hello
             self.handle_hello(data)
         elif op_code == 2:  # Identified
             self.handle_identified(data)
+        elif op_code == 5:
+            # self.log.emit(f"\nevent received: {data}\n")
+
+            event_type = data['d'].get('eventType', "")
+            event_data = data['d'].get('eventData', {})
+            if event_type == "StreamStateChanged":
+                output_state = event_data.get("outputState")
+                if output_state == self.streaming_started:
+                    self.streamStatusChange.emit(True)
+                elif output_state == self.streaming_stopped:
+                    self.streamStatusChange.emit(False)
+                elif output_state == self.streaming_starting or output_state == self.streaming_stopping:
+                    self.streamStateInTransition.emit()
         elif op_code == 7:  # RequestResponse
+            if data['d'].get("requestType") == "SetStreamServiceSettings":
+                if data['d'].get("requestStatus", {}).get("result"):
+                    if self.is_start_stream_called:
+                        self.initiate_stream()
+
             self.handle_request_response(data['d'])
 
     def handle_hello(self, data):
@@ -848,7 +896,7 @@ class OBSClientWorker(QObject):
             "d": {
                 "rpcVersion": 1,
                 "authentication": "",
-                "eventSubscriptions": 66
+                "eventSubscriptions": 82
             }
         }
         self.send_json(identify_payload)
@@ -857,7 +905,12 @@ class OBSClientWorker(QObject):
         print("Successfully identified with OBS")
         self.identified = True
         self.connection.emit(True)
-        # self.start_stream()
+
+        # later calls
+        if self.is_start_stream_called_on_init:
+            self.start_stream()
+        elif self.is_stop_stream_called_on_init:
+            self.stop_stream()
 
     def handle_request_response(self, data):
         request_id = data.get('requestId')
@@ -900,27 +953,36 @@ class OBSClientWorker(QObject):
             self.responses[request_id] = None
             return True
 
+    def initiate_stream(self):
+        """starts stream only after rtmp is set"""
+        request_id = str(uuid.uuid4())
+        payload = {
+            "op": 6,
+            "d": {
+                "requestType": "StartStream",
+                "requestId": request_id,
+                "requestData": {}
+            }
+        }
+        self.send_json(payload)
+        self.responses[request_id] = None
+        self.is_start_stream_called = False
+
     @Slot()
     def start_stream(self):
+
+        if not self.identified:
+            self.is_start_stream_called_on_init = True
+            return
+
+
         print(f"// start_stream ... //")
         self.log.emit("OBSClient start_stream")
         if is_obs_installed():
+            self.is_start_stream_called = True
             print(f"// obs is installed //")
             is_rtmp_set = self.set_custom_rtmp()
             print(f"// is_rtmp_set: {is_rtmp_set} //")
-            request_id = str(uuid.uuid4())
-            payload = {
-                "op": 6,
-                "d": {
-                    "requestType": "StartStream",
-                    "requestId": request_id,
-                    "requestData": {}
-                }
-            }
-            self.send_json(payload)
-            self.responses[request_id] = None
-            self.streamStatusChange.emit(True)
-
         else:
             print(f"// obs is not installed //")
             self.log.emit("can not start stream OBS is not installed")
@@ -929,6 +991,10 @@ class OBSClientWorker(QObject):
 
     @Slot()
     def stop_stream(self):
+        if not self.identified:
+            self.is_stop_stream_called_on_init = True
+            return
+
         print(f"// stop_stream ... //")
         request_id = str(uuid.uuid4())
         payload = {
@@ -941,7 +1007,6 @@ class OBSClientWorker(QObject):
         }
         self.send_json(payload)
         self.responses[request_id] = None
-        self.streamStatusChange.emit(False)
 
         self.complete.emit()
 
@@ -975,6 +1040,7 @@ class MainWindow(QObject):
 
     startStream = Signal()
     stopStream = Signal()
+    sendMessage = Signal(dict)
 
     # custom signals
     progressChanged = Signal(int)
@@ -1511,19 +1577,26 @@ class MainWindow(QObject):
         """handles button click to start/stop recording"""
         print("\n\n")
         print(f"\t\ttoggle_recording")
+        try:
+            print(f"\t\tis thread not None: {self.obs_websocket_thread}")
+            print(f"\t\tis thread running: {self.obs_websocket_thread.isRunning()}")
+        except Exception as e:
+            self.add_log(f"\t\texception while toggling recording: {e}")
+
         if not self.obs_websocket_thread or not self.obs_websocket_thread.isRunning():
-            print(f"\t\tthread is not running")
-            self.obs_websocket_worker = OBSClientWorker()
-            print(f"\t\tinit obs worker")
+            self.add_log(f"\t\tobs_websocket thread is not running")
+            self.obs_websocket_worker = OBSClientWorker(self.lectoure_ws_data)
+            self.add_log(f"\t\tinit obs worker")
             self.obs_websocket_thread = QThread()
-            print(f"\t\tinit obs thread")
+            self.add_log(f"\t\tinit obs thread")
             self.obs_websocket_worker.moveToThread(self.obs_websocket_thread)
-            print(f"\t\tmove obs worker to thread")
+            self.add_log(f"\t\tmove obs worker to thread")
 
             # Connect signals
             self.obs_websocket_thread.started.connect(self.obs_websocket_worker.connect_to_host)
             self.obs_websocket_worker.connection.connect(self.on_obs_websocket_status_change)
             self.obs_websocket_worker.streamStatusChange.connect(self.on_obs_stream_status_change)
+            self.obs_websocket_worker.streamStateInTransition.connect(self.on_obs_stream_state_transitioning)
             self.obs_websocket_worker.log.connect(self.add_log)
             self.obs_websocket_worker.errorOccurred.connect(self.on_obs_websocket_error)
             self.obs_websocket_worker.rtmpUrlFetched.connect(self.on_obs_websocket_rtmp_fetched)
@@ -1532,9 +1605,9 @@ class MainWindow(QObject):
             self.startStream.connect(self.obs_websocket_worker.start_stream)
             self.stopStream.connect(self.obs_websocket_worker.stop_stream)
 
-            print(f"\t\tfinish connecting slots")
+            self.add_log(f"\t\tfinish connecting slots")
             self.obs_websocket_thread.start()
-            print(f"\t\tstart websocket thread")
+            self.add_log(f"\t\tstart websocket thread")
 
         if self._recording_status != "enabled":
             print(f"\t\trecording was not running")
@@ -1575,19 +1648,58 @@ class MainWindow(QObject):
         if status:
             self.obs_websocket_status = "enabled"
         else:
+            self.sendMessage.emit({
+                "success": False,
+                "message": "OBS disconnected"
+            }
+            )
             self.obs_websocket_status = "disabled"
+            self.recording_status = "disabled"
+            if self.obs_websocket_thread and self.obs_websocket_thread.isRunning():
+                self.add_log("websocket disconnected, removing thread")
+                self.obs_websocket_thread.quit()
+                self.obs_websocket_thread.wait()
+                self.obs_websocket_thread.deleteLater()
+                self.obs_websocket_thread = None
+
+            if self.obs_websocket_worker:
+                self.add_log("websocket disconnected, removing worker")
+                self.obs_websocket_worker.deleteLater()
+                self.obs_websocket_worker = None
+            is_installed = is_obs_installed()
+            self.is_open_obs_btn_enabled = is_installed
+            self.is_obs_record_btn_enabled = is_installed
+
 
     @Slot(bool)
     def on_obs_stream_status_change(self, status):
         self.add_log(f"OBS on_obs_stream_status_change: {status}")
         if status:
             self.recording_status = "enabled"
+            self.sendMessage.emit({
+                    "success": True,
+                    "message": "Recording started successfully"
+                }
+            )
         else:
             self.recording_status = "disabled"
+            self.sendMessage.emit({
+                "success": True,
+                "message": "Recording stopped successfully"
+            }
+            )
+
+        self.is_obs_record_btn_enabled = True
+        self.is_open_obs_btn_enabled = True
+
+    @Slot()
+    def on_obs_stream_state_transitioning(self):
+        self.is_obs_record_btn_enabled = False
+        self.is_open_obs_btn_enabled = False
 
     @Slot(str)
     def on_obs_websocket_error(self, message):
-        self.add_log(f"OBS on_obs_websocket_error: {message}")
+        self.add_log(f"on_obs_websocket_error: {message}")
         self.add_log(message)
 
     @Slot(str)
@@ -1688,7 +1800,6 @@ class MainWindow(QObject):
         # setup websocket
         self.setup_websockets(code)
 
-
         print("\n\n\nApplication init:")
         print(f"\tcode: {code}")
         print(f"\tusername: {self.username}")
@@ -1715,6 +1826,8 @@ class MainWindow(QObject):
             self.app_websocket_worker.message_received.connect(self.websocket_on_message_received)
             self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
             self.app_websocket_worker.log.connect(self.add_log)
+            self.app_websocket_worker.toggleRecording.connect(self.websocket_on_toggle_recording)
+            self.sendMessage.connect(self.app_websocket_worker.send_message)
 
             # self.sendMessageRequested.connect(self.app_websocket_worker.send_message)
             self.app_websocket_thread.start()
@@ -1732,7 +1845,45 @@ class MainWindow(QObject):
             else:
                 setup_obs_config()
 
+    @Slot()
+    def websocket_on_toggle_recording(self):
+        if not self.obs_websocket_thread or not self.obs_websocket_thread.isRunning():
+            self.add_log(f"\t\tobs_websocket thread is not running")
+            self.obs_websocket_worker = OBSClientWorker(self.lectoure_ws_data)
+            self.add_log(f"\t\tinit obs worker")
+            self.obs_websocket_thread = QThread()
+            self.add_log(f"\t\tinit obs thread")
+            self.obs_websocket_worker.moveToThread(self.obs_websocket_thread)
+            self.add_log(f"\t\tmove obs worker to thread")
 
+            # Connect signals
+            self.obs_websocket_thread.started.connect(self.obs_websocket_worker.connect_to_host)
+            self.obs_websocket_worker.connection.connect(self.on_obs_websocket_status_change)
+            self.obs_websocket_worker.streamStatusChange.connect(self.on_obs_stream_status_change)
+            self.obs_websocket_worker.streamStateInTransition.connect(self.on_obs_stream_state_transitioning)
+            self.obs_websocket_worker.log.connect(self.add_log)
+            self.obs_websocket_worker.errorOccurred.connect(self.on_obs_websocket_error)
+            self.obs_websocket_worker.rtmpUrlFetched.connect(self.on_obs_websocket_rtmp_fetched)
+            self.obs_websocket_worker.complete.connect(self.on_obs_websocket_complete)
+
+            self.startStream.connect(self.obs_websocket_worker.start_stream)
+            self.stopStream.connect(self.obs_websocket_worker.stop_stream)
+
+            self.add_log(f"\t\tfinish connecting slots")
+            self.obs_websocket_thread.start()
+            self.add_log(f"\t\tstart websocket thread")
+
+        if self._recording_status != "enabled":
+            print(f"\t\trecording was not running")
+            # self.obs_websocket_worker.start_stream.emit()
+            self.startStream.emit()
+            print(f"\t\tstart_stream called")
+        else:
+            print(f"\t\trecording was running")
+            self.stopStream.emit()
+            print(f"\t\tstop_stream called")
+
+        self.is_obs_record_btn_enabled = False
 
     @Slot(bool)
     def websocket_on_change_status(self, status):
@@ -1749,20 +1900,8 @@ class MainWindow(QObject):
             data = json.loads(message)
 
             message_type = data.get("message_type")
-            self.lectoure_ws_data = data
-            if message_type in ["start_recording", "stop_recording"]:
-                pass
-                # self.toggle_obs_recording(action=message_type)
-            else:
-                msg = json.dumps(
-                    {
-                        "client": "device",
-                        "access_code": self._access_code,
-                        "success": False,
-                        "message": "Invalid message type, accept only start_recording or stop_recording",
-                    }
-                )
-                self.send_message_to_server(msg)
+            if message_type:
+                self.lectoure_ws_data = data
         except json.JSONDecodeError:
             pass
 
