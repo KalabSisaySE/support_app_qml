@@ -199,12 +199,6 @@ class AppInstallationWorker(QObject):
                 except Exception as e:
                     self.log.emit(f"Nepodarilo sa odoslať ID: {e}")
 
-    def check_installation(self):
-        """Check if the application is installed and update the UI accordingly."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-
-        if os.path.exists(app_path):
-            return True
 
     def start_macrosoftconnect(self):
         """Start the MacrosoftConnectQuickSupport application."""
@@ -230,7 +224,7 @@ class AppInstallationWorker(QObject):
                 self.log.emit("Service is running...")
                 return True
 
-            if not self.check_installation():
+            if not check_installation():
                 self.log.emit("App is not installed. Install app first...")
                 return
 
@@ -318,13 +312,6 @@ class AppServiceWorker(QObject):
         ),
     )
 
-    def check_installation(self):
-        """Check if the application is installed and update the UI accordingly."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-
-        if os.path.exists(app_path):
-            return True
-
     def start_macrosoftconnect(self):
         """Start the MacrosoftConnectQuickSupport application."""
         app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
@@ -347,7 +334,7 @@ class AppServiceWorker(QObject):
     def start_service(self, signals=None):
         """Start the MacrosoftConnectQuickSupport service."""
         try:
-            if not self.check_installation():
+            if not check_installation():
                 self.log.emit("App is not installed. Install app first...")
                 self.finished.emit()
                 return
@@ -1080,8 +1067,8 @@ class MainWindow(QObject):
 
         # values
         self._progress = 0
-        self._app_installation_status = "enabled" if self.check_installation() else "disabled"
-        self._app_service_status = "enabled" if self.check_installation() and self.is_service_on() else "disabled"
+        self._app_installation_status = "enabled" if check_installation() else "disabled"
+        self._app_service_status = "enabled" if check_installation() and self.is_service_on() else "disabled"
         self._app_websocket_status = "disabled"
         self._permission_status = "disabled"
         self._obs_installation_status = "disabled"
@@ -1089,9 +1076,9 @@ class MainWindow(QObject):
         self._recording_status = "disabled"
 
         self._is_app_install_btn_enabled = False
-        self._is_app_start_btn_enabled = self.check_installation()
-        self._is_app_service_btn_enabled = self.check_installation()
-        self._is_app_rust_id_btn_enabled = self.check_installation()
+        self._is_app_start_btn_enabled = check_installation()
+        self._is_app_service_btn_enabled = check_installation()
+        self._is_app_rust_id_btn_enabled = check_installation()
         self._is_enable_microphone_only_btn_enabled = True
         self._is_enable_microphone_and_camera_btn_enabled = True
         self._is_open_browser_btn_enabled = True
@@ -1228,7 +1215,7 @@ class MainWindow(QObject):
     def is_app_start_btn_enabled(self, is_enabled):
         if self._is_app_start_btn_enabled != is_enabled:
             # check also if app is installed before allowing
-            status = is_enabled if self.check_installation() else False
+            status = is_enabled if check_installation() else False
             self._is_app_start_btn_enabled = status
             self.appStartBtnEnabledChanged.emit(status)
 
@@ -1575,22 +1562,11 @@ class MainWindow(QObject):
     @Slot()
     def toggle_recording(self):
         """handles button click to start/stop recording"""
-        print("\n\n")
-        print(f"\t\ttoggle_recording")
-        try:
-            print(f"\t\tis thread not None: {self.obs_websocket_thread}")
-            print(f"\t\tis thread running: {self.obs_websocket_thread.isRunning()}")
-        except Exception as e:
-            self.add_log(f"\t\texception while toggling recording: {e}")
-
+        print(f"")
         if not self.obs_websocket_thread or not self.obs_websocket_thread.isRunning():
-            self.add_log(f"\t\tobs_websocket thread is not running")
             self.obs_websocket_worker = OBSClientWorker(self.lectoure_ws_data)
-            self.add_log(f"\t\tinit obs worker")
             self.obs_websocket_thread = QThread()
-            self.add_log(f"\t\tinit obs thread")
             self.obs_websocket_worker.moveToThread(self.obs_websocket_thread)
-            self.add_log(f"\t\tmove obs worker to thread")
 
             # Connect signals
             self.obs_websocket_thread.started.connect(self.obs_websocket_worker.connect_to_host)
@@ -1605,42 +1581,14 @@ class MainWindow(QObject):
             self.startStream.connect(self.obs_websocket_worker.start_stream)
             self.stopStream.connect(self.obs_websocket_worker.stop_stream)
 
-            self.add_log(f"\t\tfinish connecting slots")
             self.obs_websocket_thread.start()
-            self.add_log(f"\t\tstart websocket thread")
 
         if self._recording_status != "enabled":
-            print(f"\t\trecording was not running")
-            # self.obs_websocket_worker.start_stream.emit()
             self.startStream.emit()
-            print(f"\t\tstart_stream called")
         else:
-            print(f"\t\trecording was running")
             self.stopStream.emit()
-            print(f"\t\tstop_stream called")
 
         self.is_obs_record_btn_enabled = False
-
-    @Slot()
-    def open_obs(self):
-        """opens OBS"""
-        if self.open_obs_thread and self.open_obs_thread.isRunning():
-            self.open_obs_thread.quit()
-            self.open_obs_thread.wait()
-
-        self.open_obs_thread = QThread()
-        self.open_obs_worker = OpenOBSWorker()
-        self.open_obs_worker.moveToThread(self.open_obs_thread)
-
-        self.open_obs_thread.started.connect(self.open_obs_worker.open_obs_app)
-
-        self.open_obs_worker.progress_changed.connect(self.update_progress)
-        self.open_obs_worker.log.connect(self.add_log)
-        self.open_obs_worker.finished.connect(self.on_open_obs_finished)
-
-        self.is_open_obs_btn_enabled = False
-        self.open_obs_thread.start()
-
 
     @Slot(bool)
     def on_obs_websocket_status_change(self, status):
@@ -1711,12 +1659,29 @@ class MainWindow(QObject):
         self.is_obs_record_btn_enabled = True
 
 
+
     @Slot()
-    def check_installation(self):
-        """Check if the application is installed and update the UI accordingly."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-        if os.path.exists(app_path):
-            return True
+    def open_obs(self):
+        """opens OBS"""
+        if self.open_obs_thread and self.open_obs_thread.isRunning():
+            self.open_obs_thread.quit()
+            self.open_obs_thread.wait()
+
+        self.open_obs_thread = QThread()
+        self.open_obs_worker = OpenOBSWorker()
+        self.open_obs_worker.moveToThread(self.open_obs_thread)
+
+        self.open_obs_thread.started.connect(self.open_obs_worker.open_obs_app)
+
+        self.open_obs_worker.progress_changed.connect(self.update_progress)
+        self.open_obs_worker.log.connect(self.add_log)
+        self.open_obs_worker.finished.connect(self.on_open_obs_finished)
+
+        self.is_open_obs_btn_enabled = False
+        self.open_obs_thread.start()
+
+
+
 
     @Slot(int)
     def update_progress(self, value):
@@ -1732,7 +1697,7 @@ class MainWindow(QObject):
         rustdesk_id = ""
         is_rust_id_reported = False
 
-        if self.check_installation():
+        if check_installation():
             self.app_installation_status = "enabled"
 
             # get rust_id
@@ -1916,7 +1881,7 @@ class MainWindow(QObject):
         self.is_app_start_btn_enabled = True
         self.is_app_service_btn_enabled = True
 
-        if self.check_installation():
+        if check_installation():
             self.app_installation_status = "enabled"
             if self.is_service_on():
                 self.app_service_status = "enabled"
@@ -1998,7 +1963,7 @@ class MainWindow(QObject):
 
         self.app_start_worker.deleteLater()
         self.app_start_worker = None
-        self.is_app_start_btn_enabled = self.check_installation()
+        self.is_app_start_btn_enabled = check_installation()
 
     @Slot()
     def on_get_rustid_finished(self):
@@ -2026,9 +1991,9 @@ class MainWindow(QObject):
 
         self.app_service_worker.deleteLater()
         self.app_service_worker = None
-        # self.is_app_start_enabled = self.check_installation()
+        # self.is_app_start_enabled = check_installation()
 
-        self.app_service_status = "enabled" if self.check_installation() and self.is_service_on() else "disabled"
+        self.app_service_status = "enabled" if check_installation() and self.is_service_on() else "disabled"
 
         self.is_app_service_btn_enabled = True
 
