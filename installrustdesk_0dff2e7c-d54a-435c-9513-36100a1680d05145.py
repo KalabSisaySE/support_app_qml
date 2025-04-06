@@ -646,8 +646,6 @@ class WebSocketWorker(QObject):
     def on_text_message_received(self, message):
         self.log.emit(f"WebSocketWorker on_text_message_received")
 
-        print(f"\n\n\n*** WebSocketWorker on_text_message_received *** ")
-        print(f"\t{message}\n\n\n")
 
 
         try:
@@ -668,7 +666,6 @@ class WebSocketWorker(QObject):
                 self.send_message(msg)
                 self.message_received.emit(message)
         except Exception as e:
-            print(f"\n\n\ton_text_message_received error: {e}\n\n")
             self.message_received.emit(message)
 
 
@@ -683,8 +680,6 @@ class WebSocketWorker(QObject):
     @Slot(dict)
     def send_msg_to_server(self, msg):
         """receives message from main thread and sends it to server"""
-        print(f"\n\n\n*** WebSocketWorker send_msg_to_server *** ")
-        print(f"\t{msg}\n\n\n")
         message = json.dumps(msg)
         self.send_message(message)
 
@@ -846,13 +841,11 @@ class OBSClientWorker(QObject):
         self.log.emit("Connected to OBS WebSocket server")
 
     def on_disconnected(self):
-        print("Disconnected from WebSocket server")
         self.connection.emit(False)
 
     def handle_error(self, error):
         error_msg = self.ws.errorString()
         self.errorOccurred.emit(error_msg)
-        print("WebSocket error:", error_msg)
 
     def on_text_message_received(self, message):
         data = json.loads(message)
@@ -899,7 +892,6 @@ class OBSClientWorker(QObject):
         self.send_json(identify_payload)
 
     def handle_identified(self, data):
-        print("Successfully identified with OBS")
         self.identified = True
         self.connection.emit(True)
 
@@ -916,7 +908,6 @@ class OBSClientWorker(QObject):
             # Emit response received signal or handle callback here
 
     def send_json(self, data):
-        print(f"\n\t\t\t\t// send_json: {data} //\n")
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
@@ -974,15 +965,11 @@ class OBSClientWorker(QObject):
             return
 
 
-        print(f"// start_stream ... //")
         self.log.emit("OBSClient start_stream")
         if is_obs_installed():
             self.is_start_stream_called = True
-            print(f"// obs is installed //")
             is_rtmp_set = self.set_custom_rtmp()
-            print(f"// is_rtmp_set: {is_rtmp_set} //")
         else:
-            print(f"// obs is not installed //")
             self.log.emit("can not start stream OBS is not installed")
 
         self.complete.emit()
@@ -993,7 +980,6 @@ class OBSClientWorker(QObject):
             self.is_stop_stream_called_on_init = True
             return
 
-        print(f"// stop_stream ... //")
         request_id = str(uuid.uuid4())
         payload = {
             "op": 6,
@@ -1571,7 +1557,6 @@ class MainWindow(QObject):
     @Slot()
     def toggle_recording(self):
         """handles button click to start/stop recording"""
-        print(f"\ntoggle_recording\n")
         self.recording_toggle()
 
     def recording_toggle(self):
@@ -1785,14 +1770,6 @@ class MainWindow(QObject):
         # setup websocket
         self.setup_websockets(code)
 
-        print("\n\n\nApplication init:")
-        print(f"\tcode: {code}")
-        print(f"\tusername: {self.username}")
-        print(f"\trust_id: {rustdesk_id}")
-        print(f"\tis_rust_id_reported: {is_rust_id_reported}")
-        print(f"\twebsocket status: {self._app_websocket_status}")
-        print(f"\tOBS status: {self._obs_installation_status}")
-        print("\n\n\n")
 
     def setup_websockets(self, code):
         """sets up websockets"""
@@ -1895,8 +1872,6 @@ class MainWindow(QObject):
     @Slot(dict)
     def on_installation_finished(self, result_data):
         """updates app state, cleans up, releases resources"""
-        print(f"\n\n\ton_installation_finished called ...\n\n")
-        print(f"\n\n\n\t{result_data}\n\n\n")
 
         if result_data.get("app_installed"):
             self.app_installation_status = "enabled"
@@ -1948,7 +1923,6 @@ class MainWindow(QObject):
     @Slot()
     def on_start_app_finished(self):
         """cleans up when start app button is clicked"""
-        print(f"\n\n\ton_start_app_finished called ...\n\n")
 
         self.app_start_thread.quit()
         self.app_start_thread.wait()
@@ -1962,7 +1936,6 @@ class MainWindow(QObject):
     @Slot()
     def on_get_rustid_finished(self):
         """cleans up when start app button is clicked"""
-        print(f"\n\n\ton_get_rustid_finished called ...\n\n")
 
         self.app_rust_id_thread.quit()
         self.app_rust_id_thread.wait()
@@ -1976,7 +1949,6 @@ class MainWindow(QObject):
     @Slot()
     def on_toggle_service_finished(self):
         """cleans up when start service button is clicked"""
-        print(f"\n\n\ton_toggle_service_finished called ...\n\n")
 
         self.app_service_thread.quit()
         self.app_service_thread.wait()
@@ -2018,12 +1990,9 @@ class MainWindow(QObject):
 
     @Slot(dict)
     def on_enable_microphone_only_finished(self, result):
-        print(f"\n\n\non_enable_microphone_only_finished")
-        print(f"\t{result}")
 
         self.update_permission_status(result)
 
-        print(f"\n\tpermission_status: {self.permission_status}\n\n")
 
         self.microphone_only_thread.quit()
         self.microphone_only_thread.wait()
@@ -2038,10 +2007,7 @@ class MainWindow(QObject):
 
     @Slot(dict)
     def on_enable_microphone_and_camera_finished(self, result):
-        print(f"\n\n\non_enable_microphone_and_camera_finished")
-        print(f"\t{result}")
         self.update_permission_status(result)
-        print(f"\n\tpermission_status: {self.permission_status}\n\n")
 
         self.microphone_and_camera_thread.quit()
         self.microphone_and_camera_thread.wait()
@@ -2072,10 +2038,9 @@ class MainWindow(QObject):
         try:
             with open(QUrl(filePath).toLocalFile(), encoding="utf-8") as file:
                 text = file.read()
-                print(text)
                 self.readText.emit(text)
         except Exception as e:
-            print(f"Error opening file: {e}")
+            pass
 
     # Read Text
     @Slot(str)
@@ -2088,21 +2053,18 @@ class MainWindow(QObject):
         try:
             with open(QUrl(filePath).toLocalFile(), "w", encoding="utf-8") as file:
                 file.write(self.textField)
-                print(f"Written to file: {self.textField}")
         except Exception as e:
-            print(f"Error writing file: {e}")
+            pass
 
     # Show / Hide Rectangle
     @Slot(bool)
     def showHideRectangle(self, isChecked):
-        print("Is rectangle visible:", isChecked)
         self.isVisible.emit(isChecked)
 
     # Set Timer Function
     def setTime(self):
         now = datetime.datetime.now()
         formatDate = now.strftime("Now is %H:%M:%S %p of %Y/%m/%d")
-        # print(formatDate)
         self.printTime.emit(formatDate)
 
     # Function Set Name To Label
@@ -2112,11 +2074,10 @@ class MainWindow(QObject):
 
     @Slot()
     def start_action(self):
-        print("\n\tStart Action\n")
+        pass
 
     @Slot(str)
     def new_signal(self, text):
-        print(f"\n\tnew_signal\n")
         # for i in range(10):
         #     time.sleep(1)
         import random
@@ -2125,7 +2086,6 @@ class MainWindow(QObject):
 
     def cleanup(self):
         """handles threads, worker cleanup"""
-        print(f"\n\n\nbackend.cleanup\n\n")
         # time.sleep(5)
         app_threads = [self.app_websocket_thread, self.obs_ws_thread]
         app_workers = [self.app_websocket_worker, self.obs_ws_worker]
