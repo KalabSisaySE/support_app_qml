@@ -2119,8 +2119,8 @@ if __name__ == "__main__":
     engine.rootContext().setContextProperty("backend", backend)
 
     # 4. Set App Extra Info
-    app.setOrganizationName("Wanderson M. Pimenta")
-    app.setOrganizationDomain("N/A")
+    app.setOrganizationName("Macrosoft s.r.o")
+    app.setOrganizationDomain("https://online.macrosoft.sk/")
 
     # 5. Load QML File
     qml_file = os.path.join(os.path.dirname(__file__), "qml/main.qml")
