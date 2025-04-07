@@ -639,7 +639,7 @@ Window {
         }
 
         function onNewLogAdded(text) {
-            logTextArea.append(`(${(new Date().getHours() % 12 || 12)}:${String(new Date().getMinutes()).padStart(2, '0')}): ` + text)
+            logTextArea.append(`(${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}): ` + text)
         }
 
     }
