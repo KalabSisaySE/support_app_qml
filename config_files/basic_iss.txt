@@ -1,0 +1,33 @@
+; Basic Inno Setup Script (myinstaller.iss)
+[Setup]
+AppName=My Application
+AppVersion=1.0
+AppPublisher=Your Company Name
+AppPublisherURL=https://yourcompany.com/
+AppSupportURL=https://yourcompany.com/support
+AppUpdatesURL=https://yourcompany.com/updates
+DefaultDirName={autopf}\My Application
+DisableProgramGroupPage=yes
+OutputDir=.\Output
+OutputBaseFilename=MyAppInstaller
+SetupIconFile=.\myicon.ico
+Compression=lzma2
+SolidCompression=yes
+PrivilegesRequired=lowest
+
+[Files]
+; Main executable
+Source: "dist\myapp.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+; Include all files from PyInstaller's dist folder
+Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; Optional: Include license file
+Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{autoprograms}\My Application"; Filename: "{app}\myapp.exe"
+Name: "{autodesktop}\My Application"; Filename: "{app}\myapp.exe"; Tasks: desktopicon
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"

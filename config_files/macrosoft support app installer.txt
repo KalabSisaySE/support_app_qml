@@ -1,0 +1,31 @@
+; Basic Inno Setup Script (myinstaller.iss)
+[Setup]
+AppName=Macrosoft Support
+AppVersion=1.0
+AppPublisher=Macrosoft s.r.o
+AppPublisherURL=https://online.macrosoft.sk/
+AppSupportURL=https://online.macrosoft.sk/
+AppUpdatesURL=https://online.macrosoft.sk/
+DefaultDirName={autopf}\Macrosoft Support
+DisableProgramGroupPage=yes
+OutputDir=.\Output
+OutputBaseFilename=MacrosoftSupportAppInstaller
+SetupIconFile=.\myicon.ico
+Compression=lzma2
+SolidCompression=yes
+PrivilegesRequired=lowest
+
+[Files]
+; Main executable
+Source: "dist\myapp.exe"; DestDir: "{app}"; Flags: ignoreversion
+
+; Include all files from PyInstaller's dist folder
+Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+
+[Icons]
+Name: "{autoprograms}\My Application"; Filename: "{app}\myapp.exe"
+Name: "{autodesktop}\My Application"; Filename: "{app}\myapp.exe"; Tasks: desktopicon
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
