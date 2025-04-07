@@ -1,127 +1,80 @@
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
-
+import QtQuick 2.0
+import QtQuick.Controls 2.15
 import "../controls"
+import QtQuick.Layouts 1.0
 
 Item {
-    // Rectangle {
-    //     id: rectangle
-    //     color: "#2c313c"
-    //     anchors.fill: parent
-    //
-    //     Rectangle {
-    //         id: groupBox
-    //
-    //         radius: 5
-    //         border.color: "#16a086"
-    //         border.width: 1
-    //         color: "transparent"
-    //
-    //         anchors {
-    //             fill: parent
-    //             topMargin: parent.height * 0.08
-    //             leftMargin: parent.width * 0.15
-    //             rightMargin: parent.width * 0.15
-    //             bottomMargin: parent.height * 0.08
-    //         }
-    //
-    //         // Legend-style title
-    //         Rectangle {
-    //             // text: "Permissions"
-    //             color: "#2c313c"
-    //             // color: "#0000ff"
-    //             // font.bold: true
-    //             width: groupBoxTitle.width + 6
-    //             height: groupBoxTitle.height + 6
-    //             x: 15
-    //             y: -10
-    //             // Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-    //
-    //
-    //
-    //             Text {
-    //                 id: groupBoxTitle
-    //                 horizontalAlignment: Text.AlignHCenter
-    //                 verticalAlignment: Text.AlignVCenter
-    //                 // Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-    //                 leftPadding: 4
-    //
-    //                 text: "Permissions"
-    //                 color: "#c1f6ec"
-    //                 // font.bold: true
-    //                 font.pointSize: 14
-    //             }
-    //
-    //         }
-    //
-    //         ColumnLayout {
-    //             id: columnLayout
-    //             spacing: 9
-    //
-    //
-    //             TextGroupControl {
-    //                 id: textGroupControl1
-    //                 labelFontSize: 14
-    //                 textFontSize: 15
-    //             }
-    //
-    //             IndicatorGroupControl {
-    //                 id: indicatorGroupControl1
-    //                 labelFontSize: 14
-    //                 indicatorSize: 20
-    //                 indicatorStatus: "enabled"
-    //             }
-    //
-    //             IndicatorGroupControl {
-    //                 id: indicatorGroupControl3
-    //                 labelFontSize: 14
-    //                 indicatorSize: 20
-    //             }
-    //
-    //             ButtonGroupControl {
-    //                 id: buttonGroupControl1
-    //                 labelFontSize: 14
-    //                 buttonWidth: 125
-    //                 buttonText: "Spustiť MacrosoftQuickSupport"
-    //                 // buttonHandler: backend.start_action
-    //                 customActionRequested: backend.start_action
-    //             }
-    //         }
-    //     }
-    //
-    // }
+    Rectangle {
+        id: rectangle
+        color: "#2c313c"
+        anchors.fill: parent
 
-    RowLayout {
-        id: rowLayout
-        anchors.left: parent.left
-        anchors.right: parent.right
+        Rectangle {
+            id: rectangleVisible
+            color: "#1d2128"
+            radius: 10
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 40
+            anchors.rightMargin: 50
+            anchors.leftMargin: 50
+            anchors.topMargin: 10
 
-        Label {
-            id: indicatorLabel
-            text: labelText
-            font.pointSize: labelFontSize
-            Layout.alignment: Qt.AlignVCenter
-            color: "#ffffff"
-            // font.bold: true
-        }
+            Label {
+                id: labelTextName
+                y: 8
+                height: 25
+                color: "#5c667d"
+                text: qsTr("Welcome")
+                anchors.left: parent.left
+                anchors.right: parent.right
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                font.pointSize: 14
+            }
 
-        Item {
-            Layout.fillWidth: true
-        }
+            Label {
+                id: labelDate
+                y: 31
+                height: 25
+                color: "#55aaff"
+                text: qsTr("Date")
+                anchors.left: parent.left
+                anchors.right: parent.right
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                anchors.rightMargin: 10
+                anchors.leftMargin: 10
+                font.pointSize: 12
+            }
 
-        Item {
-            width: 125
-            height: width * 0.25
+            ScrollView {
+                id: scrollView
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: labelDate.bottom
+                anchors.bottom: parent.bottom
+                clip: true
+                anchors.rightMargin: 10
+                anchors.leftMargin: 10
+                anchors.bottomMargin: 10
+                anchors.topMargin: 10
 
-            StatusIndicator {
-                id: permissionIndicator
-                size: indicatorSize
-                status: indicatorStatus
-                Layout.alignment: Qt.AlignVCenter
-                anchors.centerIn: parent
+                Text {
+                                        id: textHome
+                                        color: "#a9b2c8"
+                                        text: "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\np, li { white-space: pre-wrap; }\n</style></head><body style=\" font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600;\">GNU GENERAL PUBLIC LICENSE</span></p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Version 3, 29 June 2007</p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">Copyright (c) 2025 <span style=\" font-weight:600;\">Macrosoft s.r.o</span></p>\n<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;\"><br /></p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-weight:600; color:#55aaff;\">Attention</span>: </p>\n<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"> </p>\n</body></html>"
+                                        anchors.fill: parent
+                                        font.pixelSize: 12
+                                        textFormat: Text.RichText
+                                    }
             }
         }
     }
 
 }
+

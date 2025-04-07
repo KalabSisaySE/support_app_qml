@@ -771,7 +771,6 @@ class WebSocketWorker(QObject):
             self.message_received.emit(message)
 
 
-
     def send_message(self, message):
         self.log.emit(f"WebSocketWorker send_message")
         if self.websocket.state() == QAbstractSocket.ConnectedState:
@@ -1845,15 +1844,15 @@ class MacrosoftBackend(QObject):
         if code != "Nenájdené":
             self.setup_websockets(code)
 
-        if data["is_obs_running"]:
-            self.connect_to_obs_websocket()
+        # if data["is_obs_running"]:
+        #     self.connect_to_obs_websocket()
 
     @Slot()
     def connect_to_obs_websocket(self):
         """connects to OBS websocket"""
         if not self.obs_ws_thread or not self.obs_ws_thread.isRunning():
 
-            self.obs_ws_worker = OBSClientWorker()
+            self.obs_ws_worker = OBSClientWorker(self.lectoure_ws_data)
             self.obs_ws_thread = QThread()
             self.obs_ws_worker.moveToThread(self.obs_ws_thread)
 
