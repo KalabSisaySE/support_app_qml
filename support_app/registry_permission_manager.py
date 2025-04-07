@@ -1,4 +1,5 @@
 import subprocess
+import sys
 
 
 class RegistryPermissionManager:
@@ -41,8 +42,21 @@ class RegistryPermissionManager:
             return False
 
     def run_powershell_command(self, command):
-        """Run a PowerShell command and return the output."""
-        result = subprocess.run(['powershell', '-Command', command], capture_output=True, text=True)
+        """Run a PowerShell command with hidden window and return output."""
+        startupinfo = None
+        if sys.platform == 'win32':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+
+        result = subprocess.run(
+            ['powershell', '-Command', command],
+            capture_output=True,
+            text=True,
+            startupinfo=startupinfo,
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+        )
+
         if result.returncode != 0:
             raise Exception(result.stderr.strip())
         return result.stdout.strip()

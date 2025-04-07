@@ -1227,7 +1227,6 @@ class MacrosoftBackend(QObject):
         self.app_init_thread = None
         self.app_init_worker = None
 
-
         self.app_init()
 
     @Property(int, notify=progressChanged)
@@ -1790,6 +1789,7 @@ class MacrosoftBackend(QObject):
         self.progress = value
 
     def app_init(self):
+        print("\t\tapp_init running now ...")
         if self.app_init_thread and self.app_init_thread.isRunning():
             self.app_init_thread.quit()
             self.app_init_thread.wait()
