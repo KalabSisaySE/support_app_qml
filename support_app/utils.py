@@ -126,7 +126,7 @@ def get_access_code(script_name):
 def check_installation():
     """Check if the application is installed on user's computer."""
     app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-    return  os.path.exists(app_path)
+    return os.path.exists(app_path)
 
 def is_obs_installed():
     """Check if OBS is installed"""
@@ -262,3 +262,27 @@ def setup_obs_config():
     with open(config_path, 'w') as f:
         json.dump(config_data, f, indent=4)
 
+
+def check_obs_config():
+    """verifies if OBS is configured properly (as needed)"""
+    config_path = os.path.join(
+        os.environ['APPDATA'],
+        'obs-studio',
+        'plugin_config',
+        'obs-websocket',
+        'config.json'
+    )
+
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+
+                alert = config_data["alerts_enabled"]
+                auth = not config_data["auth_required"]
+                server = config_data["server_enabled"]
+                port = config_data["server_port"] == 4455
+
+                return alert and auth and server and port
+    except Exception as e:
+        return

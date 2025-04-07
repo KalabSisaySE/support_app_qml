@@ -18,7 +18,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 
 from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, \
     check_installation, open_website, is_obs_running, is_obs_installed, start_obs, close_obs, \
-    setup_obs_config
+    setup_obs_config, check_obs_config
 from support_app.rust_service_manager import ServiceManager
 from support_app.registry_permission_manager import RegistryPermissionManager
 from support_app.browser_permission_manager import BrowserPermissionManager
@@ -27,6 +27,108 @@ from support_app.rtmp_url_manager import RtmpUrlGenerator
 
 # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
 # rtmp_url = rtmp_url_generator.get_rtmp_url()
+
+class InitializeApp(QObject):
+    """initializes app state in a thread (prevent powershell flashes)"""
+    complete = Signal(dict)
+
+    def __init__(self):
+        super().__init__()
+        self.registry_permission = RegistryPermissionManager()
+        self.browser_permission = BrowserPermissionManager()
+
+        self.result = {
+            "access_code": "Nenájdené",
+            "full_name": "Nenájdené",
+            "rust_id": "Nenájdené",
+            "is_app_installed": False,
+            "is_app_service_running": False,
+            "is_obs_installed": False,
+            "is_obs_running": False,
+            "permission_status": False,
+        }
+
+    @Slot()
+    def start(self):
+        script_name = os.path.basename(sys.argv[0])
+        code = get_access_code(script_name)
+        self.result["access_code"] = code
+
+        # APP STATUS
+        if check_installation():
+            self.result["is_app_installed"] = True
+            self.result["is_app_service_running"] = is_service_running("MacrosoftConnectQuickSupport")
+
+            # get rust_id
+            try:
+                max_attempts = 3
+                app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+
+                result = subprocess.run(
+                    [app_path, "--get-id"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+
+                rust_id = result.stdout.strip() if result.stdout else ""
+                self.result["rust_id"] = rust_id
+
+                # report rustdesk
+                if code:
+                    url = f"https://online.macrosoft.sk/rustdesk/?access={code}&rustdesk={rust_id}"
+                    attempt = 0
+                    while attempt < max_attempts:
+                        attempt += 1
+                        try:
+                            with urllib.request.urlopen(url) as response:
+                                if response.status != 200 and attempt < max_attempts:
+                                    time.sleep(1)
+
+                        except Exception as e:
+                            pass
+            except Exception as e:
+                self.result["is_app_installed"] = False
+        else:
+            self.result["is_app_installed"] = False
+
+        # USERNAME
+        username = get_full_name(code)
+        self.result["full_name"] = username
+
+        # PERMISSIONS
+        mic_allowed = self.registry_permission.is_microphone_allowed()
+        cam_allowed = self.registry_permission.is_webcam_allowed()
+        browser_allowed = self.browser_permission.is_browser_permissions_allowed()
+
+        if mic_allowed and cam_allowed and browser_allowed:
+            self.result["permission_status"] = "enabled"
+        elif mic_allowed:
+            self.result["permission_status"] = "checking"
+        else:
+            self.result["permission_status"] = "disabled"
+
+        # OBS CONFIG
+        is_installed = is_obs_installed()
+        self.result["is_obs_installed"] = "enabled" if is_installed else "disabled"
+
+        if is_installed:
+            is_running = is_obs_running()
+            self.result["is_obs_running"] = is_running
+
+            is_obs_configed = check_obs_config()
+            if not is_obs_configed:
+                if is_running:
+                    close_obs()
+                    setup_obs_config()
+                    start_obs()
+                else:
+                    setup_obs_config()
+
+        self.complete.emit(self.result)
+        # setup websocket
+        # self.setup_websockets(code)
+
 
 
 class AppInstallationWorker(QObject):
@@ -1012,9 +1114,7 @@ class OBSClientWorker(QObject):
         self.ws.close()
 
 
-
-
-class MainWindow(QObject):
+class MacrosoftBackend(QObject):
     # Signal Set Name
     setName = Signal(str)
     addCounter = Signal(str)
@@ -1060,12 +1160,12 @@ class MainWindow(QObject):
     textField = ""
 
     def __init__(self):
-        super().__init__()  # Prefer super() over direct QObject initialization
+        super().__init__()
 
         # values
         self._progress = 0
-        self._app_installation_status = "enabled" if check_installation() else "disabled"
-        self._app_service_status = "enabled" if check_installation() and self.is_service_on() else "disabled"
+        self._app_installation_status = "disabled"
+        self._app_service_status = "disabled"
         self._app_websocket_status = "disabled"
         self._permission_status = "disabled"
         self._obs_installation_status = "disabled"
@@ -1073,17 +1173,17 @@ class MainWindow(QObject):
         self._recording_status = "disabled"
 
         self._is_app_install_btn_enabled = False
-        self._is_app_start_btn_enabled = check_installation()
-        self._is_app_service_btn_enabled = check_installation()
-        self._is_app_rust_id_btn_enabled = check_installation()
+        self._is_app_start_btn_enabled = False
+        self._is_app_service_btn_enabled = False
+        self._is_app_rust_id_btn_enabled = False
         self._is_enable_microphone_only_btn_enabled = True
         self._is_enable_microphone_and_camera_btn_enabled = True
         self._is_open_browser_btn_enabled = True
-        self._is_open_obs_btn_enabled = is_obs_installed()
-        self._is_obs_install_btn_enabled = True if not is_obs_installed() else False
-        self._is_obs_record_btn_enabled = is_obs_installed()
+        self._is_open_obs_btn_enabled = False
+        self._is_obs_install_btn_enabled = False
+        self._is_obs_record_btn_enabled = False
 
-        self._access_code = ""
+        self._access_code = "Nenájdené"
         self._rust_id = "Nenájdené"
         self._username = "Nenájdené"
         self._streaming_url = "Not streaming"
@@ -1124,11 +1224,9 @@ class MainWindow(QObject):
         self.obs_ws_thread = None
         self.obs_ws_worker = None
 
+        self.app_init_thread = None
+        self.app_init_worker = None
 
-        # QTimer - Run Timer
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.setTime)
-        self.timer.start(1000)
 
         self.app_init()
 
@@ -1691,85 +1789,88 @@ class MainWindow(QObject):
     def update_progress(self, value):
         self.progress = value
 
-    @Slot()
     def app_init(self):
+        if self.app_init_thread and self.app_init_thread.isRunning():
+            self.app_init_thread.quit()
+            self.app_init_thread.wait()
+
+        self.app_init_thread = QThread()
+        self.app_init_worker = InitializeApp()
+        self.app_init_worker.moveToThread(self.app_init_thread)
+
+        self.app_init_thread.started.connect(self.app_init_worker.start)
+        self.app_init_worker.complete.connect(self.on_app_init_complete)
+
+        self.app_init_thread.start()
+
+    @Slot(dict)
+    def on_app_init_complete(self, data):
+
+        self.app_init_thread.quit()
+        self.app_init_thread.wait()
+        self.app_init_thread.deleteLater()
+        self.app_init_thread = None
+
+        self.app_init_worker.deleteLater()
+        self.app_init_worker = None
+
+        code = data["access_code"]
+
+        self.access_code = code
+        self.username = data["full_name"]
+        self.rust_id = data["rust_id"]
+        self.permission_status = data["permission_status"]
+        self.app_installation_status = "enabled" if data["is_app_installed"] else "disabled"
+        self.app_service_status = "enabled" if data["is_app_service_running"] else "disabled"
+        self.obs_installation_status = "enabled" if data["is_obs_installed"] else "disabled"
 
         self.is_app_install_btn_enabled = True
-
-        script_name = os.path.basename(sys.argv[0])
-        code = get_access_code(script_name)
-        self.access_code = code
-        rustdesk_id = ""
-        is_rust_id_reported = False
-
-        if check_installation():
-            self.app_installation_status = "enabled"
-
-            # get rust_id
-            try:
-                max_attempts = 3
-                app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-
-                result = subprocess.run(
-                    [app_path, "--get-id"],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-                rustdesk_id = result.stdout.strip() if result.stdout else ""
-
-                self.rust_id = rustdesk_id
-                self.access_code = code
-
-                # report rustdesk
-                if code:
-                    url = f"https://online.macrosoft.sk/rustdesk/?access={code}&rustdesk={rustdesk_id}"
-                    attempt = 0
-                    while attempt < max_attempts:
-                        attempt += 1
-                        try:
-                            with urllib.request.urlopen(url) as response:
-                                if response.status != 200 and attempt < max_attempts:
-                                    time.sleep(1)
-                                else:
-                                    is_rust_id_reported = True
-                        except Exception as e:
-                            pass
-            except Exception as e:
-                pass
-
+        if data["is_app_installed"]:
+            self.is_app_start_btn_enabled = True
+            self.is_app_service_btn_enabled = True
+            self.is_app_rust_id_btn_enabled = True
         else:
-            self.app_installation_status = "disabled"
+            self.is_app_start_btn_enabled = False
+            self.is_app_service_btn_enabled = False
+            self.is_app_rust_id_btn_enabled = False
 
-        # get username
-        self.username = get_full_name(code)
-
-        # check permissions
-        registry_permission = RegistryPermissionManager()
-        browser_permission = BrowserPermissionManager()
-        microphone_allowed = registry_permission.is_microphone_allowed()
-        webcam_allowed = registry_permission.is_webcam_allowed()
-        browser_permissions_allowed = (
-            browser_permission.is_browser_permissions_allowed()
-        )
-
-        self.add_log(f"\tmicrophone_allowed: {microphone_allowed}")
-        self.add_log(f"\twebcam_allowed: {webcam_allowed}")
-        self.add_log(f"\tbrowser_permissions_allowed: {browser_permissions_allowed}")
-
-        if microphone_allowed and webcam_allowed and browser_permissions_allowed:
-            self.permission_status = "enabled"
-        elif microphone_allowed:
-            self.permission_status = "checking"
+        if data["is_obs_installed"]:
+            self.is_open_obs_btn_enabled = True
+            self.is_obs_install_btn_enabled = False
+            self.is_obs_record_btn_enabled = True
         else:
-            self.permission_status = "disabled"
-
-        # OBS setup
-        self.setup_obs()
+            self.is_obs_install_btn_enabled = True
 
         # setup websocket
-        self.setup_websockets(code)
+        if code != "Nenájdené":
+            self.setup_websockets(code)
 
+        if data["is_obs_running"]:
+            self.connect_to_obs_websocket()
+
+    @Slot()
+    def connect_to_obs_websocket(self):
+        """connects to OBS websocket"""
+        if not self.obs_ws_thread or not self.obs_ws_thread.isRunning():
+
+            self.obs_ws_worker = OBSClientWorker()
+            self.obs_ws_thread = QThread()
+            self.obs_ws_worker.moveToThread(self.obs_ws_thread)
+
+            # Connect signals
+            self.obs_ws_thread.started.connect(self.obs_ws_worker.connect_to_host)
+            self.obs_ws_worker.connection.connect(self.on_obs_ws_status_change)
+            self.obs_ws_worker.streamStatusChange.connect(self.on_obs_ws_stream_status_change)
+            self.obs_ws_worker.streamStateInTransition.connect(self.on_obs_ws_stream_state_transitioning)
+            self.obs_ws_worker.log.connect(self.add_log)
+            self.obs_ws_worker.errorOccurred.connect(self.on_obs_ws_error)
+            self.obs_ws_worker.rtmpUrlFetched.connect(self.on_obs_ws_rtmp_fetched)
+            self.obs_ws_worker.complete.connect(self.on_obs_ws_complete)
+
+            self.startStream.connect(self.obs_ws_worker.start_stream)
+            self.stopStream.connect(self.obs_ws_worker.stop_stream)
+
+            self.obs_ws_thread.start()
 
     def setup_websockets(self, code):
         """sets up websockets"""
@@ -1793,19 +1894,6 @@ class MainWindow(QObject):
             self.sendMessage.connect(self.app_websocket_worker.send_msg_to_server)
 
             self.app_websocket_thread.start()
-
-    def setup_obs(self):
-        """sets up OBS config and other data"""
-        is_installed = is_obs_installed()
-        self.obs_installation_status = "enabled" if is_installed else "disabled"
-        if is_installed:
-            is_running = is_obs_running()
-            if is_running:
-                close_obs()
-                setup_obs_config()
-                start_obs()
-            else:
-                setup_obs_config()
 
     @Slot()
     def websocket_on_toggle_recording(self):
@@ -2114,7 +2202,7 @@ if __name__ == "__main__":
     engine = QQmlApplicationEngine()
 
     # 3. Get Context
-    backend = MainWindow()
+    backend = MacrosoftBackend()
 
     engine.rootContext().setContextProperty("backend", backend)
 
