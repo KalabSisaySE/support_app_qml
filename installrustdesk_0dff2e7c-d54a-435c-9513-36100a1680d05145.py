@@ -43,11 +43,10 @@ def get_access_code():
 
             # Read file content
             with open(file_path, 'r') as file:
-                content = file.read().strip()  # Read entire content as single string
-                if "MacrosoftSupportAppInstaller_" in content:
-                    code = extract_installer_code(content)
-                    if code:
-                        return code
+                content = file.read().strip()
+                code = extract_installer_code(content)
+                if code:
+                    return code
 
         except Exception as e:
             pass
