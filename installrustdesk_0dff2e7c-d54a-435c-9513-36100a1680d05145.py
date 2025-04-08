@@ -16,7 +16,7 @@ from PySide6.QtWebSockets import QWebSocket, QWebSocketProtocol
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from support_app.utils import is_app_running, is_service_running, get_access_code, get_full_name, \
+from support_app.utils import is_app_running, is_service_running, get_full_name, extract_installer_code, \
     check_installation, open_website, is_obs_running, is_obs_installed, start_obs, close_obs, \
     setup_obs_config, check_obs_config
 from support_app.rust_service_manager import ServiceManager
@@ -25,8 +25,35 @@ from support_app.browser_permission_manager import BrowserPermissionManager
 from support_app.rtmp_url_manager import RtmpUrlGenerator
 
 
-# rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-# rtmp_url = rtmp_url_generator.get_rtmp_url()
+def get_access_code():
+    script_name = os.path.basename(sys.argv[0])
+    access = ""
+    if "installrustdesk_" in script_name:
+        access = (
+            script_name.replace("installrustdesk_", "")
+            .replace(".py", "")
+            .replace(".exe", "")
+        )
+    elif script_name.endswith(".exe") :
+
+        try:
+            # Get the directory of the script/exe
+            base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+            file_path = os.path.join(base_path, "installer_path.txt")
+
+            # Read file content
+            with open(file_path, 'r') as file:
+                content = file.read().strip()  # Read entire content as single string
+                if "MacrosoftSupportAppInstaller_" in content:
+                    code = extract_installer_code(content)
+                    if code:
+                        return code
+
+        except Exception as e:
+            pass
+
+    return access
+
 
 class InitializeApp(QObject):
     """initializes app state in a thread (prevent powershell flashes)"""
@@ -50,8 +77,7 @@ class InitializeApp(QObject):
 
     @Slot()
     def start(self):
-        script_name = os.path.basename(sys.argv[0])
-        code = get_access_code(script_name)
+        code = get_access_code()
         self.result["access_code"] = code
 
         # APP STATUS
@@ -144,7 +170,7 @@ class AppInstallationWorker(QObject):
             "app_service_on": False,
             "rust_id": "Nenájdené"
         }
-        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.access = get_access_code()
         self.manager = ServiceManager(
             service_name="MacrosoftConnectQuickSupport",
             display_name="MacrosoftConnectQuickSupport Service",
@@ -495,7 +521,7 @@ class UserInfoWorker(QObject):
             "username": "",
             "rust_id": "Nenájdené"
         }
-        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.access = get_access_code()
         self.app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
 
     @Slot()
@@ -563,7 +589,7 @@ class OpenBrowserWorker(QObject):
 
     def __init__(self):
         super().__init__()
-        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.access = get_access_code()
 
     @Slot()
     def open_browser(self):
@@ -588,7 +614,7 @@ class PermissionWorker(QObject):
 
     def __init__(self):
         super().__init__()
-        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.access = get_access_code()
         self.registry_permission = RegistryPermissionManager()
         self.browser_permission = BrowserPermissionManager()
         self.result_data = {
@@ -638,8 +664,7 @@ class WebSocketWorker(QObject):
 
     def __init__(self):
         super().__init__()
-        script_name = os.path.basename(sys.argv[0])
-        self.access = get_access_code(script_name)
+        self.access = get_access_code()
 
         # WebSocket setup
         url = QUrl("wss://online.macrosoft.sk/ws/support/")
@@ -792,7 +817,7 @@ class OpenOBSWorker(QObject):
 
     def __init__(self):
         super().__init__()
-        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.access = get_access_code()
 
     @Slot()
     def open_obs_app(self):
@@ -822,7 +847,7 @@ class OBSInstallationWorker(QObject):
             "app_service_on": False,
             "rust_id": "Nenájdené"
         }
-        self.access = get_access_code(os.path.basename(sys.argv[0]))
+        self.access = get_access_code()
         self.manager = ServiceManager(
             service_name="MacrosoftConnectQuickSupport",
             display_name="MacrosoftConnectQuickSupport Service",
@@ -952,13 +977,11 @@ class OBSClientWorker(QObject):
         data = json.loads(message)
         op_code = data.get('op')
 
-        if op_code == 0:  # Hello
+        if op_code == 0:
             self.handle_hello(data)
-        elif op_code == 2:  # Identified
+        elif op_code == 2:
             self.handle_identified(data)
         elif op_code == 5:
-            # self.log.emit(f"\nevent received: {data}\n")
-
             event_type = data['d'].get('eventType', "")
             event_data = data['d'].get('eventData', {})
             if event_type == "StreamStateChanged":
@@ -1012,9 +1035,9 @@ class OBSClientWorker(QObject):
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
-        rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        rtmp_url = rtmp_url_generator.get_rtmp_url()
-        # rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_eventbc50b5ebd0644931aa1c7fcfd47961f8"]
+        # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
+        # rtmp_url = rtmp_url_generator.get_rtmp_url()
+        rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_event075b2b509c5d4724860e1c04b3edcd85"]
         if rtmp_url:
             server_url = rtmp_url[0]
             stream_key = rtmp_url[1]
@@ -1657,8 +1680,11 @@ class MacrosoftBackend(QObject):
 
     def recording_toggle(self):
         if not self.obs_ws_thread or not self.obs_ws_thread.isRunning():
+            self.add_log("\n\n\nrecording_toggle")
+            self.add_log(f"{self.lectoure_ws_data}\n\n\n")
+            print(f"\n\t{self.lectoure_ws_data}\n")
 
-            self.obs_ws_worker = OBSClientWorker()
+            self.obs_ws_worker = OBSClientWorker(self.lectoure_ws_data)
             self.obs_ws_thread = QThread()
             self.obs_ws_worker.moveToThread(self.obs_ws_thread)
 

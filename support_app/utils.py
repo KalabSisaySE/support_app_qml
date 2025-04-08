@@ -11,6 +11,7 @@ import win32con
 import json
 import string
 import secrets
+import re
 
 def get_process_command_lines(process_name):
     try:
@@ -108,19 +109,20 @@ def get_latest_access_code():
     except:
         return ""
 
-
-def get_access_code(script_name):
-    if "installrustdesk_" in script_name:
-        access = (
-            script_name.replace("installrustdesk_", "")
-            .replace(".py", "")
-            .replace(".exe", "")
+def extract_installer_code(input_str):
+    try:
+        pattern = re.compile(
+            r'MacrosoftSupportInstaller_([^_]+)_.*?\.exe',
+            re.IGNORECASE
         )
-    else:
-        # access = get_latest_access_code()
-        access = ""
 
-    return access
+        if match := pattern.search(input_str):
+            code = match.group(1)
+            if len(code) > 0:
+                return code
+
+    except Exception as e:
+        pass
 
 
 def check_installation():
