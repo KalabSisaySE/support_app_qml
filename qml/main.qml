@@ -519,7 +519,7 @@ Window {
                         anchors.left: parent.left
                         anchors.leftMargin: 10
 
-                        text: "Show logs"
+                        text: qsTr("Show logs")
                         checked: true
                         implicitHeight: 18
                         padding: 0
@@ -550,7 +550,7 @@ Window {
                         }
 
                         contentItem: Text {
-                            text: showLogsSwitch.text
+                            text: qsTr(showLogsSwitch.text)
                             color: "white"
                             verticalAlignment: Text.AlignVCenter
                             font.pixelSize: 10  // Smaller text

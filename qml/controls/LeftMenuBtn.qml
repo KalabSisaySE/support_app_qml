@@ -90,7 +90,7 @@ Button{
 
         Text{
             color: "#ffffff"
-            text: btnLeftMenu.text
+            text: qsTr(btnLeftMenu.text)
             font: btnLeftMenu.font
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left

@@ -14,7 +14,7 @@ Rectangle {
 
     // Legend-style title
     Text {
-        text: "Permissions"
+        text: qsTr("Permissions")
         color: "#000"
         font.bold: true
         x: 15

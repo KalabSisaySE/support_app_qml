@@ -37,7 +37,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 4
-                    text: "Inštalácia a Spustenie"
+                    text: qsTr("Inštalácia a Spustenie")
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }
@@ -61,7 +61,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Aplikácia MacrosoftConnectQuickSupport:"
+                        text: qsTr("Aplikácia MacrosoftConnectQuickSupport:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -91,7 +91,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Služba MacrosoftConnectQuickSupport:"
+                        text: qsTr("Služba MacrosoftConnectQuickSupport:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -122,7 +122,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Vaše ID:"
+                        text: qsTr("Vaše ID:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -155,7 +155,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Macrosoft QuickSupport:"
+                        text: qsTr("Macrosoft QuickSupport:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -173,7 +173,7 @@ Item {
                         CustomButton {
                             id: macrosoftQuickSupportButton
 
-                            text: "Inštalovať"
+                            text: qsTr("Inštalovať")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0

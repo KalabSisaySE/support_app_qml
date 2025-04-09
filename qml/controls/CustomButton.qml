@@ -26,7 +26,7 @@ Button {
     contentItem: Item {
         Text {
             id: name
-            text: button.text
+            text: qsTr(button.text)
             font: button.font
             color: button.enabled ? "#ffffff" : "#d0d0d0"
             anchors.verticalCenter: parent.verticalCenter

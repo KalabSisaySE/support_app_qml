@@ -23,7 +23,7 @@ Item {
 
         Label {
             id: indicatorLabel
-            text: labelText
+            text: qsTr(labelText)
             font.pointSize: labelFontSize
             Layout.alignment: Qt.AlignVCenter
             color: "#ffffff"

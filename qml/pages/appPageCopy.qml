@@ -39,7 +39,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 4
-                    text: "Inštalácia a Spustenie"
+                    text: qsTr("Inštalácia a Spustenie")
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }

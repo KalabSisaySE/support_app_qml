@@ -42,7 +42,7 @@ Item {
 
                 CustomButton {
                     id: btnChangeName
-                    text: "Change Name"
+                    text: qsTr("Change Name")
                     Layout.maximumWidth: 200
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40

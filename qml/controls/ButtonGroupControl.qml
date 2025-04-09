@@ -33,7 +33,7 @@ Item {
         spacing: 15
 
         Label {
-            text: controlRoot.labelText
+            text: qsTr(controlRoot.labelText)
             font.pointSize: controlRoot.labelFontSize
             Layout.alignment: Qt.AlignVCenter
             color: "#ffffff"

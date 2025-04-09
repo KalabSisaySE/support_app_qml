@@ -37,7 +37,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 4
-                    text: "Používateľské Informácie"
+                    text: qsTr("Používateľské Informácie")
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }
@@ -61,7 +61,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Vaše meno:"
+                        text: qsTr("Vaše meno:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -77,7 +77,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         Text {
-                            text: backend.username
+                            text: qsTr(backend.username)
                             Layout.alignment: Qt.AlignVCenter
                             anchors.centerIn: parent
                             font.pixelSize: 18  // Adjust size as needed
@@ -93,7 +93,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Vaše ID:"
+                        text: qsTr("Vaše ID:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -125,7 +125,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Aplikácia MacrosoftConnectQuickSupport:"
+                        text: qsTr("Aplikácia MacrosoftConnectQuickSupport:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -155,7 +155,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Služba MacrosoftConnectQuickSupport:"
+                        text: qsTr("Služba MacrosoftConnectQuickSupport:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -187,7 +187,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Stav Povolenia Mikrofónu:"
+                        text: qsTr("Stav Povolenia Mikrofónu:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -216,7 +216,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Websocket Status:"
+                        text: qsTr("Websocket Status:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -245,7 +245,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Aplikácia OBS:"
+                        text: qsTr("Aplikácia OBS:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -274,7 +274,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Recording Status:"
+                        text: qsTr("Recording Status:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"

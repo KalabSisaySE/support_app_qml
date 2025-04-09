@@ -22,7 +22,7 @@ Item {
 
         Label {
             id: indicatorLabel
-            text: labelText
+            text: qsTr(labelText)
             font.pointSize: labelFontSize
             Layout.alignment: Qt.AlignVCenter
             color: "#ffffff"
@@ -40,7 +40,7 @@ Item {
             Text {
                 id: text1
                 color: textGroupControl.textColor
-                text: textGroupControl.textValue
+                text: qsTr(textGroupControl.textValue)
                 font.pixelSize: textGroupControl.textFontSize
                 font.family: "Arial"
                 font.bold: true

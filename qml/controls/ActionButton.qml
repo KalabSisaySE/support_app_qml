@@ -29,7 +29,7 @@ Rectangle {
     // Text element
     Text {
         id: btnText
-        text: root.buttonText
+        text: qsTr(root.buttonText)
         color: "white"
         anchors.centerIn: parent
         font {

@@ -37,7 +37,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 4
-                    text: "Recording"
+                    text: qsTr("Recording")
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }
@@ -61,7 +61,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Streaming Url:"
+                        text: qsTr("Streaming Url:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -94,7 +94,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Course Name:"
+                        text: qsTr("Course Name:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -127,7 +127,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Aplikácia OBS:"
+                        text: qsTr("Aplikácia OBS:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -156,7 +156,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "OBS Websocket:"
+                        text: qsTr("OBS Websocket:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -185,7 +185,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Recording Status:"
+                        text: qsTr("Recording Status:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -214,7 +214,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "OBS Application:"
+                        text: qsTr("OBS Application:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -231,7 +231,7 @@ Item {
 
                         CustomButton {
                             id: obsInstallBtn
-                            text: "Install OBS"
+                            text: qsTr("Install OBS")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -254,7 +254,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "OBS:"
+                        text: qsTr("OBS:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -270,7 +270,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
-                            text: "Open OBS"
+                            text: qsTr("Open OBS")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -293,7 +293,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Recording:"
+                        text: qsTr("Recording:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -310,7 +310,7 @@ Item {
 
                         CustomButton {
                             id: recordingButton
-                            text: "Spustiť nahrávanie"
+                            text: qsTr("Spustiť nahrávanie")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
