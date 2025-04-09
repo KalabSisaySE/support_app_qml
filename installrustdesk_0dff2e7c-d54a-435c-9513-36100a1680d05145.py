@@ -12,10 +12,11 @@ import shutil
 import sqlite3
 import tempfile
 import psutil
+import gettext
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery
+from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery, QTranslator, QSettings, QLocale
 from PySide6.QtWebSockets import QWebSocket, QWebSocketProtocol
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -1680,7 +1681,7 @@ class MacrosoftBackend(QObject):
     @Slot(str)
     def add_log(self, log):
         """adds a new log to UI"""
-        self.newLogAdded.emit(log)
+        self.newLogAdded.emit(_(log))
 
     @Slot()
     def install_or_uninstall(self):
@@ -2438,6 +2439,27 @@ if __name__ == "__main__":
     # 2. Initialize the application
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
+
+    # Load language setting
+    settings = QSettings("HKEY_CURRENT_USER\\Software\\QMLApp", QSettings.NativeFormat)
+    lang = settings.value("Language", "en", type=str)
+
+    # Load Qt translations
+    translator = QTranslator()
+    if translator.load(f"app_{lang}.qm", "translations"):
+        app.installTranslator(translator)
+
+    # Load backend translations
+    lang_dir = os.path.join(os.path.dirname(__file__), "translations")
+    backend_trans = gettext.translation(
+        "backend",
+        lang_dir,
+        languages=[lang],
+        fallback=True
+    )
+    backend_trans.install()
+    global _
+    _ = backend_trans.gettext
 
     # 3. Get Context
     backend = MacrosoftBackend()
