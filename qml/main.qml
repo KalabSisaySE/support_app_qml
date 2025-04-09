@@ -392,7 +392,7 @@ Window {
 
                 Rectangle {
                     id: contentPages
-                    height: parent.height * 0.7
+                    height: showLogsSwitch.checked ? (content.height * 0.7) : (content.height * 0.9)
                     color: "#00000000"
                     anchors.left: leftMenu.right
                     anchors.right: parent.right
@@ -450,7 +450,7 @@ Window {
 
                         Rectangle {
                             id: logContainer
-                            height: parent.height * 0.75
+                            height: (showLogsSwitch.checked) ? rectangle1.height * 0.75 : 0
                             color: "#ffffff"
                             radius: 4
                             anchors.left: parent.left
@@ -458,7 +458,7 @@ Window {
                             anchors.bottom: parent.bottom
                             anchors.leftMargin: 10
                             anchors.rightMargin: 10
-                            anchors.bottomMargin: 10
+                            anchors.bottomMargin: showLogsSwitch.checked ? 10 : 0
 
                             ScrollView {
                                     id: scrollView
@@ -510,6 +510,55 @@ Window {
                     anchors.leftMargin: 0
                     anchors.bottomMargin: 0
                     anchors.topMargin: 0
+
+
+
+                    Switch {
+                        id: showLogsSwitch
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        anchors.leftMargin: 10
+
+                        text: "Show logs"
+                        checked: true
+                        implicitHeight: 18
+                        padding: 0
+                        spacing: 4
+
+
+                        indicator: Rectangle {
+                            implicitWidth: 36
+                            implicitHeight: 18
+                            radius: height / 2
+                            color: showLogsSwitch.checked ? "#16a086" : "#e5e5e5"
+                            border.color: showLogsSwitch.checked ? "#16a086" : "#cccccc"
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Rectangle {
+                                width: 14
+                                height: 14
+                                radius: 7
+                                color: "white"
+                                anchors.verticalCenter: parent.verticalCenter
+                                x: showLogsSwitch.checked ? parent.width - width - 2 : 2
+                                Behavior on x {
+                                    NumberAnimation {
+                                        duration: 200
+                                    }
+                                }
+                            }
+                        }
+
+                        contentItem: Text {
+                            text: showLogsSwitch.text
+                            color: "white"
+                            verticalAlignment: Text.AlignVCenter
+                            font.pixelSize: 10  // Smaller text
+                            leftPadding: showLogsSwitch.indicator.width + showLogsSwitch.spacing
+                        }
+
+                        background: null
+                    }
 
                     Label {
                         id: labelTopInfo1
