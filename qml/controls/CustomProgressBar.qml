@@ -24,7 +24,7 @@ Item {
         Rectangle {
             id: progress
             height: parent.height
-            width: (root.value / 100 )* background.width
+            width: (root.value / 100 ) * background.width
             radius: root.radius
             color: progressColor
 

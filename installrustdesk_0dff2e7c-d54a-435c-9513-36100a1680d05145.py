@@ -8,6 +8,10 @@ import datetime
 import urllib.request
 import uuid
 import subprocess
+import shutil
+import sqlite3
+import tempfile
+import psutil
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
@@ -154,11 +158,9 @@ class InitializeApp(QObject):
         # setup websocket
         # self.setup_websockets(code)
 
-
-
 class AppInstallationWorker(QObject):
     """manages macrosoft rustdesk installation and uninstallation"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal(dict)
 
@@ -177,6 +179,7 @@ class AppInstallationWorker(QObject):
                 r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
             ),
         )
+        self.process_name = "app_installation"
 
     @Slot()
     def handle_install(self):
@@ -211,8 +214,8 @@ class AppInstallationWorker(QObject):
                         file.write(buffer)
                         downloaded += len(buffer)
                         if total_size > 0:
-                            percent = int(downloaded * 100 / total_size)
-                            self.progress_changed.emit(percent)
+                            percent = (downloaded * 100) / total_size
+                            self.progress_changed.emit(percent, self.process_name)
         except Exception as e:
             self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
             self.finished.emit(self.result_data)
@@ -396,9 +399,13 @@ class AppInstallationWorker(QObject):
 
 class StartAppWorker(QObject):
     """manages macrosoft rustdesk starting"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal()
+
+    def __init__(self):
+        super().__init__()
+        self.process_name = "start_app"
 
     @Slot()
     def start_macrosoftconnect(self):
@@ -428,7 +435,7 @@ class StartAppWorker(QObject):
 
 class AppServiceWorker(QObject):
     """manages macrosoft rustdesk service"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal()
     manager = ServiceManager(
@@ -438,6 +445,10 @@ class AppServiceWorker(QObject):
             r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
         ),
     )
+
+    def __init__(self):
+        super().__init__()
+        self.process_name = "app_service"
 
     def start_macrosoftconnect(self):
         """Start the MacrosoftConnectQuickSupport application."""
@@ -510,7 +521,7 @@ class AppServiceWorker(QObject):
 
 class UserInfoWorker(QObject):
     """manages macrosoft rustdesk and userinfo"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal(dict)
 
@@ -522,6 +533,7 @@ class UserInfoWorker(QObject):
         }
         self.access = get_access_code()
         self.app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+        self.process_name = "user_info"
 
     @Slot()
     def get_rustdesk_id(self):
@@ -582,13 +594,14 @@ class UserInfoWorker(QObject):
 
 class OpenBrowserWorker(QObject):
     """manages opening/closing a browser"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal()
 
     def __init__(self):
         super().__init__()
         self.access = get_access_code()
+        self.process_name = "open_browser"
 
     @Slot()
     def open_browser(self):
@@ -607,7 +620,7 @@ class OpenBrowserWorker(QObject):
 
 class PermissionWorker(QObject):
     """manages opening/closing a browser"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal(dict)
 
@@ -621,22 +634,40 @@ class PermissionWorker(QObject):
             "is_microphone_allowed": False,
             "is_browser_permissions_allowed": False,
         }
+        self.process_name = "all_permissions"
+        self.progress = 0
 
     @Slot()
     def set_microphone_access_only(self):
         """Set microphone access permissions only."""
-        self.log.emit("Setting microphone access only.")
-        self.registry_permission.set_microphone_only_access_powershell()
+        self.process_name = "microphone_only"
+        self.log.emit("Setting microphone access only ...")
+
+        self.set_microphone_access_powershell(all_permissions=False)
+
         self.check_permissions()
+        self.progress = 100
+        self.progress_changed.emit(self.progress, self.process_name)
         self.finished.emit(self.result_data)
 
     @Slot()
     def set_microphone_and_camera_access_only(self):
         """Set all necessary permissions."""
         self.log.emit("Setting all permissions...")
-        self.registry_permission.set_microphone_and_webcam_access_powershell()
-        self.browser_permission.set_browser_permissions()
+        self.log.emit("Setting microphone access powershell ...")
+
+        self.set_microphone_access_powershell()
+
+        self.log.emit("Setting camera access powershell ...")
+
+        self.set_camera_access_powershell()
+
+        self.set_browser_permissions()
+
         self.check_permissions()
+
+        self.progress = 100
+        self.progress_changed.emit(self.progress, self.process_name)
         self.finished.emit(self.result_data)
 
     def check_permissions(self):
@@ -652,6 +683,167 @@ class PermissionWorker(QObject):
         self.log.emit(f"microphone_allowed: {is_microphone_allowed}")
         self.log.emit(f"webcam_allowed: {is_webcam_allowed}")
         self.log.emit(f"browser_permissions_allowed: {is_browser_permissions_allowed}")
+
+    def set_microphone_access_powershell(self, all_permissions=True):
+        inc = 6 if all_permissions else 25
+
+        # setting microphone access
+        try:
+            global_settings = "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone"
+            apps_settings = "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone\\NonPackaged"
+            desktop_apps_settings = "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone"
+
+            permission_paths = [global_settings, apps_settings, desktop_apps_settings]
+            for p in permission_paths:
+                self.registry_permission.set_device_status(p, "Allow")
+                self.progress += inc
+                self.progress_changed.emit(self.progress, self.process_name)
+
+            self.log.emit("Mikrofón prístup bol povolený pomocou PowerShell.")
+        except Exception as e:
+            self.log.emit(f"Chyba pri nastavovaní mikrofónu cez PowerShell: {e}")
+
+    def set_camera_access_powershell(self, all_permissions=True):
+        inc = 6 if all_permissions else 25
+
+        try:
+            global_settings = "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam"
+            apps_settings = "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam"
+            desktop_apps_settings = "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam\\NonPackaged"
+
+            permission_paths = [global_settings, apps_settings, desktop_apps_settings]
+            for p in permission_paths:
+                self.registry_permission.set_device_status(p, "Allow")
+                self.progress += inc
+                self.progress_changed.emit(self.progress, self.process_name)
+
+            self.log.emit("Kamera prístup bol povolený pomocou PowerShell.")
+        except Exception as e:
+            pass
+            self.log.emit(f"Chyba pri nastavovaní kamery cez PowerShell: {e}")
+
+    def set_browser_permissions(self):
+        # URL to allow
+        site_url = 'https://online.macrosoft.sk'
+        inc = 9
+
+        # For Edge
+        try:
+            if os.path.exists(self.browser_permission.edge_basepath):
+                edge_preferences = self.browser_permission.find_preferences_files(self.browser_permission.edge_basepath)
+
+                for preference in edge_preferences:
+                    self.browser_permission.modify_preference_file(preference)
+            self.log.emit("Povolenia pre Microsoft Edge boli nastavené.")
+        except Exception as e:
+            self.log.emit(f"Povolenia pre Edge neboli nastavené: {e}")
+
+        self.progress += inc
+        self.progress_changed.emit(self.progress, self.process_name)
+
+        # For Chrome
+        try:
+            if os.path.exists(self.browser_permission.chrome_basepath):
+                chrome_preferences = self.browser_permission.find_preferences_files(
+                    self.browser_permission.chrome_basepath)
+
+                for preference in chrome_preferences:
+                    self.browser_permission.modify_preference_file(preference)
+            self.log.emit("Povolenia pre Google Chrome boli nastavené.")
+        except Exception as e:
+            self.log.emit(f"Povolenia pre Chrome neboli nastavené: {e}")
+
+        self.progress += inc
+        self.progress_changed.emit(self.progress, self.process_name)
+
+        # For Brave (Brave uses Chromium policies)
+        try:
+            if os.path.exists(self.browser_permission.brave_basepath):
+                brave_preferences = self.browser_permission.find_preferences_files(
+                    self.browser_permission.brave_basepath)
+
+                for preference in brave_preferences:
+                    self.browser_permission.modify_preference_file(preference)
+            self.log.emit("Povolenia pre Brave boli nastavené.")
+        except Exception as e:
+            self.log.emit(f"Povolenia pre Brave neboli nastavené: {e}")
+
+        self.progress += inc
+        self.progress_changed.emit(self.progress, self.process_name)
+
+        # For Firefox
+        try:
+            # Kill Firefox processes if running to avoid conflicts with database access
+            for proc in psutil.process_iter(['name']):
+                if proc.info['name'] and 'firefox' in proc.info['name'].lower():
+                    proc.terminate()
+            # Wait for processes to terminate
+            time.sleep(2)
+
+            appdata = os.getenv('APPDATA')
+            profiles_ini_path = os.path.join(appdata, 'Mozilla', 'Firefox', 'profiles.ini')
+            if os.path.exists(profiles_ini_path):
+                with open(profiles_ini_path, 'r') as f:
+                    lines = f.readlines()
+
+                profiles = []
+                current_profile = {}
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith('['):
+                        if current_profile:
+                            profiles.append(current_profile)
+                            current_profile = {}
+                    elif '=' in line:
+                        key, value = line.split('=', 1)
+                        current_profile[key.strip()] = value.strip()
+                if current_profile:
+                    profiles.append(current_profile)
+
+                # Now, for each profile, modify the permissions
+                for profile in profiles:
+                    if 'Path' in profile:
+                        profile_path = profile['Path']
+                        is_relative = profile.get('IsRelative', '1') == '1'
+                        if is_relative:
+                            profile_dir = os.path.join(appdata, 'Mozilla', 'Firefox', profile_path)
+                        else:
+                            profile_dir = profile_path
+                        permissions_file = os.path.join(profile_dir, 'permissions.sqlite')
+                        if os.path.exists(permissions_file):
+                            # Copy permissions.sqlite to a temporary file
+                            temp_permissions_file = os.path.join(tempfile.gettempdir(), 'permissions.sqlite')
+                            shutil.copy2(permissions_file, temp_permissions_file)
+                            # Connect to the SQLite database
+                            conn = sqlite3.connect(temp_permissions_file)
+                            c = conn.cursor()
+                            # Check if permissions table exists
+                            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
+                            if c.fetchone():
+                                # Insert or replace permission
+                                # permission values: 1=Allow, 2=Deny, 3=Prompt
+                                permissions = [
+                                    (site_url, 'microphone', 1),
+                                    (site_url, 'camera', 1)
+                                ]
+                                for host, type_, permission in permissions:
+                                    c.execute(
+                                        'REPLACE INTO moz_perms (origin, type, permission, expireType, expireTime, modificationTime) VALUES (?,?,?,?,?,?)',
+                                        (host, type_, permission, 0, 0, int(time.time() * 1000)))
+                                conn.commit()
+                            conn.close()
+                            # Copy the temp file back to the original
+                            shutil.copy2(temp_permissions_file, permissions_file)
+                            os.remove(temp_permissions_file)
+                self.log.emit("Povolenia pre Firefox boli nastavené.")
+            else:
+                pass
+                self.log.emit("Firefox profily neboli nájdené.")
+        except Exception as e:
+            self.log.emit(f"Povolenia pre Firefox neboli nastavené: {e}")
+
+        self.progress += inc
+        self.progress_changed.emit(self.progress, self.process_name)
 
 class WebSocketWorker(QObject):
     connection = Signal(bool)
@@ -810,13 +1002,14 @@ class WebSocketWorker(QObject):
 
 class OpenOBSWorker(QObject):
     """manages opening/closing a browser"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal()
 
     def __init__(self):
         super().__init__()
         self.access = get_access_code()
+        self.process_name = "open_obs"
 
     @Slot()
     def open_obs_app(self):
@@ -835,7 +1028,7 @@ class OpenOBSWorker(QObject):
 
 class OBSInstallationWorker(QObject):
     """manages macrosoft rustdesk installation and uninstallation"""
-    progress_changed = Signal(int)
+    progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal()
 
@@ -854,6 +1047,7 @@ class OBSInstallationWorker(QObject):
                 r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
             ),
         )
+        self.process_name = "obs_install"
 
     @Slot()
     def install_app(self):
@@ -880,8 +1074,8 @@ class OBSInstallationWorker(QObject):
                         file.write(buffer)
                         downloaded += len(buffer)
                         if total_size > 0:
-                            percent = int(downloaded * 100 / total_size)
-                            self.progress_changed.emit(percent)
+                            percent = downloaded * 100 / total_size
+                            self.progress_changed.emit(percent, self.process_name)
         except Exception as e:
             self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
             self.finished.emit(self.result_data)
@@ -1148,7 +1342,7 @@ class MacrosoftBackend(QObject):
     sendMessage = Signal(dict)
 
     # custom signals
-    progressChanged = Signal(int)
+    progressChanged = Signal(float)
     appInstallationStatusChanged = Signal(str)
     appServiceStatusChanged = Signal(str)
     appWebsocketStatusChanged = Signal(str)
@@ -1185,6 +1379,7 @@ class MacrosoftBackend(QObject):
 
         # values
         self._progress = 0
+        self._running_progresses = {}
         self._app_installation_status = "disabled"
         self._app_service_status = "disabled"
         self._app_websocket_status = "disabled"
@@ -1250,7 +1445,7 @@ class MacrosoftBackend(QObject):
 
         self.app_init()
 
-    @Property(int, notify=progressChanged)
+    @Property(float, notify=progressChanged)
     def progress(self):
         return self._progress
 
@@ -1808,9 +2003,22 @@ class MacrosoftBackend(QObject):
         self.open_obs_thread.start()
 
 
-    @Slot(int)
-    def update_progress(self, value):
-        self.progress = value
+    @Slot(float, str)
+    def update_progress(self, value, process_name):
+        self._running_progresses[process_name] = value
+        aggregate_value = sum(self._running_progresses.values()) / len(self._running_progresses)
+        self.progress = aggregate_value
+
+        # self.add_log(f"\tupdate_progress: {self._running_progresses}, {aggregate_value}")
+        # print(f"\tupdate_progress: {self._running_progresses}, {aggregate_value}")
+        #
+        if aggregate_value == 100:
+            self._running_progresses = {}
+            QTimer.singleShot(100, self.reset_progress)
+
+    def reset_progress(self):
+        if not self._running_progresses:
+            self.progress = 0
 
     def app_init(self):
         print("\t\tapp_init running now ...")
@@ -2005,7 +2213,6 @@ class MacrosoftBackend(QObject):
             self.is_app_service_btn_enabled = False
             self.is_app_rust_id_btn_enabled = False
 
-        self.update_progress(0)
         self.is_app_install_btn_enabled = True
 
         self.app_installation_thread.quit()
@@ -2117,6 +2324,9 @@ class MacrosoftBackend(QObject):
         self.is_enable_microphone_only_btn_enabled = True
         self.is_enable_microphone_and_camera_btn_enabled = True
 
+        # if "microphone_only" in self._running_progresses:
+        #     del self._running_progresses["microphone_only"]
+
     @Slot(dict)
     def on_enable_microphone_and_camera_finished(self, result):
         self.update_permission_status(result)
@@ -2131,6 +2341,10 @@ class MacrosoftBackend(QObject):
 
         self.is_enable_microphone_only_btn_enabled = True
         self.is_enable_microphone_and_camera_btn_enabled = True
+
+        # if "all_permissions" in self._running_progresses:
+        #     del self._running_progresses["all_permissions"]
+
 
     def update_permission_status(self, result):
         """updates permission status based on the given data"""
