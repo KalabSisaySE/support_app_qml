@@ -10,17 +10,77 @@ DefaultDirName={autopf}\Macrosoft Support
 DisableProgramGroupPage=yes
 OutputDir=.\Output
 OutputBaseFilename=MacrosoftSupportInstaller
-SetupIconFile=..\myicon.ico
+SetupIconFile=myicon.ico
 Compression=lzma2
 SolidCompression=yes
 PrivilegesRequired=lowest
 
+[Languages]
+Name: "en"; MessagesFile: "compiler:Default.isl"
+Name: "sk"; MessagesFile: "Languages\Slovak.isl"
+
+[Code]
+var
+  LanguagePage: TInputOptionWizardPage;
+  AppLanguage: String;
+
+procedure InitializeWizard;
+begin
+  { Create custom page }
+  LanguagePage := CreateInputOptionPage(
+    wpSelectDir,
+    'Application Language',
+    'Choose the application language',
+    'Please select your preferred language for the application:',
+    True, False);
+  LanguagePage.Add('English');
+  LanguagePage.Add('Slovensky');
+  LanguagePage.Values[0] := True; { Default to English }
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  if CurPageID = LanguagePage.ID then
+  begin
+    if LanguagePage.Values[0] then
+      AppLanguage := 'en'
+    else
+      AppLanguage := 'sk';
+  end;
+  Result := True;
+end;
+
+// Function to check if the language is English
+function IsEnglish: Boolean;
+begin
+  Result := (AppLanguage = 'en'); // Assuming AppLanguage is a variable you've defined
+end;
+
+// Function to check if the language is English
+function IsSlovak: Boolean;
+begin
+  Result := (AppLanguage = 'sk'); // Assuming AppLanguage is a variable you've defined
+end;
+
 [Files]
+; English version
+Source: "Source\English\MacrosoftSupportLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion; Check: IsEnglish
+; Slovak version
+Source: "Source\Slovak\MacrosoftSupportLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion; Check: IsSlovak
+
+Source: "Source\English\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: IsEnglish
+Source: "Source\Slovak\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: IsSlovak
+
+; Optional: Include both language files if needed
+; Source: "Source\English\MyApp.exe"; DestDir: "{app}\en"; Flags: ignoreversion
+; Source: "Source\Slovak\MyApp.exe"; DestDir: "{app}\sk"; Flags: ignoreversion
+
+; [Files]
 ; Main executable
-Source: "..\dist\MacrosoftSupportLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Source: "..\dist\MacrosoftSupportLauncher.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Include all files from PyInstaller's dist folder
-Source: "..\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Source: "..\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 
 [Icons]
