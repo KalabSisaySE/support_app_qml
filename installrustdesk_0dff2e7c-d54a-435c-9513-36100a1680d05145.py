@@ -69,9 +69,9 @@ class InitializeApp(QObject):
         self.browser_permission = BrowserPermissionManager()
 
         self.result = {
-            "access_code": "Nenájdené",
-            "full_name": "Nenájdené",
-            "rust_id": "Nenájdené",
+            "access_code": "Unknown",
+            "full_name": "Unknown",
+            "rust_id": "Unknown",
             "is_app_installed": False,
             "is_app_service_running": False,
             "is_obs_installed": False,
@@ -140,7 +140,7 @@ class InitializeApp(QObject):
 
         # OBS CONFIG
         is_installed = is_obs_installed()
-        self.result["is_obs_installed"] = is_installed
+        self.result["is_obs_installed"] = "enabled" if is_installed else "disabled"
 
         if is_installed:
             is_running = is_obs_running()
@@ -170,7 +170,7 @@ class AppInstallationWorker(QObject):
         self.result_data = {
             "app_installed": False,
             "app_service_on": False,
-            "rust_id": "Nenájdené"
+            "rust_id": "Unknown"
         }
         self.access = get_access_code()
         self.manager = ServiceManager(
@@ -192,7 +192,7 @@ class AppInstallationWorker(QObject):
 
     def install_app(self):
         """installs and rust Macrosoft RustDesk"""
-        self.log.emit("Začínam proces inštalácie...")
+        self.log.emit("Starting the installation process...")
 
         base_url = "https://online.macrosoft.sk/static/"
         download_url = f"{base_url}ztpt/output/downloads/macrosoftconnectquicksupport.exe"
@@ -218,13 +218,13 @@ class AppInstallationWorker(QObject):
                             percent = (downloaded * 100) / total_size
                             self.progress_changed.emit(percent, self.process_name)
         except Exception as e:
-            self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
+            self.log.emit(f"Error while downloading the file: {e}")
             self.finished.emit(self.result_data)
             return
 
         try:
             # Prepare startup info to hide cmd window
-            self.log.emit(f"Inštaluje sa Macrosoft Connect Quick Support...")
+            self.log.emit(f"Installing Macrosoft Connect Quick Support...")
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             SW_HIDE = 0
@@ -245,7 +245,7 @@ class AppInstallationWorker(QObject):
             self.result_data["rust_id"] = self.get_rustdesk_id()
 
         except Exception as e:
-            self.log.emit(f"Chyba počas inštalácie: {e}")
+            self.log.emit(f"Error during installation: {e}")
 
         self.finished.emit(self.result_data)
 
@@ -257,7 +257,7 @@ class AppInstallationWorker(QObject):
         )
 
         if not os.path.exists(uninstall_path):
-            self.log.emit("Odinštalačný súbor nebol nájdený.")
+            self.log.emit("Uninstall file not found.")
             self.finished.emit(self.result_data)
             return
 
@@ -273,12 +273,12 @@ class AppInstallationWorker(QObject):
             start_time = time.time()
             while os.path.exists(app_path):
                 if time.time() - start_time > max_wait_time:
-                    self.log.emit("Odinštalácia trvá príliš dlho.")
+                    self.log.emit("Uninstallation is taking too long.")
                     break
                 time.sleep(1)
-            self.log.emit("MacrosoftConnectQuickSupport bol odinštalovaný úspešne.")
+            self.log.emit("MacrosoftConnectQuickSupport has been successfully uninstalled.")
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť odinštalátor: {e}")
+            self.log.emit(f"Failed to start the uninstaller: {e}")
 
         self.finished.emit(self.result_data)
 
@@ -288,9 +288,9 @@ class AppInstallationWorker(QObject):
 
         if not os.path.exists(app_path):
             self.log.emit(
-                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+                "MacrosoftConnectQuickSupport is not installed, please click Install MacrosoftConnectQuickSupport"
             )
-            return "Nenájdené"
+            return "Unknown"
 
         try:
             result = subprocess.run(
@@ -299,16 +299,16 @@ class AppInstallationWorker(QObject):
                 text=True,
                 check=True,
             )
-            rustdesk_id = result.stdout.strip() if result.stdout else "Nenájdené"
+            rustdesk_id = result.stdout.strip() if result.stdout else "Unknown"
 
 
-            self.log.emit(f"Vaše ID je: {rustdesk_id}")
+            self.log.emit(f"Your ID is: {rustdesk_id}")
             self.report_rustdesk_id(rustdesk_id)
             return rustdesk_id
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa získať ID: {e}")
-            return "Nenájdené"
+            self.log.emit(f"Failed to retrieve ID: {e}")
+            return "Unknown"
 
     def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
         """report the RustDesk ID to the server."""
@@ -322,13 +322,13 @@ class AppInstallationWorker(QObject):
                 try:
                     with urllib.request.urlopen(url) as response:
                         if response.status == 200:
-                            self.log.emit("ID bolo úspešne odoslané.")
+                            self.log.emit("ID has been successfully sent.")
                         else:
-                            self.log.emit(f"Odozva servera: {response.status}")
+                            self.log.emit(f"Server response: {response.status}")
                             if attempt < max_attempts:
                                 time.sleep(1)
                 except Exception as e:
-                    self.log.emit(f"Nepodarilo sa odoslať ID: {e}")
+                    self.log.emit(f"Failed to send ID: {e}")
 
 
     def start_macrosoftconnect(self):
@@ -352,50 +352,50 @@ class AppInstallationWorker(QObject):
         """Start the MacrosoftConnectQuickSupport service."""
         try:
             if is_service_running("MacrosoftConnectQuickSupport"):
-                self.log.emit("Služba je spustená...")
+                self.log.emit("Service is running...")
                 return True
 
             if not check_installation():
-                self.log.emit("Aplikácia nie je nainštalovaná. Najprv nainštalujte aplikáciu...")
+                self.log.emit("App is not installed. Install app first...")
                 return
 
             if not is_app_running():
-                self.log.emit("Aplikácia nie je spustená. Spúšťa sa aplikácia...")
+                self.log.emit("App is not running. Running app...")
                 if not self.start_macrosoftconnect():
-                    self.log.emit("Nepodarilo sa automaticky spustiť aplikáciu...")
+                    self.log.emit("Couldn't start app automatically...")
                     return
 
             if not self.manager.is_service_installed():
-                self.log.emit("Vytváranie služby...")
+                self.log.emit("Creating Service...")
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit("Služba MacrosoftConnectQuickSupport je spustená.")
+            self.log.emit("MacrosoftConnectQuickSupport Service is running")
             return True
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť službu MacrosoftConnectQuickSupport., {e}")
+            self.log.emit(f"Failed to start MacrosoftConnectQuickSupport Service, {e}")
 
 
     def stop_service(self):
         """Stop the MacrosoftConnectQuickSupport service."""
         try:
             if is_service_running("MacrosoftConnectQuickSupport"):
-                self.log.emit("Služba je spustená.")
+                self.log.emit("service is running")
                 if is_app_running():
-                    self.log.emit("Aplikácia je spustená.")
+                    self.log.emit("app is running")
                     self.manager.stop_service()
-                    self.log.emit("Služba MacrosoftConnectQuickSupport bola zastavená.")
+                    self.log.emit("MacrosoftConnectQuickSupport Service has stopped")
                     return True
                 else:
-                    self.log.emit("Služba nie je spustená...")
+                    self.log.emit("Service is not running...")
 
             else:
-                self.log.emit("Služba nie je spustená...")
+                self.log.emit("Service is not running...")
                 return True
         except Exception as e:
             self.log.emit(
-                f"Nepodarilo sa zastaviť službu MacrosoftConnectQuickSupport. {e}"
+                f"Failed to stop MacrosoftConnectQuickSupport Service {e}"
             )
 
 class StartAppWorker(QObject):
@@ -415,7 +415,7 @@ class StartAppWorker(QObject):
 
         if not os.path.exists(app_path):
             self.log.emit(
-                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+                "MacrosoftConnectQuickSupport is not installed, please click Install MacrosoftConnectQuickSupport"
             )
 
         try:
@@ -425,9 +425,12 @@ class StartAppWorker(QObject):
                 stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
-            self.log.emit("MacrosoftConnectQuickSupport bol spustený.")
+            self.log.emit("MacrosoftConnectQuickSupport has been started.")
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť MacrosoftConnectQuickSupport: {e}")
+            self.log.emit(
+                f"Failed to start MacrosoftConnectQuickSupport: {e}"
+            )
+
 
         self.finished.emit()
 
@@ -471,26 +474,26 @@ class AppServiceWorker(QObject):
         """Start the MacrosoftConnectQuickSupport service."""
         try:
             if not check_installation():
-                self.log.emit("Aplikácia nie je nainštalovaná. Najprv nainštalujte aplikáciu...")
+                self.log.emit("App is not installed. Install app first...")
                 self.finished.emit()
                 return
 
             if not is_app_running():
-                self.log.emit("Aplikácia nie je spustená. Spúšťa sa aplikácia...")
+                self.log.emit("App is not running. Running app...")
                 if not self.start_macrosoftconnect():
-                    self.log.emit("Nepodarilo sa automaticky spustiť aplikáciu...")
+                    self.log.emit("Couldn't start app automatically...")
                     self.finished.emit()
                     return
 
             if not self.manager.is_service_installed():
-                self.log.emit("Vytváranie služby...")
+                self.log.emit("Creating Service...")
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit("Služba MacrosoftConnectQuickSupport je spustená.")
+            self.log.emit("MacrosoftConnectQuickSupport Service is running")
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť službu MacrosoftConnectQuickSupport., {e}")
+            self.log.emit(f"Failed to start MacrosoftConnectQuickSupport Service, {e}")
 
         self.finished.emit()
 
@@ -501,15 +504,15 @@ class AppServiceWorker(QObject):
             if is_service_running("MacrosoftConnectQuickSupport"):
                 if is_app_running():
                     self.manager.stop_service()
-                    self.log.emit("Služba MacrosoftConnectQuickSupport bola zastavená.")
+                    self.log.emit("MacrosoftConnectQuickSupport Service has stopped")
 
                 else:
-                    self.log.emit("Služba nie je spustená...")
+                    self.log.emit("Service is not running...")
             else:
-                self.log.emit("Služba nie je spustená...")
+                self.log.emit("Service is not running...")
         except Exception as e:
             self.log.emit(
-                f"Nepodarilo sa zastaviť službu MacrosoftConnectQuickSupport. {e}"
+                f"Failed to stop MacrosoftConnectQuickSupport Service {e}"
             )
 
         self.finished.emit()
@@ -524,7 +527,7 @@ class UserInfoWorker(QObject):
         super().__init__()
         self.result_data = {
             "username": "",
-            "rust_id": "Nenájdené"
+            "rust_id": "Unknown"
         }
         self.access = get_access_code()
         self.app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
@@ -535,7 +538,7 @@ class UserInfoWorker(QObject):
         """Retrieve the RustDesk ID."""
         if not os.path.exists(self.app_path):
             self.log.emit(
-                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+                "MacrosoftConnectQuickSupport is not installed, please click Install MacrosoftConnectQuickSupport"
             )
             self.finished.emit(self.result_data)
 
@@ -548,12 +551,12 @@ class UserInfoWorker(QObject):
             )
             rustdesk_id = result.stdout.strip() if result.stdout else "Nenájdené"
 
-            self.log.emit(f"Vaše ID je: {rustdesk_id}")
+            self.log.emit(f"Your ID is: {rustdesk_id}")
             self.report_rustdesk_id(rustdesk_id)
             self.result_data["rust_id"] = rustdesk_id
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa získať ID: {e}")
+            self.log.emit(f"Failed to retrieve ID: {e}")
 
         self.finished.emit(self.result_data)
 
@@ -567,23 +570,23 @@ class UserInfoWorker(QObject):
                 try:
                     with urllib.request.urlopen(url) as response:
                         if response.status == 200:
-                            self.log.emit("ID bolo úspešne odoslané.")
+                            self.log.emit("ID has been successfully sent.")
                         else:
-                            self.log.emit(f"Odozva servera: {response.status}")
+                            self.log.emit(f"Server response: {response.status}")
                             if attempt < max_attempts:
                                 time.sleep(1)
                 except Exception as e:
-                    self.log.emit(f"Nepodarilo sa odoslať ID: {e}")
+                    self.log.emit(f"Failed to send ID: {e}")
 
     @Slot()
     def set_username(self):
         """Fetch and set the user's full name."""
-        self.log.emit("Načítavam používateľské meno...")
+        self.log.emit("Fetching username...")
         full_name = get_full_name(self.access)
         if full_name:
-            self.log.emit(f"Úplné meno načítané.: {full_name}")
+            self.log.emit(f"Full name fetched: {full_name}")
         else:
-            self.log.emit("Nepodarilo sa získať meno z API")
+            self.log.emit("Failed to retrieve name from API")
 
         self.finished.emit()
 
@@ -602,14 +605,14 @@ class OpenBrowserWorker(QObject):
     def open_browser(self):
         """Open the default page in user's default browser."""
         try:
-            self.log.emit("Otváram webovú stránku...")
+            self.log.emit("Opening website ...")
             if open_website(self.access):
-                self.log.emit("Webová stránka otvorená.")
+                self.log.emit("Website Opened")
             else:
-                self.log.emit("Nepodarilo sa otvoriť webovú stránku.")
+                self.log.emit("Website Failed to open")
 
         except Exception as e:
-            self.log.emit("Nepodarilo sa otvoriť webovú stránku.")
+            self.log.emit("Website Failed to open")
 
         self.finished.emit()
 
@@ -636,7 +639,7 @@ class PermissionWorker(QObject):
     def set_microphone_access_only(self):
         """Set microphone access permissions only."""
         self.process_name = "microphone_only"
-        self.log.emit("Nastavujem prístup k mikrofónu iba...")
+        self.log.emit("Setting microphone access only ...")
 
         self.set_microphone_access_powershell(all_permissions=False)
 
@@ -648,12 +651,12 @@ class PermissionWorker(QObject):
     @Slot()
     def set_microphone_and_camera_access_only(self):
         """Set all necessary permissions."""
-        self.log.emit("Nastavujem všetky povolenia...")
-        self.log.emit("Nastavujem prístup k mikrofónu cez PowerShell...")
+        self.log.emit("Setting all permissions...")
+        self.log.emit("Setting microphone access powershell ...")
 
         self.set_microphone_access_powershell()
 
-        self.log.emit("Nastavujem prístup k kamere cez PowerShell...")
+        self.log.emit("Setting camera access powershell ...")
 
         self.set_camera_access_powershell()
 
@@ -691,9 +694,9 @@ class PermissionWorker(QObject):
                 self.progress += inc
                 self.progress_changed.emit(self.progress, self.process_name)
 
-            self.log.emit("Mikrofón prístup bol povolený pomocou PowerShell.")
+            self.log.emit("Microphone access was granted using PowerShell.")
         except Exception as e:
-            self.log.emit(f"Chyba pri nastavovaní mikrofónu cez PowerShell: {e}")
+            self.log.emit(f"Error while setting up the microphone via PowerShell: {e}")
 
     def set_camera_access_powershell(self, all_permissions=True):
         inc = 6 if all_permissions else 25
@@ -709,10 +712,10 @@ class PermissionWorker(QObject):
                 self.progress += inc
                 self.progress_changed.emit(self.progress, self.process_name)
 
-            self.log.emit("Kamera prístup bol povolený pomocou PowerShell.")
+            self.log.emit("Camera access was granted using PowerShell.")
         except Exception as e:
             pass
-            self.log.emit(f"Chyba pri nastavovaní kamery cez PowerShell: {e}")
+            self.log.emit(f"Error while setting up the camera via PowerShell: {e}")
 
     def set_browser_permissions(self):
         # URL to allow
@@ -726,9 +729,9 @@ class PermissionWorker(QObject):
 
                 for preference in edge_preferences:
                     self.browser_permission.modify_preference_file(preference)
-            self.log.emit("Povolenia pre Microsoft Edge boli nastavené.")
+            self.log.emit("Permissions for Microsoft Edge have been set.")
         except Exception as e:
-            self.log.emit(f"Povolenia pre Edge neboli nastavené: {e}")
+            self.log.emit(f"Permissions for Edge were not set: {e}")
 
         self.progress += inc
         self.progress_changed.emit(self.progress, self.process_name)
@@ -741,9 +744,9 @@ class PermissionWorker(QObject):
 
                 for preference in chrome_preferences:
                     self.browser_permission.modify_preference_file(preference)
-            self.log.emit("Povolenia pre Google Chrome boli nastavené.")
+            self.log.emit("Permissions for Google Chrome have been set.")
         except Exception as e:
-            self.log.emit(f"Povolenia pre Chrome neboli nastavené: {e}")
+            self.log.emit(f"Permissions for Chrome were not set: {e}")
 
         self.progress += inc
         self.progress_changed.emit(self.progress, self.process_name)
@@ -756,9 +759,9 @@ class PermissionWorker(QObject):
 
                 for preference in brave_preferences:
                     self.browser_permission.modify_preference_file(preference)
-            self.log.emit("Povolenia pre Brave boli nastavené.")
+            self.log.emit("Permissions for Brave have been set.")
         except Exception as e:
-            self.log.emit(f"Povolenia pre Brave neboli nastavené: {e}")
+            self.log.emit(f"Permissions for Brave were not set: {e}")
 
         self.progress += inc
         self.progress_changed.emit(self.progress, self.process_name)
@@ -827,12 +830,12 @@ class PermissionWorker(QObject):
                             # Copy the temp file back to the original
                             shutil.copy2(temp_permissions_file, permissions_file)
                             os.remove(temp_permissions_file)
-                self.log.emit("Povolenia pre Firefox boli nastavené.")
+                self.log.emit("Permissions for Firefox have been set.")
             else:
                 pass
-                self.log.emit("Firefox profily neboli nájdené.")
+                self.log.emit("Firefox profiles not found")
         except Exception as e:
-            self.log.emit(f"Povolenia pre Firefox neboli nastavené: {e}")
+            self.log.emit(f"Permissions for Firefox were not set: {e}")
 
         self.progress += inc
         self.progress_changed.emit(self.progress, self.process_name)
@@ -887,29 +890,30 @@ class WebSocketWorker(QObject):
         self.reconnect_enabled = False
         self.reconnect_timer.stop()
         self.websocket.close()
-        self.log.emit("Manuálne požiadanie o odpojenie WebSocketu.")
+        self.log.emit("Websocket manual disconnect requested")
 
     @Slot()
     def on_connected(self):
-        self.log.emit("Pripojené k serveru Macrosoft WebSocket.")
+        self.log.emit("Connected to Macrosoft WebSocket server")
         self.current_reconnect_delay = self.initial_reconnect_delay  # Reset delay
         self.reconnect_needed = False  # Clear error flag
         self.connection.emit(True)
 
     @Slot()
     def on_disconnected(self):
-        self.log.emit("Odpojené od servera Macrosoft WebSocket.")
+        self.log.emit("Disconnected from Macrosoft WebSocket server")
         self.connection.emit(False)
 
         close_code = self.websocket.closeCode()
         close_reason = self.websocket.closeReason()
-        self.log.emit(f"Kód uzavretia: {close_code}, Dôvod: {close_reason}")
+        self.log.emit(f"Close code: {close_code}, reason: {close_reason}")
+
 
 
     @Slot(QAbstractSocket.SocketError)
     def on_error(self, error_code):
         error_msg = self.websocket.errorString()
-        self.log.emit(f"Chyba WebSocketu: {error_msg}")
+        self.log.emit(f"WebSocket error: {error_msg}")
         self.error_occurred.emit(error_msg)
 
         # Classify errors: Set reconnect_needed only for network issues
@@ -948,11 +952,12 @@ class WebSocketWorker(QObject):
         except Exception as e:
             self.message_received.emit(message)
 
+
     def send_message(self, message):
         if self.websocket.state() == QAbstractSocket.ConnectedState:
             self.websocket.sendTextMessage(message)
         else:
-            self.error_occurred.emit("Nie je pripojené k serveru WebSocket.")
+            self.error_occurred.emit("Not connected to WebSocket server")
 
     @Slot(dict)
     def send_msg_to_server(self, msg):
@@ -975,14 +980,14 @@ class OpenOBSWorker(QObject):
     def open_obs_app(self):
         """Open the default page in user's default browser."""
         try:
-            self.log.emit("Otvorenie OBS...")
+            self.log.emit("Opening OBS ...")
             if not is_obs_running():
                 start_obs()
-                self.log.emit("OBS bol spustený...")
+                self.log.emit("OBS started ...")
             else:
-                self.log.emit("OBS je už spustený.")
+                self.log.emit("OBS is already running")
         except Exception as e:
-            self.log.emit("Nepodarilo sa spustiť OBS.")
+            self.log.emit("OBS Failed to start")
 
         self.finished.emit()
 
@@ -997,7 +1002,7 @@ class OBSInstallationWorker(QObject):
         self.result_data = {
             "app_installed": False,
             "app_service_on": False,
-            "rust_id": "Nenájdené"
+            "rust_id": "Unknown"
         }
         self.access = get_access_code()
         self.manager = ServiceManager(
@@ -1012,7 +1017,7 @@ class OBSInstallationWorker(QObject):
     @Slot()
     def install_app(self):
         """installs and rust Macrosoft RustDesk"""
-        self.log.emit("Začínam proces inštalácie...")
+        self.log.emit("Starting the installation process...")
 
         download_url = "https://cdn-fastly.obsproject.com/downloads/OBS-Studio-31.0.2-Windows-Installer.exe"
         new_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
@@ -1037,13 +1042,13 @@ class OBSInstallationWorker(QObject):
                             percent = downloaded * 100 / total_size
                             self.progress_changed.emit(percent, self.process_name)
         except Exception as e:
-            self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
+            self.log.emit(f"Error while downloading the file: {e}")
             self.finished.emit(self.result_data)
             return
 
         try:
             # Prepare startup info to hide cmd window
-            self.log.emit(f"Inštaluje sa Macrosoft Connect Quick Support...")
+            self.log.emit(f"Installing Macrosoft Connect Quick Support...")
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             SW_HIDE = 0
@@ -1058,7 +1063,7 @@ class OBSInstallationWorker(QObject):
             start_obs(first_time=True)
 
         except Exception as e:
-            self.log.emit(f"Chyba počas inštalácie: {e}")
+            self.log.emit(f"Error during installation: {e}")
 
         self.finished.emit()
 
@@ -1117,7 +1122,7 @@ class OBSClientWorker(QObject):
         self.ws.open(self.url)
 
     def on_connected(self):
-        self.log.emit("Pripojené k serveru OBS WebSocket.")
+        self.log.emit("Connected to OBS WebSocket server")
 
     def on_disconnected(self):
         self.connection.emit(False)
@@ -1187,14 +1192,14 @@ class OBSClientWorker(QObject):
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
-        rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        rtmp_url = rtmp_url_generator.get_rtmp_url()
-        # rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_event075b2b509c5d4724860e1c04b3edcd85"]
+        # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
+        # rtmp_url = rtmp_url_generator.get_rtmp_url()
+        rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_event075b2b509c5d4724860e1c04b3edcd85"]
         if rtmp_url:
             server_url = rtmp_url[0]
             stream_key = rtmp_url[1]
 
-            self.log.emit(f"Streamovacia adresa (URL): {server_url}/{stream_key} Vytvorené. .... ")
+            self.log.emit(f"streaming url: {server_url}/{stream_key} created .... ")
 
             trimmed_server_url = server_url[:25] + "..." if len(server_url) > 25 else server_url
 
@@ -1240,12 +1245,12 @@ class OBSClientWorker(QObject):
             self.is_start_stream_called_on_init = True
             return
 
-        self.log.emit("OBSClient spúšťa stream.")
+        self.log.emit("OBSClient start stream")
         if is_obs_installed():
             self.is_start_stream_called = True
             is_rtmp_set = self.set_custom_rtmp()
         else:
-            self.log.emit("Nepodarilo sa spustiť stream, OBS nie je nainštalovaný.")
+            self.log.emit("can not start stream OBS is not installed")
 
         self.complete.emit()
 
@@ -1357,11 +1362,11 @@ class MacrosoftBackend(QObject):
         self._is_obs_install_btn_enabled = False
         self._is_obs_record_btn_enabled = False
 
-        self._access_code = "Nenájdené"
-        self._rust_id = "Nenájdené"
-        self._username = "Nenájdené"
-        self._streaming_url = "Nevysiela sa"
-        self._course_name = "Neznáme"
+        self._access_code = "Unknown"
+        self._rust_id = "Unknown"
+        self._username = "Unknown"
+        self._streaming_url = "Not streaming"
+        self._course_name = "Unknown"
 
         self.lectoure_ws_data = None
 
@@ -1832,6 +1837,9 @@ class MacrosoftBackend(QObject):
 
     def recording_toggle(self):
         if not self.obs_ws_thread or not self.obs_ws_thread.isRunning():
+            self.add_log("\n\n\nrecording_toggle")
+            self.add_log(f"{self.lectoure_ws_data}\n\n\n")
+            print(f"\n\t{self.lectoure_ws_data}\n")
 
             self.obs_ws_worker = OBSClientWorker(self.lectoure_ws_data)
             self.obs_ws_thread = QThread()
@@ -1888,8 +1896,8 @@ class MacrosoftBackend(QObject):
             is_installed = is_obs_installed()
             self.is_open_obs_btn_enabled = is_installed
             self.is_obs_record_btn_enabled = is_installed
-            self.streaming_url = "Nevysiela sa"
-            self.course_name = "Neznáme"
+            self.streaming_url = "Not streaming"
+            self.course_name = "Unkown"
 
     @Slot(bool)
     def on_obs_ws_stream_status_change(self, status):
@@ -1912,8 +1920,8 @@ class MacrosoftBackend(QObject):
                 "message": "Recording stopped successfully"
             }
             )
-            self.streaming_url = "Nevysiela sa"
-            self.course_name = "Neznáme"
+            self.streaming_url = "Not streaming"
+            self.course_name = "Unkown"
 
         self.is_obs_record_btn_enabled = True
         self.is_open_obs_btn_enabled = True
@@ -1964,6 +1972,9 @@ class MacrosoftBackend(QObject):
         aggregate_value = sum(self._running_progresses.values()) / len(self._running_progresses)
         self.progress = aggregate_value
 
+        # self.add_log(f"\tupdate_progress: {self._running_progresses}, {aggregate_value}")
+        # print(f"\tupdate_progress: {self._running_progresses}, {aggregate_value}")
+        #
         if aggregate_value == 100:
             self._running_progresses = {}
             QTimer.singleShot(100, self.reset_progress)
@@ -1973,6 +1984,7 @@ class MacrosoftBackend(QObject):
             self.progress = 0
 
     def app_init(self):
+        print("\t\tapp_init running now ...")
         if self.app_init_thread and self.app_init_thread.isRunning():
             self.app_init_thread.quit()
             self.app_init_thread.wait()
@@ -2025,7 +2037,7 @@ class MacrosoftBackend(QObject):
             self.is_obs_install_btn_enabled = True
 
         # setup websocket
-        if code != "Nenájdené":
+        if code != "Unknown":
             self.setup_websockets(code)
 
         # if data["is_obs_running"]:

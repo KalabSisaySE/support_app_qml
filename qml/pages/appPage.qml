@@ -37,7 +37,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 4
-                    text: qsTr("Inštalácia a Spustenie")
+                    text: qsTr("Installation and Launch")
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }
@@ -61,7 +61,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Aplikácia MacrosoftConnectQuickSupport:")
+                        text: qsTr("MacrosoftConnectQuickSupport Application:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -91,7 +91,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Služba MacrosoftConnectQuickSupport:")
+                        text: qsTr("MacrosoftConnectQuickSupport Service:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -122,7 +122,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Vaše ID:")
+                        text: qsTr("Your ID:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -155,7 +155,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Aplikácia Macrosoft QuickSupport:")
+                        text: qsTr("Macrosoft QuickSupport Application:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -173,7 +173,7 @@ Item {
                         CustomButton {
                             id: macrosoftQuickSupportButton
 
-                            text: qsTr("Inštalovať")
+                            text: qsTr("Install")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -194,7 +194,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Spustiť Aplikáciu:"
+                        text: "Run Application:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -212,7 +212,7 @@ Item {
                         CustomButton {
                             id: startAppButton
 
-                            text: "Spustiť MacrosoftQuickSupport"
+                            text: "Start MacrosoftQuickSupport"
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -239,7 +239,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Služba:"
+                        text: "Service:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -257,7 +257,7 @@ Item {
                         CustomButton {
                             id: startServiceButton
 
-                            text: "Spustiť službu"
+                            text: "Start Service"
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -282,7 +282,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: "Získať ID pre prístup:"
+                        text: "Get ID for access:"
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -300,7 +300,7 @@ Item {
                         CustomButton {
                             id: getRustIdButton
 
-                            text: "Získať ID"
+                            text: "Get ID"
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -328,20 +328,20 @@ Item {
 
         function onAppInstallationStatusChanged(status) {
             if (status === "enabled") {
-                macrosoftQuickSupportButton.text = "Odinštalovať"
+                macrosoftQuickSupportButton.text = "Uninstall"
                 macrosoftQuickSupportButton.colorDefault = "#ff0000"
             } else {
-                macrosoftQuickSupportButton.text = "Inštalovať"
+                macrosoftQuickSupportButton.text = "Install"
                 macrosoftQuickSupportButton.colorDefault = "#35b59d"
             }
         }
 
         function onAppServiceStatusChanged(status) {
             if (status === "enabled") {
-                startServiceButton.text = "Zastaviť službu"
+                startServiceButton.text = "Stop Service"
                 startServiceButton.colorDefault = "#ff0000"
             } else {
-                startServiceButton.text = "Spustiť službu"
+                startServiceButton.text = "Start Service"
                 startServiceButton.colorDefault = "#35b59d"
             }
         }
@@ -352,18 +352,18 @@ Item {
     Component.onCompleted: {
 
         if (backend.app_installation_status === "enabled") {
-            macrosoftQuickSupportButton.text = "Odinštalovať"
+            macrosoftQuickSupportButton.text = "Uninstall"
             macrosoftQuickSupportButton.colorDefault = "#ff0000"
         } else {
-            macrosoftQuickSupportButton.text = "Inštalovať"
+            macrosoftQuickSupportButton.text = "Install"
             macrosoftQuickSupportButton.colorDefault = "#35b59d"
         }
 
         if (backend.app_service_status  === "enabled") {
-            startServiceButton.text = "Zastaviť službu"
+            startServiceButton.text = "Stop Service"
             startServiceButton.colorDefault = "#ff0000"
         } else {
-            startServiceButton.text = "Spustiť službu"
+            startServiceButton.text = "Start Service"
             startServiceButton.colorDefault = "#35b59d"
         }
 
