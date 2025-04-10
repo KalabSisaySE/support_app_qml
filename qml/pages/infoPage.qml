@@ -216,7 +216,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Websocket Status:")
+                        text: qsTr("Stav WebSocketu:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -274,7 +274,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Recording Status:")
+                        text: qsTr("Stav nahrávania:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"

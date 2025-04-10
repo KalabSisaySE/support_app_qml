@@ -155,7 +155,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Macrosoft QuickSupport:")
+                        text: qsTr("Aplikácia Macrosoft QuickSupport:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"

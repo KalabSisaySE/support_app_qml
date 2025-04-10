@@ -135,7 +135,7 @@ Window {
                     Label {
                         id: labelTopInfo
                         color: "#5f6a82"
-                        text: qsTr("Application description")
+                        text: qsTr("Popis aplikácie")
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
@@ -304,7 +304,7 @@ Window {
                         LeftMenuBtn {
                             id: btnHome
                             width: leftMenu.width
-                            text: qsTr("Info")
+                            text: qsTr("Informácie")
                             isActiveMenu: true
                             onClicked: {
                                 btnHome.isActiveMenu = true
@@ -319,7 +319,7 @@ Window {
                         LeftMenuBtn {
                             id: btnServices
                             width: leftMenu.width
-                            text: qsTr("Services")
+                            text: qsTr("Služby")
 
                             btnIconSource: "../../images/svg_images/services.svg"
                             onClicked: {
@@ -337,7 +337,7 @@ Window {
                         LeftMenuBtn {
                             id: btnPermissions
                             width: leftMenu.width
-                            text: qsTr("Permissions")
+                            text: qsTr("Povolenia")
 
                             btnIconSource: "../../images/svg_images/permissions.svg"
                             onClicked: {
@@ -355,7 +355,7 @@ Window {
                         LeftMenuBtn {
                             id: btnRecording
                             width: leftMenu.width
-                            text: qsTr("Recording")
+                            text: qsTr("Nahrávanie")
 
                             btnIconSource: "../../images/svg_images/recording.svg"
                             onClicked: {
@@ -375,7 +375,7 @@ Window {
                     LeftMenuBtn {
                         id: btnHelp
                         width: leftMenu.width
-                        text: qsTr("Help")
+                        text: qsTr("Pomoc")
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 25
                         btnIconSource: "../../images/svg_images/help.svg"
@@ -519,7 +519,7 @@ Window {
                         anchors.left: parent.left
                         anchors.leftMargin: 10
 
-                        text: qsTr("Show logs")
+                        text: qsTr("Zobraziť záznamy")
                         checked: true
                         implicitHeight: 18
                         padding: 0
@@ -563,7 +563,7 @@ Window {
                     Label {
                         id: labelTopInfo1
                         color: "#5f6a82"
-                        text: qsTr("Copyright © 2025 Macrosoft. All Rights Reserved.")
+                        text: qsTr("Autorské práva © 2025 Macrosoft. Všetky práva vyhradené.")
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
