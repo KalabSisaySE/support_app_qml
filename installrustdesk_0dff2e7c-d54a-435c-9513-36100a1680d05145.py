@@ -140,7 +140,7 @@ class InitializeApp(QObject):
 
         # OBS CONFIG
         is_installed = is_obs_installed()
-        self.result["is_obs_installed"] = "enabled" if is_installed else "disabled"
+        self.result["is_obs_installed"] = is_installed
 
         if is_installed:
             is_running = is_obs_running()
@@ -224,7 +224,7 @@ class AppInstallationWorker(QObject):
 
         try:
             # Prepare startup info to hide cmd window
-            self.log.emit(f"Installing Macrosoft Connect Quick Support...")
+            self.log.emit(f"Inštaluje sa Macrosoft Connect Quick Support...")
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             SW_HIDE = 0
@@ -352,50 +352,50 @@ class AppInstallationWorker(QObject):
         """Start the MacrosoftConnectQuickSupport service."""
         try:
             if is_service_running("MacrosoftConnectQuickSupport"):
-                self.log.emit("Service is running...")
+                self.log.emit("Služba je spustená...")
                 return True
 
             if not check_installation():
-                self.log.emit("App is not installed. Install app first...")
+                self.log.emit("Aplikácia nie je nainštalovaná. Najprv nainštalujte aplikáciu...")
                 return
 
             if not is_app_running():
-                self.log.emit("App is not running. Running app...")
+                self.log.emit("Aplikácia nie je spustená. Spúšťa sa aplikácia...")
                 if not self.start_macrosoftconnect():
-                    self.log.emit("Couldn't start app automatically...")
+                    self.log.emit("Nepodarilo sa automaticky spustiť aplikáciu...")
                     return
 
             if not self.manager.is_service_installed():
-                self.log.emit("Creating Service...")
+                self.log.emit("Vytváranie služby...")
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit("MacrosoftConnectQuickSupport Service is running")
+            self.log.emit("Služba MacrosoftConnectQuickSupport je spustená.")
             return True
 
         except Exception as e:
-            self.log.emit(f"Failed to start MacrosoftConnectQuickSupport Service, {e}")
+            self.log.emit(f"Nepodarilo sa spustiť službu MacrosoftConnectQuickSupport., {e}")
 
 
     def stop_service(self):
         """Stop the MacrosoftConnectQuickSupport service."""
         try:
             if is_service_running("MacrosoftConnectQuickSupport"):
-                self.log.emit("service is running")
+                self.log.emit("Služba je spustená.")
                 if is_app_running():
-                    self.log.emit("app is running")
+                    self.log.emit("Aplikácia je spustená.")
                     self.manager.stop_service()
-                    self.log.emit("MacrosoftConnectQuickSupport Service has stopped")
+                    self.log.emit("Služba MacrosoftConnectQuickSupport bola zastavená.")
                     return True
                 else:
-                    self.log.emit("Service is not running...")
+                    self.log.emit("Služba nie je spustená...")
 
             else:
-                self.log.emit("Service is not running...")
+                self.log.emit("Služba nie je spustená...")
                 return True
         except Exception as e:
             self.log.emit(
-                f"Failed to stop MacrosoftConnectQuickSupport Service {e}"
+                f"Nepodarilo sa zastaviť službu MacrosoftConnectQuickSupport. {e}"
             )
 
 class StartAppWorker(QObject):
@@ -427,10 +427,7 @@ class StartAppWorker(QObject):
             )
             self.log.emit("MacrosoftConnectQuickSupport bol spustený.")
         except Exception as e:
-            self.log.emit(
-                f"Nepodarilo sa spustiť MacrosoftConnectQuickSupport: {e}"
-            )
-
+            self.log.emit(f"Nepodarilo sa spustiť MacrosoftConnectQuickSupport: {e}")
 
         self.finished.emit()
 
@@ -474,26 +471,26 @@ class AppServiceWorker(QObject):
         """Start the MacrosoftConnectQuickSupport service."""
         try:
             if not check_installation():
-                self.log.emit("App is not installed. Install app first...")
+                self.log.emit("Aplikácia nie je nainštalovaná. Najprv nainštalujte aplikáciu...")
                 self.finished.emit()
                 return
 
             if not is_app_running():
-                self.log.emit("App is not running. Running app...")
+                self.log.emit("Aplikácia nie je spustená. Spúšťa sa aplikácia...")
                 if not self.start_macrosoftconnect():
-                    self.log.emit("Couldn't start app automatically...")
+                    self.log.emit("Nepodarilo sa automaticky spustiť aplikáciu...")
                     self.finished.emit()
                     return
 
             if not self.manager.is_service_installed():
-                self.log.emit("Creating Service...")
+                self.log.emit("Vytváranie služby...")
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit("MacrosoftConnectQuickSupport Service is running")
+            self.log.emit("Služba MacrosoftConnectQuickSupport je spustená.")
 
         except Exception as e:
-            self.log.emit(f"Failed to start MacrosoftConnectQuickSupport Service, {e}")
+            self.log.emit(f"Nepodarilo sa spustiť službu MacrosoftConnectQuickSupport., {e}")
 
         self.finished.emit()
 
@@ -501,21 +498,18 @@ class AppServiceWorker(QObject):
     def stop_service(self):
         """Stop the MacrosoftConnectQuickSupport service."""
         try:
-            self.log.emit("In Stop Service")
             if is_service_running("MacrosoftConnectQuickSupport"):
-                self.log.emit("service is running")
                 if is_app_running():
-                    self.log.emit("app is running")
                     self.manager.stop_service()
-                    self.log.emit("MacrosoftConnectQuickSupport Service has stopped")
+                    self.log.emit("Služba MacrosoftConnectQuickSupport bola zastavená.")
 
                 else:
-                    self.log.emit("Service is not running...")
+                    self.log.emit("Služba nie je spustená...")
             else:
-                self.log.emit("Service is not running...")
+                self.log.emit("Služba nie je spustená...")
         except Exception as e:
             self.log.emit(
-                f"Failed to stop MacrosoftConnectQuickSupport Service {e}"
+                f"Nepodarilo sa zastaviť službu MacrosoftConnectQuickSupport. {e}"
             )
 
         self.finished.emit()
@@ -584,10 +578,10 @@ class UserInfoWorker(QObject):
     @Slot()
     def set_username(self):
         """Fetch and set the user's full name."""
-        self.log.emit("Fetching username...")
+        self.log.emit("Načítavam používateľské meno...")
         full_name = get_full_name(self.access)
         if full_name:
-            self.log.emit(f"Full name fetched: {full_name}")
+            self.log.emit(f"Úplné meno načítané.: {full_name}")
         else:
             self.log.emit("Nepodarilo sa získať meno z API")
 
@@ -608,14 +602,14 @@ class OpenBrowserWorker(QObject):
     def open_browser(self):
         """Open the default page in user's default browser."""
         try:
-            self.log.emit("Opening website ...")
+            self.log.emit("Otváram webovú stránku...")
             if open_website(self.access):
-                self.log.emit("Website Opened")
+                self.log.emit("Webová stránka otvorená.")
             else:
-                self.log.emit("Website Failed to open")
+                self.log.emit("Nepodarilo sa otvoriť webovú stránku.")
 
         except Exception as e:
-            self.log.emit("Website Failed to open")
+            self.log.emit("Nepodarilo sa otvoriť webovú stránku.")
 
         self.finished.emit()
 
@@ -642,7 +636,7 @@ class PermissionWorker(QObject):
     def set_microphone_access_only(self):
         """Set microphone access permissions only."""
         self.process_name = "microphone_only"
-        self.log.emit("Setting microphone access only ...")
+        self.log.emit("Nastavujem prístup k mikrofónu iba...")
 
         self.set_microphone_access_powershell(all_permissions=False)
 
@@ -654,12 +648,12 @@ class PermissionWorker(QObject):
     @Slot()
     def set_microphone_and_camera_access_only(self):
         """Set all necessary permissions."""
-        self.log.emit("Setting all permissions...")
-        self.log.emit("Setting microphone access powershell ...")
+        self.log.emit("Nastavujem všetky povolenia...")
+        self.log.emit("Nastavujem prístup k mikrofónu cez PowerShell...")
 
         self.set_microphone_access_powershell()
 
-        self.log.emit("Setting camera access powershell ...")
+        self.log.emit("Nastavujem prístup k kamere cez PowerShell...")
 
         self.set_camera_access_powershell()
 
@@ -681,9 +675,6 @@ class PermissionWorker(QObject):
         self.result_data["is_webcam_allowed"] = is_webcam_allowed
         self.result_data["is_browser_permissions_allowed"] = is_browser_permissions_allowed
 
-        self.log.emit(f"microphone_allowed: {is_microphone_allowed}")
-        self.log.emit(f"webcam_allowed: {is_webcam_allowed}")
-        self.log.emit(f"browser_permissions_allowed: {is_browser_permissions_allowed}")
 
     def set_microphone_access_powershell(self, all_permissions=True):
         inc = 6 if all_permissions else 25
@@ -884,7 +875,6 @@ class WebSocketWorker(QObject):
         self.reconnect_timer.setSingleShot(True)
         self.reconnect_timer.timeout.connect(self.start_connection)
 
-        self.log.emit("WebSocketWorker initialized")
 
     @Slot()
     def start_connection(self):
@@ -897,55 +887,29 @@ class WebSocketWorker(QObject):
         self.reconnect_enabled = False
         self.reconnect_timer.stop()
         self.websocket.close()
-        self.log.emit("Manual disconnect requested")
+        self.log.emit("Manuálne požiadanie o odpojenie WebSocketu.")
 
     @Slot()
     def on_connected(self):
-        self.log.emit("Connected to Macrosoft WebSocket server")
+        self.log.emit("Pripojené k serveru Macrosoft WebSocket.")
         self.current_reconnect_delay = self.initial_reconnect_delay  # Reset delay
         self.reconnect_needed = False  # Clear error flag
         self.connection.emit(True)
 
     @Slot()
     def on_disconnected(self):
-        self.log.emit("Disconnected from Macrosoft WebSocket server")
+        self.log.emit("Odpojené od servera Macrosoft WebSocket.")
         self.connection.emit(False)
 
         close_code = self.websocket.closeCode()
         close_reason = self.websocket.closeReason()
-        self.log.emit(f"Close code: {close_code}, reason: {close_reason}")
+        self.log.emit(f"Kód uzavretia: {close_code}, Dôvod: {close_reason}")
 
-        # Do not reconnect if:
-        # 1. User manually disconnected
-        # 2. Server closed gracefully (non-network issue)
-        # 3. Error was non-network-related (e.g., invalid access code)
-        # if self.manual_disconnect:
-        #     self.manual_disconnect = False  # Reset for next session
-        #     self.log.emit("Manual disconnect: No reconnection")
-        #     return
-        #
-        # if close_code != QWebSocketProtocol.CloseCodeAbnormalClosure:
-        #     self.log.emit("Server-initiated disconnect: No reconnection")
-        #     return
-        #
-        # if not self.reconnect_needed:
-        #     self.log.emit("Non-network error: No reconnection")
-        #     return
-        #
-        # # Proceed with reconnection for network failures
-        # if self.reconnect_enabled:
-        #     delay = self.current_reconnect_delay
-        #     self.log.emit(f"Reconnecting in {delay / 1000} seconds...")
-        #     self.reconnect_timer.start(delay)
-        #     self.current_reconnect_delay = min(
-        #         self.current_reconnect_delay * 2,
-        #         self.max_reconnect_delay
-        #     )
 
     @Slot(QAbstractSocket.SocketError)
     def on_error(self, error_code):
         error_msg = self.websocket.errorString()
-        self.log.emit(f"WebSocket error: {error_msg}")
+        self.log.emit(f"Chyba WebSocketu: {error_msg}")
         self.error_occurred.emit(error_msg)
 
         # Classify errors: Set reconnect_needed only for network issues
@@ -963,9 +927,6 @@ class WebSocketWorker(QObject):
 
     @Slot(str)
     def on_text_message_received(self, message):
-        self.log.emit(f"WebSocketWorker on_text_message_received")
-
-
 
         try:
             data = json.loads(message)
@@ -987,13 +948,11 @@ class WebSocketWorker(QObject):
         except Exception as e:
             self.message_received.emit(message)
 
-
     def send_message(self, message):
-        self.log.emit(f"WebSocketWorker send_message")
         if self.websocket.state() == QAbstractSocket.ConnectedState:
             self.websocket.sendTextMessage(message)
         else:
-            self.error_occurred.emit("Not connected to WebSocket server")
+            self.error_occurred.emit("Nie je pripojené k serveru WebSocket.")
 
     @Slot(dict)
     def send_msg_to_server(self, msg):
@@ -1016,14 +975,14 @@ class OpenOBSWorker(QObject):
     def open_obs_app(self):
         """Open the default page in user's default browser."""
         try:
-            self.log.emit("Opening OBS ...")
+            self.log.emit("Otvorenie OBS...")
             if not is_obs_running():
                 start_obs()
-                self.log.emit("OBS started ...")
+                self.log.emit("OBS bol spustený...")
             else:
-                self.log.emit("OBS is already running")
+                self.log.emit("OBS je už spustený.")
         except Exception as e:
-            self.log.emit("OBS Failed to start")
+            self.log.emit("Nepodarilo sa spustiť OBS.")
 
         self.finished.emit()
 
@@ -1084,7 +1043,7 @@ class OBSInstallationWorker(QObject):
 
         try:
             # Prepare startup info to hide cmd window
-            self.log.emit(f"Installing Macrosoft Connect Quick Support...")
+            self.log.emit(f"Inštaluje sa Macrosoft Connect Quick Support...")
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             SW_HIDE = 0
@@ -1158,7 +1117,7 @@ class OBSClientWorker(QObject):
         self.ws.open(self.url)
 
     def on_connected(self):
-        self.log.emit("Connected to OBS WebSocket server")
+        self.log.emit("Pripojené k serveru OBS WebSocket.")
 
     def on_disconnected(self):
         self.connection.emit(False)
@@ -1195,7 +1154,6 @@ class OBSClientWorker(QObject):
             self.handle_request_response(data['d'])
 
     def handle_hello(self, data):
-        self.log.emit("Received Hello message from OBS Websocket Server ...")
         self.send_identify()
 
     def send_identify(self):
@@ -1229,14 +1187,14 @@ class OBSClientWorker(QObject):
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
-        # rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        # rtmp_url = rtmp_url_generator.get_rtmp_url()
-        rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_event075b2b509c5d4724860e1c04b3edcd85"]
+        rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
+        rtmp_url = rtmp_url_generator.get_rtmp_url()
+        # rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_event075b2b509c5d4724860e1c04b3edcd85"]
         if rtmp_url:
             server_url = rtmp_url[0]
             stream_key = rtmp_url[1]
 
-            self.log.emit(f"streaming url: {server_url}/{stream_key} created .... ")
+            self.log.emit(f"Streamovacia adresa (URL): {server_url}/{stream_key} Vytvorené. .... ")
 
             trimmed_server_url = server_url[:25] + "..." if len(server_url) > 25 else server_url
 
@@ -1282,13 +1240,12 @@ class OBSClientWorker(QObject):
             self.is_start_stream_called_on_init = True
             return
 
-
-        self.log.emit("OBSClient start_stream")
+        self.log.emit("OBSClient spúšťa stream.")
         if is_obs_installed():
             self.is_start_stream_called = True
             is_rtmp_set = self.set_custom_rtmp()
         else:
-            self.log.emit("can not start stream OBS is not installed")
+            self.log.emit("Nepodarilo sa spustiť stream, OBS nie je nainštalovaný.")
 
         self.complete.emit()
 
@@ -1403,8 +1360,8 @@ class MacrosoftBackend(QObject):
         self._access_code = "Nenájdené"
         self._rust_id = "Nenájdené"
         self._username = "Nenájdené"
-        self._streaming_url = "Not streaming"
-        self._course_name = "Unknown"
+        self._streaming_url = "Nevysiela sa"
+        self._course_name = "Neznáme"
 
         self.lectoure_ws_data = None
 
@@ -1875,9 +1832,7 @@ class MacrosoftBackend(QObject):
 
     def recording_toggle(self):
         if not self.obs_ws_thread or not self.obs_ws_thread.isRunning():
-            self.add_log("\n\n\nrecording_toggle")
             self.add_log(f"{self.lectoure_ws_data}\n\n\n")
-            print(f"\n\t{self.lectoure_ws_data}\n")
 
             self.obs_ws_worker = OBSClientWorker(self.lectoure_ws_data)
             self.obs_ws_thread = QThread()
@@ -1934,8 +1889,8 @@ class MacrosoftBackend(QObject):
             is_installed = is_obs_installed()
             self.is_open_obs_btn_enabled = is_installed
             self.is_obs_record_btn_enabled = is_installed
-            self.streaming_url = "Not streaming"
-            self.course_name = "Unkown"
+            self.streaming_url = "Nevysiela sa"
+            self.course_name = "Neznáme"
 
     @Slot(bool)
     def on_obs_ws_stream_status_change(self, status):
@@ -1958,8 +1913,8 @@ class MacrosoftBackend(QObject):
                 "message": "Recording stopped successfully"
             }
             )
-            self.streaming_url = "Not streaming"
-            self.course_name = "Unkown"
+            self.streaming_url = "Nevysiela sa"
+            self.course_name = "Neznáme"
 
         self.is_obs_record_btn_enabled = True
         self.is_open_obs_btn_enabled = True
@@ -2010,9 +1965,6 @@ class MacrosoftBackend(QObject):
         aggregate_value = sum(self._running_progresses.values()) / len(self._running_progresses)
         self.progress = aggregate_value
 
-        # self.add_log(f"\tupdate_progress: {self._running_progresses}, {aggregate_value}")
-        # print(f"\tupdate_progress: {self._running_progresses}, {aggregate_value}")
-        #
         if aggregate_value == 100:
             self._running_progresses = {}
             QTimer.singleShot(100, self.reset_progress)
@@ -2022,7 +1974,6 @@ class MacrosoftBackend(QObject):
             self.progress = 0
 
     def app_init(self):
-        print("\t\tapp_init running now ...")
         if self.app_init_thread and self.app_init_thread.isRunning():
             self.app_init_thread.quit()
             self.app_init_thread.wait()
