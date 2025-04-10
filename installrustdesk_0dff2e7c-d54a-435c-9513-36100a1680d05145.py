@@ -1832,7 +1832,6 @@ class MacrosoftBackend(QObject):
 
     def recording_toggle(self):
         if not self.obs_ws_thread or not self.obs_ws_thread.isRunning():
-            self.add_log(f"{self.lectoure_ws_data}\n\n\n")
 
             self.obs_ws_worker = OBSClientWorker(self.lectoure_ws_data)
             self.obs_ws_thread = QThread()
