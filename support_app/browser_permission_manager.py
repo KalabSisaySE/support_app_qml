@@ -175,7 +175,6 @@ class BrowserPermissionManager:
         except Exception as e:
             pass
 
-
     def is_browser_permissions_allowed(self):
         site_url = 'https://online.macrosoft.sk'
         permissions_allowed = False

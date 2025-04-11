@@ -1,4 +1,3 @@
-import psutil
 import pywintypes
 import win32service
 import win32serviceutil
