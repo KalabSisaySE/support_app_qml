@@ -37,7 +37,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 4
-                    text: qsTr("Permissions")
+                    text: qsTr("Povolenia")
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }
@@ -61,7 +61,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Microphone permission status:")
+                        text: qsTr("Stav Povolenia Mikrofónu:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -91,7 +91,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Microphone Status")
+                        text: qsTr("Mikrofón")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -107,7 +107,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
-                            text: qsTr("Allow only microphone")
+                            text: qsTr("Povoliť len Mikrofón")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -134,7 +134,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Microphone, Camera Status")
+                        text: qsTr("Mikrofón, Kamera")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -150,7 +150,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
-                            text: qsTr("Allow all")
+                            text: qsTr("Povoliť všetko")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -177,7 +177,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Website:")
+                        text: qsTr("Webstránka:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -193,7 +193,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
-                            text: qsTr("Open website")
+                            text: qsTr("Otvoriť webstránku")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0

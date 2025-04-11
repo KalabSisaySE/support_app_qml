@@ -37,7 +37,7 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: 4
-                    text: qsTr("Recording")
+                    text: qsTr("Nahrávanie")
                     color: "#c1f6ec"
                     font.pointSize: 14
                 }
@@ -61,7 +61,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Streaming Url:")
+                        text: qsTr("Streamovacia adresa (URL):")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -94,7 +94,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Course Name:")
+                        text: qsTr("Názov kurzu:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -127,7 +127,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("OBS Application:")
+                        text: qsTr("Aplikácia OBS:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -185,7 +185,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Recording Status:")
+                        text: qsTr("Stav nahrávania:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -214,7 +214,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("OBS Application:")
+                        text: qsTr("Aplikácia OBS:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -231,7 +231,7 @@ Item {
 
                         CustomButton {
                             id: obsInstallBtn
-                            text: qsTr("Install OBS")
+                            text: qsTr("Inštalovať OBS")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -270,7 +270,7 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         CustomButton {
-                            text: qsTr("Open OBS")
+                            text: qsTr("Otvoriť OBS")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -293,7 +293,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
 
                     Label {
-                        text: qsTr("Recording:")
+                        text: qsTr("Nahrávanie:")
                         font.pointSize: 13
                         Layout.alignment: Qt.AlignVCenter
                         color: "#ffffff"
@@ -310,7 +310,7 @@ Item {
 
                         CustomButton {
                             id: recordingButton
-                            text: qsTr("Start recording")
+                            text: qsTr("Spustiť nahrávanie")
                             anchors.verticalCenter: parent.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 0
@@ -337,20 +337,20 @@ Item {
 
         function onRecordingStatusChanged(status) {
             if (status === "enabled") {
-                recordingButton.text = "Stop Recording"
+                recordingButton.text = "Zastaviť nahrávanie"
                 recordingButton.colorDefault = "#ff0000"
             } else {
-                recordingButton.text = "Start recording"
+                recordingButton.text = "Spustiť nahrávanie"
                 recordingButton.colorDefault = "#35b59d"
             }
         }
 
         function onObsInstallationStatusChanged(status) {
             if (status === "enabled") {
-                obsInstallBtn.text = "Uninstall OBS"
+                obsInstallBtn.text = "Odinštalovať OBS"
                 obsInstallBtn.colorDefault = "#ff0000"
             } else {
-                obsInstallBtn.text = "Install OBS"
+                obsInstallBtn.text = "Inštalovať OBS"
                 obsInstallBtn.colorDefault = "#35b59d"
             }
         }
@@ -361,21 +361,20 @@ Item {
     Component.onCompleted: {
 
         if (backend.recording_status === "enabled") {
-            recordingButton.text = "Stop Recording"
+            recordingButton.text = "Zastaviť nahrávanie"
             recordingButton.colorDefault = "#ff0000"
         } else {
-            recordingButton.text = "Start recording"
+            recordingButton.text = "Spustiť nahrávanie"
             recordingButton.colorDefault = "#35b59d"
         }
 
         if (backend.obs_installation_status === "enabled") {
-            obsInstallBtn.text = "Uninstall OBS"
-                obsInstallBtn.colorDefault = "#ff0000"
-            } else {
-                obsInstallBtn.text = "Install OBS"
-                obsInstallBtn.colorDefault = "#35b59d"
-            }
-
+            obsInstallBtn.text = "Odinštalovať OBS"
+            obsInstallBtn.colorDefault = "#ff0000"
+        } else {
+            obsInstallBtn.text = "Inštalovať OBS"
+            obsInstallBtn.colorDefault = "#35b59d"
+        }
 
     }
 
