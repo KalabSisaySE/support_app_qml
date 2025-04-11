@@ -1,4 +1,3 @@
-# This Python file uses the following encoding: utf-8
 import ctypes
 import json
 import time
@@ -8,16 +7,11 @@ import datetime
 import urllib.request
 import uuid
 import subprocess
-import shutil
-import sqlite3
-import tempfile
-import psutil
-import gettext
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery, QTranslator, QSettings, QLocale
-from PySide6.QtWebSockets import QWebSocket, QWebSocketProtocol
+from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery
+from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtNetwork import QAbstractSocket
 from PySide6.QtQuickControls2 import QQuickStyle
 
@@ -112,11 +106,14 @@ class InitializeApp(QObject):
                         attempt += 1
                         try:
                             with urllib.request.urlopen(url) as response:
-                                if response.status != 200 and attempt < max_attempts:
-                                    time.sleep(1)
-
+                                if response.status == 200:
+                                    break
+                                else:
+                                    if attempt < max_attempts:
+                                        time.sleep(1)
                         except Exception as e:
                             pass
+
             except Exception as e:
                 self.result["is_app_installed"] = False
         else:
@@ -215,7 +212,7 @@ class AppInstallationWorker(QObject):
                         file.write(buffer)
                         downloaded += len(buffer)
                         if total_size > 0:
-                            percent = (downloaded * 100) / total_size
+                            percent = (downloaded * 75) / total_size
                             self.progress_changed.emit(percent, self.process_name)
         except Exception as e:
             self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
@@ -239,10 +236,21 @@ class AppInstallationWorker(QObject):
                 startupinfo=startupinfo,
             )
 
-            time.sleep(10)  # Wait 10 seconds after installation
+            time.sleep(5)  # Wait 10 seconds after installation
+
+            self.progress_changed.emit(80, self.process_name)
+
             self.result_data["app_installed"] = True
+
+            self.progress_changed.emit(88, self.process_name)
+
             self.result_data["app_service_on"] = self.start_service()
+
+            self.progress_changed.emit(94, self.process_name)
+
             self.result_data["rust_id"] = self.get_rustdesk_id()
+
+            self.progress_changed.emit(100, self.process_name)
 
         except Exception as e:
             self.log.emit(f"Chyba počas inštalácie: {e}")
@@ -323,6 +331,7 @@ class AppInstallationWorker(QObject):
                     with urllib.request.urlopen(url) as response:
                         if response.status == 200:
                             self.log.emit("ID bolo úspešne odoslané.")
+                            break
                         else:
                             self.log.emit(f"Odozva servera: {response.status}")
                             if attempt < max_attempts:
@@ -389,7 +398,6 @@ class AppInstallationWorker(QObject):
                     return True
                 else:
                     self.log.emit("Služba nie je spustená...")
-
             else:
                 self.log.emit("Služba nie je spustená...")
                 return True
@@ -568,6 +576,7 @@ class UserInfoWorker(QObject):
                     with urllib.request.urlopen(url) as response:
                         if response.status == 200:
                             self.log.emit("ID bolo úspešne odoslané.")
+                            break
                         else:
                             self.log.emit(f"Odozva servera: {response.status}")
                             if attempt < max_attempts:
@@ -765,71 +774,9 @@ class PermissionWorker(QObject):
 
         # For Firefox
         try:
-            # Kill Firefox processes if running to avoid conflicts with database access
-            for proc in psutil.process_iter(['name']):
-                if proc.info['name'] and 'firefox' in proc.info['name'].lower():
-                    proc.terminate()
-            # Wait for processes to terminate
-            time.sleep(2)
-
-            appdata = os.getenv('APPDATA')
-            profiles_ini_path = os.path.join(appdata, 'Mozilla', 'Firefox', 'profiles.ini')
-            if os.path.exists(profiles_ini_path):
-                with open(profiles_ini_path, 'r') as f:
-                    lines = f.readlines()
-
-                profiles = []
-                current_profile = {}
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith('['):
-                        if current_profile:
-                            profiles.append(current_profile)
-                            current_profile = {}
-                    elif '=' in line:
-                        key, value = line.split('=', 1)
-                        current_profile[key.strip()] = value.strip()
-                if current_profile:
-                    profiles.append(current_profile)
-
-                # Now, for each profile, modify the permissions
-                for profile in profiles:
-                    if 'Path' in profile:
-                        profile_path = profile['Path']
-                        is_relative = profile.get('IsRelative', '1') == '1'
-                        if is_relative:
-                            profile_dir = os.path.join(appdata, 'Mozilla', 'Firefox', profile_path)
-                        else:
-                            profile_dir = profile_path
-                        permissions_file = os.path.join(profile_dir, 'permissions.sqlite')
-                        if os.path.exists(permissions_file):
-                            # Copy permissions.sqlite to a temporary file
-                            temp_permissions_file = os.path.join(tempfile.gettempdir(), 'permissions.sqlite')
-                            shutil.copy2(permissions_file, temp_permissions_file)
-                            # Connect to the SQLite database
-                            conn = sqlite3.connect(temp_permissions_file)
-                            c = conn.cursor()
-                            # Check if permissions table exists
-                            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
-                            if c.fetchone():
-                                # Insert or replace permission
-                                # permission values: 1=Allow, 2=Deny, 3=Prompt
-                                permissions = [
-                                    (site_url, 'microphone', 1),
-                                    (site_url, 'camera', 1)
-                                ]
-                                for host, type_, permission in permissions:
-                                    c.execute(
-                                        'REPLACE INTO moz_perms (origin, type, permission, expireType, expireTime, modificationTime) VALUES (?,?,?,?,?,?)',
-                                        (host, type_, permission, 0, 0, int(time.time() * 1000)))
-                                conn.commit()
-                            conn.close()
-                            # Copy the temp file back to the original
-                            shutil.copy2(temp_permissions_file, permissions_file)
-                            os.remove(temp_permissions_file)
+            if self.browser_permission.set_firefox_permissions():
                 self.log.emit("Povolenia pre Firefox boli nastavené.")
             else:
-                pass
                 self.log.emit("Firefox profily neboli nájdené.")
         except Exception as e:
             self.log.emit(f"Povolenia pre Firefox neboli nastavené: {e}")
@@ -1286,7 +1233,6 @@ class OBSClientWorker(QObject):
     def disconnect_ws(self):
         self.ws.close()
 
-
 class MacrosoftBackend(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -1638,7 +1584,7 @@ class MacrosoftBackend(QObject):
     @Slot(str)
     def add_log(self, log):
         """adds a new log to UI"""
-        self.newLogAdded.emit(_(log))
+        self.newLogAdded.emit(log)
 
     @Slot()
     def install_or_uninstall(self):
@@ -2358,7 +2304,6 @@ class MacrosoftBackend(QObject):
 
     def cleanup(self):
         """handles threads, worker cleanup"""
-        # time.sleep(5)
         app_threads = [self.app_websocket_thread, self.obs_ws_thread]
         app_workers = [self.app_websocket_worker, self.obs_ws_worker]
         for thread in app_threads:
@@ -2384,27 +2329,6 @@ if __name__ == "__main__":
     # 2. Initialize the application
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
-
-    # Load language setting
-    settings = QSettings("HKEY_CURRENT_USER\\Software\\QMLApp", QSettings.NativeFormat)
-    lang = settings.value("Language", "en", type=str)
-
-    # Load Qt translations
-    translator = QTranslator()
-    if translator.load(f"app_{lang}.qm", "translations"):
-        app.installTranslator(translator)
-
-    # Load backend translations
-    lang_dir = os.path.join(os.path.dirname(__file__), "translations")
-    backend_trans = gettext.translation(
-        "backend",
-        lang_dir,
-        languages=[lang],
-        fallback=True
-    )
-    backend_trans.install()
-    global _
-    _ = backend_trans.gettext
 
     # 3. Get Context
     backend = MacrosoftBackend()

@@ -13,7 +13,6 @@ class BrowserPermissionManager:
 
     def __init__(self, log_message=None):
         self.user_account = None
-        # # self.log_message = log_message
 
         try:
             self.user_account = os.getlogin()
@@ -73,8 +72,6 @@ class BrowserPermissionManager:
         # close browsers first
         self.check_and_close_browser()
 
-        print(f"\t\tmodify_preference_file")
-
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"The file '{file_path}' does not exist.")
 
@@ -88,8 +85,6 @@ class BrowserPermissionManager:
             with open(temp_file, "r", encoding="utf-8") as file:
                 data = json.load(file)
 
-            print(f"\t\tdata loaded")
-
             # Navigate to required keys
             profile = data.get("profile", {})
             content_settings = profile.get("content_settings", {})
@@ -99,10 +94,7 @@ class BrowserPermissionManager:
 
             # Ensure the required keys exist
             if not (exceptions or media_stream_camera) or not (exceptions or media_stream_mic):
-                print(f"\t\ttemp_file: {temp_file}")
                 raise ValueError("Required keys 'media_stream_camera' and 'media_stream_mic' do not exist.")
-
-            print(f"\t\tno exceptions")
 
             # Data to add or update
             url_key = "https://online.macrosoft.sk:443,*"
@@ -131,12 +123,9 @@ class BrowserPermissionManager:
 
             # Save back to the original file
             with open(file_path, "w", encoding="utf-8") as file:
-                print(f"\t\tdata is writted")
-
                 json.dump(data, file, indent=4)
 
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"\t\texception: {e}")
             # Restore original file in case of error
             shutil.copyfile(temp_file, file_path)
             raise e
@@ -154,108 +143,38 @@ class BrowserPermissionManager:
         try:
             if os.path.exists(self.edge_basepath):
                 edge_preferences = self.find_preferences_files(self.edge_basepath)
-                print(f"\tedge_preferences: {edge_preferences}")
+
                 for preference in edge_preferences:
                     self.modify_preference_file(preference)
-            # self.log_message("Povolenia pre Microsoft Edge boli nastavené.")
         except Exception as e:
             pass
-            # self.log_message(f"Povolenia pre Edge neboli nastavené: {e}")
 
         # For Chrome
         try:
             if os.path.exists(self.chrome_basepath):
                 chrome_preferences = self.find_preferences_files(self.chrome_basepath)
-                print(f"\tchrome_preferences: {chrome_preferences}")
+
                 for preference in chrome_preferences:
                     self.modify_preference_file(preference)
-            # self.log_message("Povolenia pre Google Chrome boli nastavené.")
         except Exception as e:
             pass
-            # self.log_message(f"Povolenia pre Chrome neboli nastavené: {e}")
 
         # For Brave (Brave uses Chromium policies)
         try:
             if os.path.exists(self.brave_basepath):
                 brave_preferences = self.find_preferences_files(self.brave_basepath)
-                print(f"\tchrome_preferences: {chrome_preferences}")
+
                 for preference in brave_preferences:
                     self.modify_preference_file(preference)
-            # self.log_message("Povolenia pre Brave boli nastavené.")
         except Exception as e:
             pass
-            # self.log_message(f"Povolenia pre Brave neboli nastavené: {e}")
 
         # For Firefox
         try:
-            # Kill Firefox processes if running to avoid conflicts with database access
-            for proc in psutil.process_iter(['name']):
-                if proc.info['name'] and 'firefox' in proc.info['name'].lower():
-                    proc.terminate()
-            # Wait for processes to terminate
-            time.sleep(2)
-
-            appdata = os.getenv('APPDATA')
-            profiles_ini_path = os.path.join(appdata, 'Mozilla', 'Firefox', 'profiles.ini')
-            if os.path.exists(profiles_ini_path):
-                with open(profiles_ini_path, 'r') as f:
-                    lines = f.readlines()
-
-                profiles = []
-                current_profile = {}
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith('['):
-                        if current_profile:
-                            profiles.append(current_profile)
-                            current_profile = {}
-                    elif '=' in line:
-                        key, value = line.split('=', 1)
-                        current_profile[key.strip()] = value.strip()
-                if current_profile:
-                    profiles.append(current_profile)
-
-                # Now, for each profile, modify the permissions
-                for profile in profiles:
-                    if 'Path' in profile:
-                        profile_path = profile['Path']
-                        is_relative = profile.get('IsRelative', '1') == '1'
-                        if is_relative:
-                            profile_dir = os.path.join(appdata, 'Mozilla', 'Firefox', profile_path)
-                        else:
-                            profile_dir = profile_path
-                        permissions_file = os.path.join(profile_dir, 'permissions.sqlite')
-                        if os.path.exists(permissions_file):
-                            # Copy permissions.sqlite to a temporary file
-                            temp_permissions_file = os.path.join(tempfile.gettempdir(), 'permissions.sqlite')
-                            shutil.copy2(permissions_file, temp_permissions_file)
-                            # Connect to the SQLite database
-                            conn = sqlite3.connect(temp_permissions_file)
-                            c = conn.cursor()
-                            # Check if permissions table exists
-                            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
-                            if c.fetchone():
-                                # Insert or replace permission
-                                # permission values: 1=Allow, 2=Deny, 3=Prompt
-                                permissions = [
-                                    (site_url, 'microphone', 1),
-                                    (site_url, 'camera', 1)
-                                ]
-                                for host, type_, permission in permissions:
-                                    c.execute('REPLACE INTO moz_perms (origin, type, permission, expireType, expireTime, modificationTime) VALUES (?,?,?,?,?,?)',
-                                              (host, type_, permission, 0, 0, int(time.time()*1000)))
-                                conn.commit()
-                            conn.close()
-                            # Copy the temp file back to the original
-                            shutil.copy2(temp_permissions_file, permissions_file)
-                            os.remove(temp_permissions_file)
-                # self.log_message("Povolenia pre Firefox boli nastavené.")
-            else:
-                pass
-                # self.log_message("Firefox profily neboli nájdené.")
+            self.set_firefox_permissions()
         except Exception as e:
             pass
-            # self.log_message(f"Povolenia pre Firefox neboli nastavené: {e}")
+
 
     def is_browser_permissions_allowed(self):
         site_url = 'https://online.macrosoft.sk'
@@ -397,9 +316,75 @@ class BrowserPermissionManager:
             if url_key in media_stream_mic:
                 mic_perm = media_stream_mic[url_key]["setting"] == 1
 
-            # print(f"\t\t\tcamera_perm and mic_perm: {camera_perm and mic_perm}")
-
             return camera_perm and mic_perm
 
         except Exception as e:
             return
+
+    def set_firefox_permissions(self):
+        site_url = 'https://online.macrosoft.sk'
+
+        # Kill Firefox processes if running to avoid conflicts with database access
+        for proc in psutil.process_iter(['name']):
+            if proc.info['name'] and 'firefox' in proc.info['name'].lower():
+                proc.terminate()
+        # Wait for processes to terminate
+        time.sleep(2)
+
+        appdata = os.getenv('APPDATA')
+        profiles_ini_path = os.path.join(appdata, 'Mozilla', 'Firefox', 'profiles.ini')
+        if os.path.exists(profiles_ini_path):
+            with open(profiles_ini_path, 'r') as f:
+                lines = f.readlines()
+
+            profiles = []
+            current_profile = {}
+            for line in lines:
+                line = line.strip()
+                if line.startswith('['):
+                    if current_profile:
+                        profiles.append(current_profile)
+                        current_profile = {}
+                elif '=' in line:
+                    key, value = line.split('=', 1)
+                    current_profile[key.strip()] = value.strip()
+            if current_profile:
+                profiles.append(current_profile)
+
+            # Now, for each profile, modify the permissions
+            for profile in profiles:
+                if 'Path' in profile:
+                    profile_path = profile['Path']
+                    is_relative = profile.get('IsRelative', '1') == '1'
+                    if is_relative:
+                        profile_dir = os.path.join(appdata, 'Mozilla', 'Firefox', profile_path)
+                    else:
+                        profile_dir = profile_path
+                    permissions_file = os.path.join(profile_dir, 'permissions.sqlite')
+                    if os.path.exists(permissions_file):
+                        # Copy permissions.sqlite to a temporary file
+                        temp_permissions_file = os.path.join(tempfile.gettempdir(), 'permissions.sqlite')
+                        shutil.copy2(permissions_file, temp_permissions_file)
+                        # Connect to the SQLite database
+                        conn = sqlite3.connect(temp_permissions_file)
+                        c = conn.cursor()
+                        # Check if permissions table exists
+                        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
+                        if c.fetchone():
+                            # Insert or replace permission
+                            # permission values: 1=Allow, 2=Deny, 3=Prompt
+                            permissions = [
+                                (site_url, 'microphone', 1),
+                                (site_url, 'camera', 1)
+                            ]
+                            for host, type_, permission in permissions:
+                                c.execute(
+                                    'REPLACE INTO moz_perms (origin, type, permission, expireType, expireTime, modificationTime) VALUES (?,?,?,?,?,?)',
+                                    (host, type_, permission, 0, 0, int(time.time() * 1000)))
+                            conn.commit()
+                        conn.close()
+                        # Copy the temp file back to the original
+                        shutil.copy2(temp_permissions_file, permissions_file)
+                        os.remove(temp_permissions_file)
+
+            return True
