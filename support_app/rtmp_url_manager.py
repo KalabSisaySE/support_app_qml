@@ -6,6 +6,8 @@ import random
 class RtmpUrlGenerator:
     def __init__(self, video_name=None, lectoure_data=None):
         self.token = self.get_token()
+        self.video_id = ""
+
         if not lectoure_data:
             self.lectoure_data = {}
         else:
@@ -54,6 +56,7 @@ class RtmpUrlGenerator:
                 api_response = api_instance.videos_live_post(channel_id, name, save_replay=save_replay)
                 video_uuid = api_response.video.uuid
                 self.save_video_uuid(video_uuid)
+                self.video_id = video_uuid
 
                 return video_uuid
 
@@ -91,6 +94,7 @@ class RtmpUrlGenerator:
                 data = {
                     "class_type": self.lectoure_data.get('class_type'),
                     "class_id": self.lectoure_data.get('class_id'),
+                    "room_id": self.lectoure_data.get('room_id'),
                     "lectoure_id": self.lectoure_data.get('lectoure_id'),
                     "video_uuid": video_uuid,
                 }
@@ -101,5 +105,27 @@ class RtmpUrlGenerator:
                 print(f"\n\tres json: {res.json()}\n")
         except Exception as e:
             print(f"error while saving video uuid: {e}")
+            pass
+
+    def upload_recording_to_vimeo(self):
+        """tiggers video upload to vimeo once recording is complete"""
+        try:
+            if self.lectoure_data and self.video_id:
+
+                data = {
+                    "class_type": self.lectoure_data.get('class_type'),
+                    "class_id": self.lectoure_data.get('class_id'),
+                    "room_id": self.lectoure_data.get('room_id'),
+                    "lectoure_id": self.lectoure_data.get('lectoure_id'),
+                    "video_url": f"https://mtube.macrosoft.sk/videos/embed/{self.video_id}",
+                    "video_name": self.video_name,
+                }
+
+                headers = {'Content-Type': 'application/json'}
+                res = requests.post("https://online.macrosoft.sk/upload/recording/obs/", headers=headers, json=data)
+                print(f"\n\tres: {res.status_code}\n")
+                print(f"\n\tres json: {res.json()}\n")
+        except Exception as e:
+            print(f"error while uploading recording {e}")
             pass
 

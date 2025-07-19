@@ -1029,6 +1029,9 @@ class OBSClientWorker(QObject):
         self.identified = False
         self.lectoure_data = lectoure_data if lectoure_data else {}
         self.file_name = None
+        self.rtmp_url = ""
+        self.rtmp_url_generator = None
+
 
         # OBS state
         self.streaming_started = "OBS_WEBSOCKET_OUTPUT_STARTED"
@@ -1134,8 +1137,9 @@ class OBSClientWorker(QObject):
         self.ws.sendTextMessage(json.dumps(data))
 
     def set_custom_rtmp(self):
-        rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
-        rtmp_url = rtmp_url_generator.get_rtmp_url()
+        self.rtmp_url_generator = RtmpUrlGenerator(self.file_name, self.lectoure_data)
+        rtmp_url = self.rtmp_url_generator.get_rtmp_url()
+        self.rtmp_url = rtmp_url
         # rtmp_url = ["rtmp://live.restream.io/live", "re_9442228_event075b2b509c5d4724860e1c04b3edcd85"]
         if rtmp_url:
             server_url = rtmp_url[0]
@@ -1211,6 +1215,9 @@ class OBSClientWorker(QObject):
                 "requestData": {}
             }
         }
+        self.rtmp_url = ""
+        self.rtmp_url_generator.upload_recording_to_vimeo()
+
         self.send_json(payload)
         self.responses[request_id] = None
 
