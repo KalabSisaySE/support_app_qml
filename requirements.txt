@@ -5,6 +5,7 @@ bottle-websocket==0.2.9
 certifi==2025.1.31
 cffi==1.17.1
 charset-normalizer==3.4.1
+cloudscraper==1.2.71
 Eel==0.18.1
 future==1.0.0
 gevent==24.11.1
@@ -13,7 +14,6 @@ greenlet==3.1.1
 idna==3.10
 obs-websocket-py==1.0
 packaging==24.2
-peertube @ git+https://framagit.org/framasoft/peertube/clients/python.git@ebcf44d663190276b154cbc6e9a74b0f15af5e60
 pefile==2023.2.7
 psutil==7.0.0
 pycparser==2.22
@@ -27,6 +27,7 @@ python-dateutil==2.9.0.post0
 pywin32==310
 pywin32-ctypes==0.2.3
 requests==2.32.3
+requests-toolbelt==1.0.0
 setuptools==78.1.0
 shiboken6==6.8.2.1
 six==1.17.0
