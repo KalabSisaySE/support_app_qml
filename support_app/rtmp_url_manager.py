@@ -4,19 +4,13 @@ import string
 import random
 
 class RtmpUrlGenerator:
+
     def __init__(self, video_name=None, lectoure_data=None):
         self.token = self.get_token()
         self.video_id = ""
 
-        if not lectoure_data:
-            self.lectoure_data = {}
-        else:
-            self.lectoure_data = lectoure_data
-
-        if video_name:
-            self.video_name = video_name
-        else:
-            self.video_name = self.generate_random_name()
+        self.lectoure_data = lectoure_data if lectoure_data else {}
+        self.video_name = video_name if video_name else self.generate_random_name()
 
     def get_token(self):
         url = "https://mtube.macrosoft.sk/api/v1/users/token"
@@ -129,3 +123,86 @@ class RtmpUrlGenerator:
             print(f"error while uploading recording {e}")
             pass
 
+
+import cloudscraper
+import json
+
+# --- Your credentials and initial setup ---
+PEERTUBE_URL = "https://mtube.macrosoft.sk"
+CLIENT_ID = "o676u80y1lfwh4xdo6neo7nova4av7t0"
+CLIENT_SECRET = "sHIFWMO06HmJnhDcWHe71v2BRLX1OaQQ"
+USERNAME = "root"
+PASSWORD = "Test123***/"
+
+access_token = None
+video_id = None
+scraper = cloudscraper.create_scraper()
+
+# --- Step 1: Get Access Token ---
+try:
+    print("Step 1: Requesting access token...")
+    token_url = f"{PEERTUBE_URL}/api/v1/users/token"
+    payload = {
+        'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET,
+        'grant_type': 'password', 'response_type': 'token',
+        'username': USERNAME, 'password': PASSWORD
+    }
+    response = scraper.post(token_url, data=payload)
+    response.raise_for_status()
+    access_token = response.json().get('access_token')
+    print("✅ Token received successfully!\n")
+except Exception as e:
+    print(f"❌ Error fetching token: {e}")
+    if 'response' in locals() and hasattr(response, 'text'): print(f"Response: {response.text}")
+    # Exit if we can't get a token
+    exit()
+
+# --- Step 2: Create Live Video ---
+if access_token:
+    try:
+        print("Step 2: Creating live video...")
+        live_video_url = f"{PEERTUBE_URL}/api/v1/videos/live"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        video_data = {
+            'channelId': 1,
+            'name': 'Live Stream via REST API',
+            'saveReplay': True,
+        }
+        response = scraper.post(live_video_url, json=video_data, headers=headers)
+        response.raise_for_status()
+
+        video_resp = response.json()
+        # Get the ID of the video we just created from the actual response structure
+        video_id = video_resp['video']['id']
+        print(f"✅ Live video created successfully! (ID: {video_id})\n")
+
+    except Exception as e:
+        print(f"❌ Error creating live video: {e}")
+        if 'response' in locals() and hasattr(response, 'text'): print(f"Response: {response.text}")
+
+# --- Step 3: Get Live Video Info using its ID ---
+if video_id:
+    try:
+        print(f"Step 3: Fetching info for live video ID {video_id}...")
+        # Construct the URL with the video ID
+        info_url = f"{PEERTUBE_URL}/api/v1/videos/live/{video_id}"
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # Make the GET request (no `data` or `json` payload needed)
+        response = scraper.get(info_url, headers=headers)
+        response.raise_for_status()
+
+        live_info = response.json()
+
+        # Extract the details from the response of this third call
+        rtmp_url = live_info.get('rtmpUrl')
+        stream_key = live_info.get('streamKey')
+
+        print("\n--- Streaming Details ---")
+        print(f"RTMP URL:   {rtmp_url}")
+        print(f"Stream Key: {stream_key}")
+        print("-------------------------")
+
+    except Exception as e:
+        print(f"❌ Error fetching live video info: {e}")
+        if 'response' in locals() and hasattr(response, 'text'): print(f"Response: {response.text}")
