@@ -10,14 +10,14 @@ Rectangle {
     id: indicatorBorder
     width: size
     height: size
-    color: "#ffffff"
+    color: "#555" // Darker border background
     radius: width / 2
-    border.color: "#000"
-    border.width: width * 0.06
+    border.color: "#333"
+    border.width: 1
 
     Rectangle {
-
-        property real innerSize: parent.width * 0.7
+        // Thinner border by making inner circle larger
+        property real innerSize: parent.width * 0.8
 
         id: indicatorInner
         width: innerSize
@@ -29,17 +29,21 @@ Rectangle {
     states: [
         State {
             name: "disabled"
-            PropertyChanges { target: indicatorInner; color: "#ff0000" }
+            PropertyChanges { target: indicatorInner; color: "#e74c3c" } // Red
         },
         State {
             name: "enabled"
-            PropertyChanges { target: indicatorInner; color: "#4CAF50" }
+            PropertyChanges { target: indicatorInner; color: "#2ecc71" } // Green
         },
         State {
             name: "checking"
-            PropertyChanges { target: indicatorInner; color: "#ff6600" }
+            PropertyChanges { target: indicatorInner; color: "#f39c12" } // Orange
         }
     ]
 
     state: status
+
+    Behavior on state {
+        ColorAnimation { target: indicatorInner; duration: 300 }
+    }
 }

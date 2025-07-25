@@ -9,9 +9,10 @@ Button {
     property color colorDefault: "#35b59d"
     property color colorMouseOver: Qt.lighter(colorDefault, 1.2)
     property color colorPressed: Qt.darker(colorDefault, 1.2)
-    property color colorDisabled: "#b0b0b0"
+    property color colorDisabled: "#555" // Darker disabled color
 
     font.bold: true
+    font.pointSize: 10
 
     QtObject {
         id: internal
@@ -23,20 +24,23 @@ Button {
 
     text: qsTr("Button")
 
-    contentItem: Item {
-        Text {
-            id: name
-            text: qsTr(button.text)
-            font: button.font
-            color: button.enabled ? "#ffffff" : "#d0d0d0"
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
+    contentItem: Text {
+        text: qsTr(button.text)
+        font: button.font
+        color: button.enabled ? "#ffffff" : "#aaa" // Lighter disabled text
+        anchors.verticalCenter: parent.verticalCenter
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight // This will add "..." if the text is too long
+
+        // Add padding so text doesn't touch the edges
+        leftPadding: 5
+        rightPadding: 5
+        width: parent.width
     }
 
     background: Rectangle {
         color: internal.dynamicColor
-        radius: 4
+        radius: 3 // Sharper corners
     }
 
     // Prevent interaction when disabled

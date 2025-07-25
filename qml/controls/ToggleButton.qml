@@ -1,5 +1,5 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 
 Button{
@@ -22,8 +22,8 @@ Button{
 
     }
 
-    implicitWidth: 70
-    implicitHeight: 60
+    implicitWidth: 60
+    implicitHeight: 50 // Reduced height
 
     background: Rectangle{
         id: bgBtn
@@ -34,8 +34,8 @@ Button{
             source: btnIconSource
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
-            height: 25
-            width: 25
+            height: 22 // Slightly smaller icon
+            width: 22
             fillMode: Image.PreserveAspectFit
             visible: false
         }
@@ -44,7 +44,7 @@ Button{
             anchors.fill: iconBtn
             source: iconBtn
             color: "#ffffff"
-            antialiasing: false
+            antialiasing: true
         }
     }
 }

@@ -4,13 +4,14 @@ import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 import "controls"
 import QtQuick.Dialogs
+import QtQuick.Layouts
 
 Window {
     id: mainWindow
-    width: 1050
-    height: 720
-    minimumWidth: 1000
-    minimumHeight: 710
+    width: 920
+    height: 650
+    minimumWidth: 800
+    minimumHeight: 600
     visible: true
     color: "#00000000"
     title: qsTr("Macrosoft Support")
@@ -85,7 +86,8 @@ Window {
         id: bg
         color: "#2c313c"
         border.color: "#383e4c"
-        border.width: 1
+        // FIX: Remove the border when maximized to prevent a visible line at the screen edge.
+        border.width: windowMargin > 0 ? 1 : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -107,7 +109,7 @@ Window {
 
             Rectangle {
                 id: topBar
-                height: 60
+                height: 50
                 color: "#1c1d20"
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -115,21 +117,25 @@ Window {
                 anchors.rightMargin: 0
                 anchors.leftMargin: 0
                 anchors.topMargin: 0
+                z: 2
 
                 ToggleButton {
                     onClicked: animationMenu.running = true
+                    // FIX: Ensure the toggle button renders on top of sibling items like the titleBar,
+                    // preventing its hover effect from bleeding underneath.
+                    z: 1
                 }
 
                 Rectangle {
                     id: topBarDescription
                     y: 28
-                    height: 25
+                    height: 22
                     color: "#282c34"
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                     anchors.rightMargin: 0
-                    anchors.leftMargin: 70
+                    anchors.leftMargin: 60
                     anchors.bottomMargin: 0
 
                     Label {
@@ -145,6 +151,7 @@ Window {
                         anchors.rightMargin: 300
                         anchors.topMargin: 0
                         anchors.leftMargin: 10
+                        font.pointSize: 9
                     }
 
                     Label {
@@ -165,6 +172,7 @@ Window {
                         anchors.rightMargin: 10
                         anchors.leftMargin: 0
                         anchors.bottomMargin: 0
+                        font.pointSize: 9
 
 
                         Timer {
@@ -182,13 +190,13 @@ Window {
 
                 Rectangle {
                     id: titleBar
-                    height: 35
+                    height: 28
                     color: "#00000000"
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.rightMargin: 105
-                    anchors.leftMargin: 70
+                    anchors.rightMargin: 100
+                    anchors.leftMargin: 60
                     anchors.topMargin: 0
 
                     DragHandler {
@@ -200,8 +208,8 @@ Window {
 
                     Image {
                         id: iconApp
-                        width: 22
-                        height: 22
+                        width: 20
+                        height: 20
                         anchors.left: parent.left
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
@@ -221,20 +229,19 @@ Window {
                         anchors.top: parent.top
                         anchors.bottom: parent.bottom
                         verticalAlignment: Text.AlignVCenter
-                        font.pointSize: 10
+                        font.pointSize: 9
                         anchors.leftMargin: 5
                     }
                 }
 
                 Row {
                     id: rowBtns
-                    x: 872
-                    width: 105
-                    height: 35
+                    height: 28
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.topMargin: 0
                     anchors.rightMargin: 0
+                    spacing: 0
 
                     TopBarButton{
                         id: btnMinimize
@@ -267,10 +274,13 @@ Window {
                 anchors.top: topBar.bottom
                 anchors.bottom: parent.bottom
                 anchors.topMargin: 0
+                // FIX: Clip all child content to the bounds of this rectangle.
+                // This acts as a master container for the sidebar and main content.
+                clip: true
 
                 Rectangle {
                     id: leftMenu
-                    width: 70
+                    width: 60
                     color: "#1c1d20"
                     anchors.left: parent.left
                     anchors.top: parent.top
@@ -279,14 +289,15 @@ Window {
                     anchors.topMargin: 0
                     anchors.bottomMargin: 0
                     anchors.leftMargin: 0
+                    z: 2
 
                     PropertyAnimation{
                         id: animationMenu
                         target: leftMenu
                         property: "width"
-                        to: if(leftMenu.width === 70) return 250; else return 70
-                        duration: 500
-                        easing.type: Easing.InOutQuint
+                        to: if(leftMenu.width === 60) return 230; else return 60
+                        duration: 400
+                        easing.type: Easing.InOutCubic
                     }
 
                     Column {
@@ -298,7 +309,7 @@ Window {
                         clip: true
                         anchors.rightMargin: 0
                         anchors.leftMargin: 0
-                        anchors.bottomMargin: 90
+                        anchors.bottomMargin: 70
                         anchors.topMargin: 0
 
                         LeftMenuBtn {
@@ -333,7 +344,6 @@ Window {
                             }
                         }
 
-
                         LeftMenuBtn {
                             id: btnPermissions
                             width: leftMenu.width
@@ -350,7 +360,6 @@ Window {
                                 stackView.push(Qt.resolvedUrl("pages/permissionsPage.qml"))
                             }
                         }
-
 
                         LeftMenuBtn {
                             id: btnRecording
@@ -377,7 +386,7 @@ Window {
                         width: leftMenu.width
                         text: qsTr("Pomoc")
                         anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 25
+                        anchors.bottomMargin: 20
                         btnIconSource: "../../images/svg_images/help.svg"
                         onClicked: {
                             btnHome.isActiveMenu = false
@@ -391,95 +400,81 @@ Window {
                 }
 
                 Rectangle {
-                    id: contentPages
-                    height: showLogsSwitch.checked ? (content.height * 0.7) : (content.height * 0.9)
-                    color: "#00000000"
+                    id: mainContentArea
+                    color: "transparent"
                     anchors.left: leftMenu.right
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    clip: true
-                    anchors.rightMargin: 0
-                    anchors.leftMargin: 0
-                    anchors.topMargin: 0
-
-                    StackView {
-                        id: stackView
-                        anchors.fill: parent
-                        initialItem: Qt.resolvedUrl("pages/appPage.qml")
-                    }
-                }
-
-                Rectangle {
-                    id: processContainer
-                    color: "#171917"
-                    anchors.left: leftMenu.right
-                    anchors.right: parent.right
-                    anchors.top: contentPages.bottom
                     anchors.bottom: parent.bottom
-                    anchors.leftMargin: 0
-                    anchors.rightMargin: 0
-                    anchors.topMargin: 0
-                    anchors.bottomMargin: 25
+                    z: 1
+                    // FIX: This is the most important fix. It prevents the content inside the StackView
+                    // from being drawn outside this rectangle's bounds during animations.
+                    clip: true
 
-                    Rectangle {
-                        id: rectangle1
-                        color: "#00ffffff"
+                    // This container holds the pages and the process/log area
+                    ColumnLayout {
                         anchors.fill: parent
+                        spacing: 0
 
-                        Rectangle {
-
-                            anchors.top: parent.top;
-                            anchors.left: parent.left;
-                            anchors.right: parent.right;
-                            anchors.bottom: logContainer.top;
-                            color: "#00ffffff"
-
-                            CustomProgressBar {
-
-                                id: mainProgressBar
-
-                                width: parent.width * 0.8 ;
-                                height: 25;
-                                value: backend.progress;
-
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
+                        StackView {
+                            id: stackView
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true // Takes up remaining space
+                            initialItem: Qt.resolvedUrl("pages/appPage.qml")
                         }
 
                         Rectangle {
-                            id: logContainer
-                            height: (showLogsSwitch.checked) ? rectangle1.height * 0.75 : 0
-                            color: "#ffffff"
-                            radius: 4
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            anchors.bottomMargin: showLogsSwitch.checked ? 10 : 0
+                            id: processContainer
+                            Layout.fillWidth: true
+                            // Dynamic height based on switch
+                            Layout.preferredHeight: showLogsSwitch.checked ? 140 : 40
+                            color: "#171917"
 
-                            ScrollView {
+                            Behavior on Layout.preferredHeight {
+                                NumberAnimation { duration: 300; easing.type: Easing.InOutQuad }
+                            }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 5
+                                anchors.leftMargin: 10
+                                anchors.rightMargin: 10
+
+                                CustomProgressBar {
+                                    id: mainProgressBar
+                                    Layout.fillWidth: true
+                                    Layout.topMargin: 10
+                                    Layout.preferredHeight: 15
+                                    value: backend.progress
+                                }
+
+                                ScrollView {
                                     id: scrollView
-                                    anchors.fill: parent
-                                    padding: 10
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true // Takes remaining space in this container
+                                    visible: showLogsSwitch.checked
+                                    clip: true
+                                    background: Rectangle {
+                                        color: "#ffffff"
+                                        radius: 4
+                                    }
 
                                     TextArea {
                                         id: logTextArea
                                         readOnly: true
                                         wrapMode: Text.Wrap
                                         font.family: "Monospace"
+                                        font.pointSize: 9
                                         selectByMouse: true
+                                        color: "#333"
+                                        background: Rectangle { color: "transparent" }
+                                        leftPadding: 5
+                                        rightPadding: 5
 
-                                        // Auto-scroll implementation
                                         onTextChanged: {
-                                            // Queue the scroll operation to ensure proper timing
                                             Qt.callLater(() => {
-                                                if (scrollView.flickableItem) {
-                                                    // Scroll to maximum contentY position
-                                                    scrollView.flickableItem.contentY =
-                                                        Math.max(0, scrollView.flickableItem.contentHeight - scrollView.flickableItem.height)
+                                                if (flickableItem) {
+                                                    flickableItem.contentY = Math.max(0, flickableItem.contentHeight - flickableItem.height)
                                                 }
                                             })
                                             const lines = text.split('\n')
@@ -487,132 +482,98 @@ Window {
                                                 text = lines.slice(-maxLines).join('\n')
                                             }
                                         }
-
-                                        // Optional: Trim old entries
                                         property int maxLines: 1000
-
-                                    }
-                                }
-
-
-                        }
-                    }
-                }
-
-                Rectangle {
-                    id: rectangle
-                    color: "#282c34"
-                    anchors.left: leftMenu.right
-                    anchors.right: parent.right
-                    anchors.top: processContainer.bottom
-                    anchors.bottom: parent.bottom
-                    anchors.rightMargin: 0
-                    anchors.leftMargin: 0
-                    anchors.bottomMargin: 0
-                    anchors.topMargin: 0
-
-
-
-                    Switch {
-                        id: showLogsSwitch
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left
-                        anchors.leftMargin: 10
-
-                        text: qsTr("Zobraziť záznamy")
-                        checked: true
-                        implicitHeight: 18
-                        padding: 0
-                        spacing: 4
-
-
-                        indicator: Rectangle {
-                            implicitWidth: 36
-                            implicitHeight: 18
-                            radius: height / 2
-                            color: showLogsSwitch.checked ? "#16a086" : "#e5e5e5"
-                            border.color: showLogsSwitch.checked ? "#16a086" : "#cccccc"
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Rectangle {
-                                width: 14
-                                height: 14
-                                radius: 7
-                                color: "white"
-                                anchors.verticalCenter: parent.verticalCenter
-                                x: showLogsSwitch.checked ? parent.width - width - 2 : 2
-                                Behavior on x {
-                                    NumberAnimation {
-                                        duration: 200
                                     }
                                 }
                             }
                         }
 
-                        contentItem: Text {
-                            text: qsTr(showLogsSwitch.text)
-                            color: "white"
-                            verticalAlignment: Text.AlignVCenter
-                            font.pixelSize: 10  // Smaller text
-                            leftPadding: showLogsSwitch.indicator.width + showLogsSwitch.spacing
-                        }
+                        Rectangle {
+                            id: statusBar
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 25
+                            color: "#282c34"
 
-                        background: null
-                    }
+                            Switch {
+                                id: showLogsSwitch
+                                anchors.verticalCenter: parent.verticalCenter
+                                anchors.left: parent.left
+                                anchors.leftMargin: 10
 
-                    Label {
-                        id: labelTopInfo1
-                        color: "#5f6a82"
-                        text: qsTr("Autorské práva © 2025 Macrosoft. Všetky práva vyhradené.")
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
-                        verticalAlignment: Text.AlignVCenter
-                        anchors.topMargin: 0
-                        anchors.rightMargin: 30
-                        anchors.leftMargin: 10
-                        anchors.bottomMargin: 0
-                        horizontalAlignment: Text.AlignHCenter
-                    }
+                                text: qsTr("Zobraziť záznamy")
+                                checked: true
+                                implicitHeight: 18
+                                padding: 0
+                                spacing: 4
 
-                    MouseArea {
-                        id: resizeWindow
-                        x: 884
-                        y: 0
-                        width: 25
-                        height: 25
-                        opacity: 0.5
-                        anchors.right: parent.right
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 0
-                        anchors.rightMargin: 0
-                        cursorShape: Qt.SizeFDiagCursor
+                                indicator: Rectangle {
+                                    implicitWidth: 36
+                                    implicitHeight: 18
+                                    radius: height / 2
+                                    color: showLogsSwitch.checked ? "#16a086" : "#777"
+                                    border.color: showLogsSwitch.checked ? "#16a086" : "#666"
+                                    anchors.verticalCenter: parent.verticalCenter
 
-                        DragHandler{
-                            target: null
-                            onActiveChanged: if (active){
-                                                 mainWindow.startSystemResize(Qt.RightEdge | Qt.BottomEdge)
-                                             }
-                        }
+                                    Rectangle {
+                                        width: 14
+                                        height: 14
+                                        radius: 7
+                                        color: "white"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        x: showLogsSwitch.checked ? parent.width - width - 2 : 2
+                                        Behavior on x { NumberAnimation { duration: 200 } }
+                                    }
+                                }
 
-                        Image {
-                            id: resizeImage
-                            width: 16
-                            height: 16
-                            anchors.fill: parent
-                            source: "../images/svg_images/resize_icon.svg"
-                            anchors.leftMargin: 5
-                            anchors.topMargin: 5
-                            sourceSize.height: 16
-                            sourceSize.width: 16
-                            fillMode: Image.PreserveAspectFit
-                            antialiasing: false
+                                contentItem: Text {
+                                    text: qsTr(showLogsSwitch.text)
+                                    color: "white"
+                                    verticalAlignment: Text.AlignVCenter
+                                    font.pointSize: 9
+                                    leftPadding: showLogsSwitch.indicator.width + showLogsSwitch.spacing
+                                }
+
+                                background: null
+                            }
+
+                            Label {
+                                id: copyrightLabel
+                                color: "#5f6a82"
+                                text: qsTr("Autorské práva © 2025 Macrosoft. Všetky práva vyhradené.")
+                                anchors.centerIn: parent
+                                font.pointSize: 9
+                            }
+
+                            MouseArea {
+                                id: resizeWindow
+                                width: 25
+                                height: 25
+                                opacity: 0.5
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                cursorShape: Qt.SizeFDiagCursor
+
+                                DragHandler{
+                                    target: null
+                                    onActiveChanged: if (active){
+                                                         mainWindow.startSystemResize(Qt.RightEdge | Qt.BottomEdge)
+                                                     }
+                                }
+
+                                Image {
+                                    id: resizeImage
+                                    width: 16
+                                    height: 16
+                                    anchors.centerIn: parent
+                                    source: "../images/svg_images/resize_icon.svg"
+                                    sourceSize.height: 16
+                                    sourceSize.width: 16
+                                    fillMode: Image.PreserveAspectFit
+                                }
+                            }
                         }
                     }
                 }
-
-
             }
         }
     }
@@ -690,13 +651,5 @@ Window {
         function onNewLogAdded(text) {
             logTextArea.append(`(${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}): ` + text)
         }
-
     }
-
 }
-
-/*##^##
-Designer {
-    D{i:0}D{i:29;invisible:true}D{i:30}D{i:32}
-}
-##^##*/

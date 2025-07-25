@@ -1,12 +1,12 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
+import QtQuick
+import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 
 Button{
     id: btnTopBar
     // CUSTOM PROPERTIES
     property url btnIconSource: "../../images/svg_images/minimize_icon.svg"
-    property color btnColorDefault: "#1c1d20"
+    property color btnColorDefault: "transparent" // Make transparent by default
     property color btnColorMouseOver: "#23272E"
     property color btnColorClicked: "#16a086"
 
@@ -22,8 +22,8 @@ Button{
 
     }
 
-    width: 35
-    height: 35
+    width: 32 // Reduced size
+    height: 28 // Reduced size to match title bar height
 
     background: Rectangle{
         id: bgBtn
@@ -34,20 +34,18 @@ Button{
             source: btnIconSource
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
-            height: 16
-            width: 16
+            height: 12 // Smaller icon
+            width: 12
             visible: false
             fillMode: Image.PreserveAspectFit
-            antialiasing: false
+            antialiasing: true
         }
 
         ColorOverlay{
             anchors.fill: iconBtn
             source: iconBtn
-            color: "#ffffff"
-            antialiasing: false
+            color: "#c3cbdd" // Match title text color
+            antialiasing: true
         }
     }
 }
-
-

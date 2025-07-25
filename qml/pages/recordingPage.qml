@@ -9,378 +9,123 @@ Item {
         color: "#2c313c"
         anchors.fill: parent
 
-        property real rowHeight: 35
-        property real columnSpacing: mainContainer.height * 0.02
+        property real rowHeight: 30
+        property real columnSpacing: 15 // This will now be our fixed gap size
 
         Rectangle {
             id: groupBox
-            radius: 5
+            radius: 4
             border.color: "#16a086"
             border.width: 1
             color: "transparent"
             anchors {
                 fill: parent
-                topMargin: parent.height * 0.08
-                leftMargin: parent.width * 0.15
-                rightMargin: parent.width * 0.15
-                bottomMargin: parent.height * 0.08
+                topMargin: 25
+                leftMargin: parent.width * 0.1
+                rightMargin: parent.width * 0.1
+                bottomMargin: 25
             }
 
             Rectangle {
                 color: "#2c313c"
-                width: groupBoxTitle.width + 6
-                height: groupBoxTitle.height + 6
+                width: groupBoxTitle.width + 10
+                height: groupBoxTitle.height
                 x: 15
-                y: -10
+                y: -groupBoxTitle.height / 2
                 Text {
                     id: groupBoxTitle
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: 4
+                    anchors.centerIn: parent
                     text: qsTr("Nahrávanie")
                     color: "#c1f6ec"
-                    font.pointSize: 14
+                    font.pointSize: 12
                 }
             }
 
             ColumnLayout {
                 id: columnLayout
                 anchors {
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
-                    topMargin: 20
-                    leftMargin: 10
-                    rightMargin: 10
+                    fill: parent
+                    topMargin: 25
+                    leftMargin: 20
+                    rightMargin: 20
+                    bottomMargin: 20
                 }
-                Layout.fillWidth: true
-                spacing: mainContainer.columnSpacing
+                spacing: mainContainer.columnSpacing // Use the fixed spacing
 
+                // --- Top Group: Info & Statuses ---
                 RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Streamovacia adresa (URL):")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 240
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        Text {
-                            text: backend.streaming_url
-                            anchors.centerIn: parent // Centers the text in the Item
-                            font.pixelSize: 18
-                            font.italic: true
-                            font.bold: true
-                            color: "#13b899"
-                            horizontalAlignment: Text.AlignHCenter // Center text horizontally
-                            verticalAlignment: Text.AlignVCenter   // Center text vertically
-                        }
-                    }
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Streamovacia adresa (URL):"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    Text { text: backend.streaming_url; font.pixelSize: 14; font.bold: true; color: "#13b899"; Layout.alignment: Qt.AlignVCenter }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Názov kurzu:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    Text { text: backend.course_name; font.pixelSize: 14; font.bold: true; color: "#13b899"; Layout.alignment: Qt.AlignVCenter }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Aplikácia OBS:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.obs_installation_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("OBS Websocket:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.obs_websocket_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Stav nahrávania:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.recording_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
                 }
 
+                // --- Bottom Group: Buttons ---
                 RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Názov kurzu:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 240
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        Text {
-                            text: backend.course_name
-                            anchors.centerIn: parent // Centers the text in the Item
-                            font.pixelSize: 18
-                            font.italic: true
-                            font.bold: true
-                            color: "#13b899"
-                            horizontalAlignment: Text.AlignHCenter // Center text horizontally
-                            verticalAlignment: Text.AlignVCenter   // Center text vertically
-                        }
-                    }
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Aplikácia OBS:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { id: obsInstallBtn; text: qsTr("Inštalovať OBS"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_obs_install_btn_enabled; onClicked: backend.install_obs() }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("OBS:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { text: qsTr("Otvoriť OBS"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_open_obs_btn_enabled; onClicked: backend.open_obs() }
+                }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Nahrávanie:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { id: recordingButton; text: qsTr("Spustiť nahrávanie"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_obs_record_btn_enabled; onClicked: backend.toggle_recording() }
                 }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Aplikácia OBS:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.obs_installation_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("OBS Websocket:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.obs_websocket_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Stav nahrávania:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.recording_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Aplikácia OBS:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 185
-                        height: 32
-                        Layout.alignment: Qt.AlignVCenter
-
-                        CustomButton {
-                            id: obsInstallBtn
-                            text: qsTr("Inštalovať OBS")
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-
-                            Layout.fillWidth: true
-                            width: 185
-                            height: 32
-
-                            enabled: backend.is_obs_install_btn_enabled
-
-                            onClicked: {
-                                backend.install_obs()
-                            }
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("OBS:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 185
-                        height: 32
-                        Layout.alignment: Qt.AlignVCenter
-
-                        CustomButton {
-                            text: qsTr("Otvoriť OBS")
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-
-                            Layout.fillWidth: true
-                            width: 185
-                            height: 32
-
-                            enabled: backend.is_open_obs_btn_enabled
-
-                            onClicked: {
-                                backend.open_obs()
-                            }
-                        }
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Nahrávanie:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 185
-                        height: 32
-                        Layout.alignment: Qt.AlignVCenter
-
-                        CustomButton {
-                            id: recordingButton
-                            text: qsTr("Spustiť nahrávanie")
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-
-                            Layout.fillWidth: true
-                            width: 185
-                            height: 32
-
-                            enabled: backend.is_obs_record_btn_enabled
-
-                            onClicked: {
-                                backend.toggle_recording()
-                            }
-                        }
-                    }
+                // This spacer will take up all the extra vertical space
+                Item {
+                    Layout.fillHeight: true
                 }
             }
         }
     }
 
     Connections {
-
         target: backend
-
         function onRecordingStatusChanged(status) {
-            if (status === "enabled") {
-                recordingButton.text = "Zastaviť nahrávanie"
-                recordingButton.colorDefault = "#ff0000"
-            } else {
-                recordingButton.text = "Spustiť nahrávanie"
-                recordingButton.colorDefault = "#35b59d"
-            }
+            recordingButton.text = (status === "enabled") ? "Zastaviť nahrávanie" : "Spustiť nahrávanie";
+            recordingButton.colorDefault = (status === "enabled") ? "#c0392b" : "#35b59d";
         }
-
         function onObsInstallationStatusChanged(status) {
-            if (status === "enabled") {
-                obsInstallBtn.text = "Odinštalovať OBS"
-                obsInstallBtn.colorDefault = "#ff0000"
-            } else {
-                obsInstallBtn.text = "Inštalovať OBS"
-                obsInstallBtn.colorDefault = "#35b59d"
-            }
+            obsInstallBtn.text = (status === "enabled") ? "Odinštalovať OBS" : "Inštalovať OBS";
+            obsInstallBtn.colorDefault = (status === "enabled") ? "#c0392b" : "#35b59d";
         }
-
     }
-
 
     Component.onCompleted: {
-
-        if (backend.recording_status === "enabled") {
-            recordingButton.text = "Zastaviť nahrávanie"
-            recordingButton.colorDefault = "#ff0000"
-        } else {
-            recordingButton.text = "Spustiť nahrávanie"
-            recordingButton.colorDefault = "#35b59d"
-        }
-
-        if (backend.obs_installation_status === "enabled") {
-            obsInstallBtn.text = "Odinštalovať OBS"
-            obsInstallBtn.colorDefault = "#ff0000"
-        } else {
-            obsInstallBtn.text = "Inštalovať OBS"
-            obsInstallBtn.colorDefault = "#35b59d"
-        }
-
+        onRecordingStatusChanged(backend.recording_status)
+        onObsInstallationStatusChanged(backend.obs_installation_status)
     }
-
-
 }
-
-
-
-

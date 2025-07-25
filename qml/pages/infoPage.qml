@@ -9,308 +9,114 @@ Item {
         color: "#2c313c"
         anchors.fill: parent
 
-        property real rowHeight: 35
-        property real columnSpacing: mainContainer.height * 0.02
+        property real rowHeight: 30
+        property real columnSpacing: 12 // This will now be our fixed gap size
 
         Rectangle {
             id: groupBox
-            radius: 5
+            radius: 4
             border.color: "#16a086"
             border.width: 1
             color: "transparent"
             anchors {
                 fill: parent
-                topMargin: parent.height * 0.08
-                leftMargin: parent.width * 0.15
-                rightMargin: parent.width * 0.15
-                bottomMargin: parent.height * 0.08
+                topMargin: 25
+                leftMargin: parent.width * 0.1
+                rightMargin: parent.width * 0.1
+                bottomMargin: 25
             }
 
             Rectangle {
                 color: "#2c313c"
-                width: groupBoxTitle.width + 6
-                height: groupBoxTitle.height + 6
+                width: groupBoxTitle.width + 10
+                height: groupBoxTitle.height
                 x: 15
-                y: -10
+                y: -groupBoxTitle.height / 2
                 Text {
                     id: groupBoxTitle
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: 4
-                    text: qsTr("Používateľské Informácie")
+                    anchors.centerIn: parent
+                    text: qsTr("Prehľad Informácií")
                     color: "#c1f6ec"
-                    font.pointSize: 14
+                    font.pointSize: 12
                 }
             }
 
             ColumnLayout {
                 id: columnLayout
                 anchors {
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
-                    topMargin: 20
-                    leftMargin: 10
-                    rightMargin: 10
+                    fill: parent
+                    topMargin: 25
+                    leftMargin: 20
+                    rightMargin: 20
+                    bottomMargin: 20
                 }
-                Layout.fillWidth: true
-                spacing: mainContainer.columnSpacing
+                spacing: mainContainer.columnSpacing // Use the fixed spacing
 
+                // --- User Info ---
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Vaše meno:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        Text {
-                            text: qsTr(backend.username)
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                            font.pixelSize: 18  // Adjust size as needed
-                            font.italic: true
-                            font.bold: true
-                            color: "#13b899"
-                        }
-                    }
+                    Label { text: qsTr("Vaše meno:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    Text { text: qsTr(backend.username); font.pixelSize: 16; font.bold: true; color: "#13b899"; Layout.alignment: Qt.AlignVCenter }
                 }
-
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Vaše ID:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        Text {
-                            text: backend.rust_id
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                            font.pixelSize: 18  // Adjust size as needed
-                            font.italic: true
-                            font.bold: true
-                            color: "#13b899"
-                        }
-                    }
+                    Label { text: qsTr("Vaše ID:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    Text { text: backend.rust_id; font.pixelSize: 16; font.bold: true; color: "#13b899"; Layout.alignment: Qt.AlignVCenter }
                 }
 
+                // --- Statuses ---
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Aplikácia MacrosoftConnectQuickSupport:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            id: appIndicator
-                            size: 20
-                            status: backend.app_installation_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
+                    Label { text: qsTr("Aplikácia MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.app_installation_status; Layout.alignment: Qt.AlignVCenter }
                 }
-
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Služba MacrosoftConnectQuickSupport:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            id: serviceIndicator
-                            size: 20
-                            status: backend.app_service_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
+                    Label { text: qsTr("Služba MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.app_service_status; Layout.alignment: Qt.AlignVCenter }
                 }
-
-
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Stav Povolenia Mikrofónu:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.permission_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
+                    Label { text: qsTr("Stav Povolenia:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.permission_status; Layout.alignment: Qt.AlignVCenter }
                 }
-
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Stav WebSocketu:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.app_websocket_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
+                    Label { text: qsTr("Stav WebSocketu:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.app_websocket_status; Layout.alignment: Qt.AlignVCenter }
                 }
-
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Aplikácia OBS:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.obs_installation_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
+                    Label { text: qsTr("Aplikácia OBS:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.obs_installation_status; Layout.alignment: Qt.AlignVCenter }
                 }
-
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Stav nahrávania:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.recording_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
+                    Label { text: qsTr("Stav nahrávania:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.recording_status; Layout.alignment: Qt.AlignVCenter }
                 }
 
+                // This spacer will take up all the extra vertical space
+                Item {
+                    Layout.fillHeight: true
+                }
             }
         }
     }
-
-
-
 }
-
-
-
-
-
-
-
-
-

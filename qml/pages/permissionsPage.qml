@@ -9,218 +9,86 @@ Item {
         color: "#2c313c"
         anchors.fill: parent
 
-        property real rowHeight: 35
-        property real columnSpacing: mainContainer.height * 0.02
+        property real rowHeight: 30
+        property real columnSpacing: 15 // This will now be our fixed gap size
 
         Rectangle {
             id: groupBox
-            radius: 5
+            radius: 4
             border.color: "#16a086"
             border.width: 1
             color: "transparent"
             anchors {
                 fill: parent
-                topMargin: parent.height * 0.08
-                leftMargin: parent.width * 0.15
-                rightMargin: parent.width * 0.15
-                bottomMargin: parent.height * 0.08
+                topMargin: 25
+                leftMargin: parent.width * 0.1
+                rightMargin: parent.width * 0.1
+                bottomMargin: 25
             }
 
             Rectangle {
                 color: "#2c313c"
-                width: groupBoxTitle.width + 6
-                height: groupBoxTitle.height + 6
+                width: groupBoxTitle.width + 10
+                height: groupBoxTitle.height
                 x: 15
-                y: -10
+                y: -groupBoxTitle.height / 2
                 Text {
                     id: groupBoxTitle
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    leftPadding: 4
+                    anchors.centerIn: parent
                     text: qsTr("Povolenia")
                     color: "#c1f6ec"
-                    font.pointSize: 14
+                    font.pointSize: 12
                 }
             }
 
             ColumnLayout {
                 id: columnLayout
                 anchors {
-                    top: parent.top
-                    left: parent.left
-                    right: parent.right
-                    topMargin: 20
-                    leftMargin: 10
-                    rightMargin: 10
+                    fill: parent
+                    topMargin: 25
+                    leftMargin: 20
+                    rightMargin: 20
+                    bottomMargin: 20
                 }
-                Layout.fillWidth: true
-                spacing: mainContainer.columnSpacing
+                spacing: mainContainer.columnSpacing // Use the fixed spacing
 
+                // --- Top Group: Status ---
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Stav Povolenia Mikrofónu:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 150
-                        height: 30
-                        Layout.alignment: Qt.AlignVCenter
-
-                        StatusIndicator {
-                            size: 20
-                            status: backend.permission_status
-                            Layout.alignment: Qt.AlignVCenter
-                            anchors.centerIn: parent
-                        }
-                    }
+                    Label { text: qsTr("Stav Povolenia:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    StatusIndicator { size: 20; status: backend.permission_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
                 }
 
-                // Microphone Only button
+                // --- Bottom Group: Buttons ---
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Mikrofón")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 185
-                        height: 32
-                        Layout.alignment: Qt.AlignVCenter
-
-                        CustomButton {
-                            text: qsTr("Povoliť len Mikrofón")
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-
-                            Layout.fillWidth: true
-                            width: 185
-                            height: 32
-
-                            enabled: backend.is_enable_microphone_only_btn_enabled
-
-                            onClicked: {
-                                backend.enable_microphone_only()
-                            }
-                        }
-
-                    }
-
-
+                    Label { text: qsTr("Povoliť prístup k mikrofónu:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { text: qsTr("Povoliť len Mikrofón"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_enable_microphone_only_btn_enabled; onClicked: backend.enable_microphone_only() }
                 }
-
-                // Microphone and Camera button
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-
-                    Label {
-                        text: qsTr("Mikrofón, Kamera")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 185
-                        height: 32
-                        Layout.alignment: Qt.AlignVCenter
-
-                        CustomButton {
-                            text: qsTr("Povoliť všetko")
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-
-                            Layout.fillWidth: true
-                            width: 185
-                            height: 32
-
-                            enabled: backend.is_enable_microphone_and_camera_btn_enabled
-
-                            onClicked: {
-                                backend.enable_microphone_and_camera()
-                            }
-                        }
-
-                    }
-
-
+                    Label { text: qsTr("Povoliť mikrofón a kameru:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { text: qsTr("Povoliť všetko"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_enable_microphone_and_camera_btn_enabled; onClicked: backend.enable_microphone_and_camera() }
                 }
-
-                // Open Website Button
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Otvoriť stránku v prehliadači:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { text: qsTr("Otvoriť webstránku"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_open_browser_btn_enabled; onClicked: backend.open_webpage() }
+                }
 
-                    Label {
-                        text: qsTr("Webstránka:")
-                        font.pointSize: 13
-                        Layout.alignment: Qt.AlignVCenter
-                        color: "#ffffff"
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        width: 185
-                        height: 32
-                        Layout.alignment: Qt.AlignVCenter
-
-                        CustomButton {
-                            text: qsTr("Otvoriť webstránku")
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: 0
-
-                            Layout.fillWidth: true
-                            width: 185
-                            height: 32
-
-                            enabled: backend.is_open_browser_btn_enabled
-
-                            onClicked: {
-                                backend.open_webpage()
-                            }
-                        }
-
-                    }
-
-
+                // This spacer will take up all the extra vertical space
+                Item {
+                    Layout.fillHeight: true
                 }
             }
         }
     }
-
-
-
 }
-
-
-
-

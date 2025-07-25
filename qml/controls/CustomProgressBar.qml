@@ -4,13 +4,13 @@ import QtQuick.Controls
 Item {
     id: root
     width: 200
-    height: 30
+    height: 15 // Made thinner
 
     // Customizable properties
-    property real value: 0    // Range: 0.0-1.0
-    property color backgroundColor: "#e0e0e0"
-    property color progressColor: "#4CAF50"
-    property real radius: height / 4  // Perfect pill shape
+    property real value: 0    // Range: 0.0-100.0
+    property color backgroundColor: "#333"
+    property color progressColor: "#16a086"
+    property real radius: height / 2  // Perfect pill shape
 
     // Background
     Rectangle {
@@ -30,9 +30,8 @@ Item {
 
             // Smooth animation for value changes
             Behavior on width {
-                NumberAnimation { duration: 300 }
+                NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
             }
         }
     }
 }
-
