@@ -407,9 +407,12 @@ Window {
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     z: 1
-                    // FIX: This is the most important fix. It prevents the content inside the StackView
-                    // from being drawn outside this rectangle's bounds during animations.
                     clip: true
+
+                    // FIX: Programmatically push the initial page to ensure it loads correctly.
+                    Component.onCompleted: {
+                        stackView.push(Qt.resolvedUrl("pages/infoPage.qml"))
+                    }
 
                     // This container holds the pages and the process/log area
                     ColumnLayout {
@@ -420,7 +423,7 @@ Window {
                             id: stackView
                             Layout.fillWidth: true
                             Layout.fillHeight: true // Takes up remaining space
-                            initialItem: Qt.resolvedUrl("pages/appPage.qml")
+                            // FIX: Removed initialItem property. We now handle this in onCompleted.
                         }
 
                         Rectangle {
