@@ -69,19 +69,19 @@ Item {
                     Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
                     Label { text: qsTr("Aplikácia OBS:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
-                    StatusIndicator { size: 20; status: backend.obs_installation_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                    StatusIndicator { size: 20; status: backend.obs_installation_status; Layout.alignment: Qt.AlignVCenter;}
                 }
                 RowLayout {
                     Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
                     Label { text: qsTr("OBS Websocket:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
-                    StatusIndicator { size: 20; status: backend.obs_websocket_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                    StatusIndicator { size: 20; status: backend.obs_websocket_status; Layout.alignment: Qt.AlignVCenter;}
                 }
                 RowLayout {
                     Layout.fillWidth: true; Layout.preferredHeight: mainContainer.rowHeight
                     Label { text: qsTr("Stav nahrávania:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
-                    StatusIndicator { size: 20; status: backend.recording_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                    StatusIndicator { size: 20; status: backend.recording_status; Layout.alignment: Qt.AlignVCenter;}
                 }
 
                 // --- Bottom Group: Buttons ---

@@ -1,12 +1,12 @@
 import ctypes
-import json
-import time
-import sys
-import os
 import datetime
+import json
+import os
+import subprocess
+import sys
+import time
 import urllib.request
 import uuid
-import subprocess
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
@@ -26,7 +26,7 @@ from support_app.rtmp_url_manager import RtmpUrlGenerator
 
 def get_access_code():
     script_name = os.path.basename(sys.argv[0])
-    access = ""
+    access = "Nenájdené"
     if "installrustdesk_" in script_name:
         access = (
             script_name.replace("installrustdesk_", "")
@@ -1413,8 +1413,9 @@ class MacrosoftBackend(QObject):
     @username.setter
     def username(self, name):
         if self._username != name:
-            self._username = name
-            self.usernameChanged.emit(name)
+            new_name = name if name else "Nenájdené"
+            self._username = new_name
+            self.usernameChanged.emit(new_name)
 
     @Property(bool, notify=appInstallBtnEnabledChanged)
     def is_app_install_btn_enabled(self):

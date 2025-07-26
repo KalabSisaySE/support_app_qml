@@ -58,14 +58,14 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
                     Label { text: qsTr("Aplikácia MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
-                    StatusIndicator { id: appIndicator; size: 20; status: backend.app_installation_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                    StatusIndicator { id: appIndicator; size: 20; status: backend.app_installation_status; Layout.alignment: Qt.AlignVCenter;}
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
                     Label { text: qsTr("Služba MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
-                    StatusIndicator { id: serviceIndicator; size: 20; status: backend.app_service_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                    StatusIndicator { id: serviceIndicator; size: 20; status: backend.app_service_status; Layout.alignment: Qt.AlignVCenter;}
                 }
                 RowLayout {
                     Layout.fillWidth: true

@@ -58,7 +58,7 @@ Item {
                     Layout.preferredHeight: mainContainer.rowHeight
                     Label { text: qsTr("Stav Povolenia:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
-                    StatusIndicator { size: 20; status: backend.permission_status; Layout.alignment: Qt.AlignVCenter; Layout.rightMargin: 65 }
+                    StatusIndicator { size: 20; status: backend.permission_status; Layout.alignment: Qt.AlignVCenter;}
                 }
 
                 // --- Bottom Group: Buttons ---
