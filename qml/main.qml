@@ -491,10 +491,11 @@ Window {
                             }
                         }
 
-                        Rectangle {
+                                                Rectangle {
                             id: statusBar
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 25
+                            // Minimized height
+                            Layout.preferredHeight: 20
                             color: "#282c34"
 
                             Switch {
@@ -505,24 +506,28 @@ Window {
 
                                 text: qsTr("Zobraziť záznamy")
                                 checked: true
-                                implicitHeight: 18
+                                // UPDATED: Matched implicitHeight to the new indicator height
+                                implicitHeight: 16
                                 padding: 0
                                 spacing: 4
 
                                 indicator: Rectangle {
-                                    implicitWidth: 36
-                                    implicitHeight: 18
+                                    // UPDATED: Reduced indicator size for a more compact look
+                                    implicitWidth: 32
+                                    implicitHeight: 16
                                     radius: height / 2
                                     color: showLogsSwitch.checked ? "#16a086" : "#777"
                                     border.color: showLogsSwitch.checked ? "#16a086" : "#666"
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Rectangle {
-                                        width: 14
-                                        height: 14
-                                        radius: 7
+                                        // UPDATED: Reduced knob size to fit the new indicator
+                                        width: 12
+                                        height: 12
+                                        radius: 6
                                         color: "white"
                                         anchors.verticalCenter: parent.verticalCenter
+                                        // The 'x' formula automatically adjusts to the new parent (indicator) and knob sizes
                                         x: showLogsSwitch.checked ? parent.width - width - 2 : 2
                                         Behavior on x { NumberAnimation { duration: 200 } }
                                     }
@@ -547,10 +552,12 @@ Window {
                                 font.pointSize: 9
                             }
 
-                            MouseArea {
+                                                        MouseArea {
                                 id: resizeWindow
-                                width: 25
-                                height: 25
+                                // UPDATED: Set width and height to match the statusBar's dimensions.
+                                // This ensures the entire area is clickable and not clipped.
+                                width: 20
+                                height: 20
                                 opacity: 0.5
                                 anchors.right: parent.right
                                 anchors.bottom: parent.bottom
@@ -565,6 +572,7 @@ Window {
 
                                 Image {
                                     id: resizeImage
+                                    // The icon is 16x16, so it fits perfectly inside the 20x20 area.
                                     width: 16
                                     height: 16
                                     anchors.centerIn: parent
