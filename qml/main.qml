@@ -476,8 +476,9 @@ Window {
 
                                         onTextChanged: {
                                             Qt.callLater(() => {
-                                                if (flickableItem) {
-                                                    flickableItem.contentY = Math.max(0, flickableItem.contentHeight - flickableItem.height)
+                                                if (scrollView.flickableItem) {
+                                                    scrollView.flickableItem.contentY =
+                                                        Math.max(0, scrollView.flickableItem.contentHeight - scrollView.flickableItem.height)
                                                 }
                                             })
                                             const lines = text.split('\n')
@@ -485,6 +486,7 @@ Window {
                                                 text = lines.slice(-maxLines).join('\n')
                                             }
                                         }
+
                                         property int maxLines: 1000
                                     }
                                 }

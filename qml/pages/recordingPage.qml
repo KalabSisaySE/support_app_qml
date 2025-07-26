@@ -112,20 +112,30 @@ Item {
         }
     }
 
-    Connections {
-        target: backend
-        function onRecordingStatusChanged(status) {
-            recordingButton.text = (status === "enabled") ? "Zastaviť nahrávanie" : "Spustiť nahrávanie";
-            recordingButton.colorDefault = (status === "enabled") ? "#c0392b" : "#35b59d";
-        }
-        function onObsInstallationStatusChanged(status) {
-            obsInstallBtn.text = (status === "enabled") ? "Odinštalovať OBS" : "Inštalovať OBS";
-            obsInstallBtn.colorDefault = (status === "enabled") ? "#c0392b" : "#35b59d";
-        }
-    }
+    Item {
+        function updateRecordingButtonStates() {
+            recordingButton.text = (backend.recording_status === "enabled") ? "Zastaviť nahrávanie" : "Spustiť nahrávanie";
+            recordingButton.colorDefault = (backend.recording_status === "enabled") ? "#c0392b" : "#35b59d";
 
-    Component.onCompleted: {
-        onRecordingStatusChanged(backend.recording_status)
-        onObsInstallationStatusChanged(backend.obs_installation_status)
+            obsInstallBtn.text = (backend.obs_installation_status === "enabled") ? "Odinštalovať OBS" : "Inštalovať OBS";
+            obsInstallBtn.colorDefault = (backend.obs_installation_status === "enabled") ? "#c0392b" : "#35b59d";
+        }
+
+
+        Connections {
+            target: backend
+
+            function onRecordingStatusChanged(status) {
+                updateRecordingButtonStates()
+            }
+
+            function onObsInstallationStatusChanged(status) {
+                updateRecordingButtonStates()
+            }
+        }
+
+        Component.onCompleted: {
+            updateRecordingButtonStates()
+        }
     }
 }

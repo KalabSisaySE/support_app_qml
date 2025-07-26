@@ -113,20 +113,31 @@ Item {
         }
     }
 
-    Connections {
-        target: backend
-        function onAppInstallationStatusChanged(status) {
-            macrosoftQuickSupportButton.text = (status === "enabled") ? "Odinštalovať" : "Inštalovať";
-            macrosoftQuickSupportButton.colorDefault = (status === "enabled") ? "#c0392b" : "#35b59d";
-        }
-        function onAppServiceStatusChanged(status) {
-            startServiceButton.text = (status === "enabled") ? "Zastaviť službu" : "Spustiť službu";
-            startServiceButton.colorDefault = (status === "enabled") ? "#c0392b" : "#35b59d";
-        }
-    }
+    Item {
+        function updateButtonStates() {
+            // Logic from your onAppInstallationStatusChanged handler
+            macrosoftQuickSupportButton.text = (backend.app_installation_status === "enabled") ? "Odinštalovať" : "Inštalovať";
+            macrosoftQuickSupportButton.colorDefault = (backend.app_installation_status === "enabled") ? "#c0392b" : "#35b59d";
 
-    Component.onCompleted: {
-        onAppInstallationStatusChanged(backend.app_installation_status)
-        onAppServiceStatusChanged(backend.app_service_status)
+            // Logic from your onAppServiceStatusChanged handler
+            startServiceButton.text = (backend.app_service_status === "enabled") ? "Zastaviť službu" : "Spustiť službu";
+            startServiceButton.colorDefault = (backend.app_service_status === "enabled") ? "#c0392b" : "#35b59d";
+        }
+
+        Connections {
+            target: backend
+
+            function onAppInstallationStatusChanged(status) {
+                updateButtonStates()
+            }
+
+            function onAppServiceStatusChanged(status) {
+                updateButtonStates()
+            }
+        }
+
+        Component.onCompleted: {
+            updateButtonStates()
+        }
     }
 }
