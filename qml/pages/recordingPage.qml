@@ -4,6 +4,33 @@ import "../controls"
 import QtQuick.Layouts
 
 Item {
+
+    function updateRecordingButtonStates() {
+        recordingButton.text = (backend.recording_status === "enabled") ? "Zastaviť nahrávanie" : "Spustiť nahrávanie";
+        recordingButton.colorDefault = (backend.recording_status === "enabled") ? "#c0392b" : "#35b59d";
+
+        obsInstallBtn.text = (backend.obs_installation_status === "enabled") ? "Odinštalovať OBS" : "Inštalovať OBS";
+        obsInstallBtn.colorDefault = (backend.obs_installation_status === "enabled") ? "#c0392b" : "#35b59d";
+    }
+
+
+    Connections {
+        target: backend
+
+        function onRecordingStatusChanged(status) {
+            updateRecordingButtonStates()
+        }
+
+        function onObsInstallationStatusChanged(status) {
+            updateRecordingButtonStates()
+        }
+    }
+
+    Component.onCompleted: {
+        updateRecordingButtonStates()
+    }
+
+
     Rectangle {
         id: mainContainer
         color: "#2c313c"
@@ -112,30 +139,4 @@ Item {
         }
     }
 
-    Item {
-        function updateRecordingButtonStates() {
-            recordingButton.text = (backend.recording_status === "enabled") ? "Zastaviť nahrávanie" : "Spustiť nahrávanie";
-            recordingButton.colorDefault = (backend.recording_status === "enabled") ? "#c0392b" : "#35b59d";
-
-            obsInstallBtn.text = (backend.obs_installation_status === "enabled") ? "Odinštalovať OBS" : "Inštalovať OBS";
-            obsInstallBtn.colorDefault = (backend.obs_installation_status === "enabled") ? "#c0392b" : "#35b59d";
-        }
-
-
-        Connections {
-            target: backend
-
-            function onRecordingStatusChanged(status) {
-                updateRecordingButtonStates()
-            }
-
-            function onObsInstallationStatusChanged(status) {
-                updateRecordingButtonStates()
-            }
-        }
-
-        Component.onCompleted: {
-            updateRecordingButtonStates()
-        }
-    }
 }
