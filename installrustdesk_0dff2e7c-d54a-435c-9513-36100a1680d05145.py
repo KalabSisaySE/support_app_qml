@@ -1240,6 +1240,28 @@ class OBSClientWorker(QObject):
     def disconnect_ws(self):
         self.ws.close()
 
+    @Slot()
+    def force_stop_stream_on_exit(self):
+        """
+        Sends a 'StopStream' request to OBS without any other side effects.
+        This is designed to be called during application shutdown.
+        """
+        if not self.identified:
+            # Can't send the command if not connected to OBS
+            return
+
+        self.log.emit("Aplikácia sa zatvára, posiela sa príkaz na zastavenie streamu do OBS.")
+        request_id = str(uuid.uuid4())
+        payload = {
+            "op": 6,
+            "d": {
+                "requestType": "StopStream",
+                "requestId": request_id,
+                "requestData": {}
+            }
+        }
+        self.send_json(payload)
+
 class MacrosoftBackend(QObject):
     # Signal Set Name
     setName = Signal(str)
@@ -2311,9 +2333,29 @@ class MacrosoftBackend(QObject):
         self.addCounter.emit(f"Counter: {i}")
 
     def cleanup(self):
-        """handles threads, worker cleanup"""
+        """
+        Handles application cleanup, including stopping the OBS stream if it's running.
+        """
+        # --- START: New Feature ---
+        # Before shutting down threads, check if OBS is connected and streaming.
+        # If so, send a command to stop the stream.
+        if (self.obs_ws_worker and
+                self._obs_websocket_status == "enabled" and
+                self._recording_status == "enabled"):
+            self.add_log("Aplikácia sa zatvára. Zastavuje sa stream v OBS...")
+
+            # Call the dedicated method to stop the stream
+            self.obs_ws_worker.force_stop_stream_on_exit()
+
+            # Give the message a moment to be sent over the websocket before
+            # the app fully closes and quits the worker thread.
+            time.sleep(1)
+        # --- END: New Feature ---
+
+        # Original cleanup logic for threads and workers
         app_threads = [self.app_websocket_thread, self.obs_ws_thread]
         app_workers = [self.app_websocket_worker, self.obs_ws_worker]
+
         for thread in app_threads:
             if thread and thread.isRunning():
                 thread.quit()
@@ -2322,12 +2364,9 @@ class MacrosoftBackend(QObject):
 
         for worker in app_workers:
             if worker:
+                # The OBS worker might have already been cleaned up if OBS disconnected,
+                # so checking its existence is important.
                 worker.deleteLater()
-
-        # handle websocket
-        # self.worker.disconnect()
-        # self.thread.quit()
-        # self.thread.wait()
 
 
 if __name__ == "__main__":
