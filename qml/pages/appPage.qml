@@ -4,6 +4,33 @@ import "../controls"
 import QtQuick.Layouts
 
 Item {
+
+    function updateButtonStates() {
+        // Logic from your onAppInstallationStatusChanged handler
+        macrosoftQuickSupportButton.text = (backend.app_installation_status === "enabled") ? "Odinštalovať" : "Inštalovať";
+        macrosoftQuickSupportButton.colorDefault = (backend.app_installation_status === "enabled") ? "#c0392b" : "#35b59d";
+
+        // Logic from your onAppServiceStatusChanged handler
+        startServiceButton.text = (backend.app_service_status === "enabled") ? "Zastaviť službu" : "Spustiť službu";
+        startServiceButton.colorDefault = (backend.app_service_status === "enabled") ? "#c0392b" : "#35b59d";
+    }
+
+    Connections {
+        target: backend
+
+        function onAppInstallationStatusChanged(status) {
+            updateButtonStates()
+        }
+
+        function onAppServiceStatusChanged(status) {
+            updateButtonStates()
+        }
+    }
+
+    Component.onCompleted: {
+        updateButtonStates()
+    }
+
     Rectangle {
         id: mainContainer
         color: "#2c313c"
@@ -113,31 +140,4 @@ Item {
         }
     }
 
-    Item {
-        function updateButtonStates() {
-            // Logic from your onAppInstallationStatusChanged handler
-            macrosoftQuickSupportButton.text = (backend.app_installation_status === "enabled") ? "Odinštalovať" : "Inštalovať";
-            macrosoftQuickSupportButton.colorDefault = (backend.app_installation_status === "enabled") ? "#c0392b" : "#35b59d";
-
-            // Logic from your onAppServiceStatusChanged handler
-            startServiceButton.text = (backend.app_service_status === "enabled") ? "Zastaviť službu" : "Spustiť službu";
-            startServiceButton.colorDefault = (backend.app_service_status === "enabled") ? "#c0392b" : "#35b59d";
-        }
-
-        Connections {
-            target: backend
-
-            function onAppInstallationStatusChanged(status) {
-                updateButtonStates()
-            }
-
-            function onAppServiceStatusChanged(status) {
-                updateButtonStates()
-            }
-        }
-
-        Component.onCompleted: {
-            updateButtonStates()
-        }
-    }
 }
