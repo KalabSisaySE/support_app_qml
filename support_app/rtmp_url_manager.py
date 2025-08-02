@@ -1,7 +1,9 @@
 import cloudscraper
 import string
 import random
-import requests  # Still needed for the external call to online.macrosoft.sk
+import requests
+
+from support_app.utils import get_cloudflare_headers
 
 
 class RtmpUrlGenerator:
@@ -25,6 +27,7 @@ class RtmpUrlGenerator:
         self.scraper = cloudscraper.create_scraper()
         self.token = self._get_token()
         self.video_data = None  # Will be set to the video's data after creation
+        self.cloudflare_headers = get_cloudflare_headers()
 
         self.lectoure_data = lectoure_data if lectoure_data else {}
 
@@ -54,7 +57,7 @@ class RtmpUrlGenerator:
         }
         try:
             print("Step 1: Requesting access token...")
-            response = requests.post(token_url, data=payload)
+            response = requests.post(token_url, data=payload, headers=self.cloudflare_headers)
             response.raise_for_status()  # Raise an error for bad status codes
             access_token = response.json().get("access_token")
             if access_token:
@@ -83,6 +86,7 @@ class RtmpUrlGenerator:
 
         try:
             print(f"Step 2: Creating live video with name '{self.video_name}'...")
+            headers.update(self.cloudflare_headers)
             response = requests.post(create_url, json=video_data, headers=headers)
             response.raise_for_status()
 
@@ -159,6 +163,7 @@ class RtmpUrlGenerator:
             }
             headers = {'Content-Type': 'application/json'}
             # Using standard requests here as the external service may not need cloudscraper
+            headers.update(self.cloudflare_headers)
             res = requests.post(self.SAVE_URL, headers=headers, json=data)
             print(f"Save response status: {res.status_code}")
             print(f"Save response message: {res.json()}")
@@ -179,6 +184,7 @@ class RtmpUrlGenerator:
                 "room_id": self.lectoure_data.get('room_id'),
             }
             headers = {'Content-Type': 'application/json'}
+            headers.update(self.cloudflare_headers)
             res = requests.post(self.UPLOAD_URL, headers=headers, json=data)
             print(f"Upload trigger response status: {res.status_code}")
             print(f"Upload trigger response: {res.json()}")
@@ -231,6 +237,7 @@ if __name__ == "__main__":
     headers = {"Authorization": f"Bearer {token}"}
     PEERTUBE_URL = "https://mtube.macrosoft.sk"
     url   = f"{PEERTUBE_URL}/api/v1/videos/{v_id}"
+    headers.update(get_cloudflare_headers())
     resp = requests.get(url, headers=headers)
     print(f"resp: {resp}")
 

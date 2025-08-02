@@ -10,14 +10,14 @@ import uuid
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery
+from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery, QByteArray
 from PySide6.QtWebSockets import QWebSocket
-from PySide6.QtNetwork import QAbstractSocket
+from PySide6.QtNetwork import QAbstractSocket, QNetworkRequest
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from support_app.utils import is_app_running, is_service_running, get_full_name, extract_installer_code, \
     check_installation, open_website, is_obs_running, is_obs_installed, start_obs, close_obs, \
-    setup_obs_config, check_obs_config
+    setup_obs_config, check_obs_config, get_cloudflare_headers
 from support_app.rust_service_manager import ServiceManager
 from support_app.registry_permission_manager import RegistryPermissionManager
 from support_app.browser_permission_manager import BrowserPermissionManager
@@ -105,7 +105,9 @@ class InitializeApp(QObject):
                     while attempt < max_attempts:
                         attempt += 1
                         try:
-                            with urllib.request.urlopen(url) as response:
+                            req = urllib.request.Request(url, headers=get_cloudflare_headers())
+
+                            with urllib.request.urlopen(req) as response:
                                 if response.status == 200:
                                     break
                                 else:
@@ -200,7 +202,11 @@ class AppInstallationWorker(QObject):
         installer_path = os.path.join(temp_dir, "macrosoftconnectquicksupport.exe")
 
         try:
-            with urllib.request.urlopen(download_url) as response:
+            req = urllib.request.Request(
+                download_url,
+                headers=get_cloudflare_headers(),
+            )
+            with urllib.request.urlopen(req) as response:
                 total_size = int(response.getheader("Content-Length", "0"))
                 block_size = 8192
                 with open(installer_path, "wb") as file:
@@ -328,7 +334,8 @@ class AppInstallationWorker(QObject):
             while attempt < max_attempts:
                 attempt += 1
                 try:
-                    with urllib.request.urlopen(url) as response:
+                    req = urllib.request.Request(url, headers=get_cloudflare_headers())
+                    with urllib.request.urlopen(req) as response:
                         if response.status == 200:
                             self.log.emit("ID bolo úspešne odoslané.")
                             break
@@ -573,7 +580,8 @@ class UserInfoWorker(QObject):
             while attempt < max_attempts:
                 attempt += 1
                 try:
-                    with urllib.request.urlopen(url) as response:
+                    req = urllib.request.Request(url, headers=get_cloudflare_headers())
+                    with urllib.request.urlopen(req) as response:
                         if response.status == 200:
                             self.log.emit("ID bolo úspešne odoslané.")
                             break
@@ -801,7 +809,18 @@ class WebSocketWorker(QObject):
         query = QUrlQuery()
         query.addQueryItem("access_code", self.access)
         url.setQuery(query)
+
+        request = QNetworkRequest(url)
+
+        # 2. Set the Cloudflare service token headers
+        # Note: Header names and values must be QByteArray, so we use b''
+        cf_client_id = "e5227eb75bb71fa25a09e6bed7362bb1.access"
+        cf_client_secret = "32097cf5a9639d6bd46e818112e0171119be7754a1acd243f703116f93ca9a38"
+        request.setRawHeader(QByteArray(b'cf-access-client-id'), QByteArray(cf_client_id.encode('utf-8')))
+        request.setRawHeader(QByteArray(b'cf-access-client-secret'), QByteArray(cf_client_secret.encode('utf-8')))
         self.url = url
+        self.request = request
+
 
         self.websocket = QWebSocket(parent=self)
         self.websocket.connected.connect(self.on_connected)
@@ -825,7 +844,7 @@ class WebSocketWorker(QObject):
 
     @Slot()
     def start_connection(self):
-        self.websocket.open(QUrl(self.url))
+        self.websocket.open(self.request)
 
     @Slot()
     def disconnect(self):

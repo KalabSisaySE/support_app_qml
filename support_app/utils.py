@@ -57,7 +57,7 @@ def get_full_name(access):
     if access:
         url = f'https://online.macrosoft.sk/rustdesk/username/?access={access}'
         try:
-            res = requests.get(url)
+            res = requests.get(url, headers=get_cloudflare_headers())
 
             json_data = res.json()
             if json_data.get('status') == 'found':
@@ -100,7 +100,7 @@ def get_latest_access_code():
         my_ip = get_public_ip()
         if my_ip:
             url = "https://online.macrosoft.sk/get/lectoure/access/"
-            res = requests.post(url, json={"ip_address": my_ip})
+            res = requests.post(url, json={"ip_address": my_ip}, headers=get_cloudflare_headers())
 
             if res.status_code == 200:
                 return res.json().get('access_code', "")
@@ -288,3 +288,10 @@ def check_obs_config():
                 return alert and auth and server and port
     except Exception as e:
         return
+
+
+def get_cloudflare_headers():
+    return {
+        "cf-access-client-id": "e5227eb75bb71fa25a09e6bed7362bb1.access",
+        "cf-access-client-secret": "32097cf5a9639d6bd46e818112e0171119be7754a1acd243f703116f93ca9a38",
+    }
