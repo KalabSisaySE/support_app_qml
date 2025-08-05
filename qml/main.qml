@@ -376,6 +376,7 @@ Window {
 
                                 stackView.push(Qt.resolvedUrl("pages/recordingPage.qml"))
                             }
+                            visible: backend.is_user_lectoure
                         }
 
 

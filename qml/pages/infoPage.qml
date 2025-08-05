@@ -96,6 +96,8 @@ Item {
                     Label { text: qsTr("Stav WebSocketu:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     StatusIndicator { size: 20; status: backend.app_websocket_status; Layout.alignment: Qt.AlignVCenter }
+                    visible: backend.is_user_lectoure
+
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -103,6 +105,8 @@ Item {
                     Label { text: qsTr("Aplikácia OBS:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     StatusIndicator { size: 20; status: backend.obs_installation_status; Layout.alignment: Qt.AlignVCenter }
+                    visible: backend.is_user_lectoure
+
                 }
                 RowLayout {
                     Layout.fillWidth: true
@@ -110,6 +114,8 @@ Item {
                     Label { text: qsTr("Stav nahrávania:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     StatusIndicator { size: 20; status: backend.recording_status; Layout.alignment: Qt.AlignVCenter }
+                    visible: backend.is_user_lectoure
+
                 }
 
                 // This spacer will take up all the extra vertical space

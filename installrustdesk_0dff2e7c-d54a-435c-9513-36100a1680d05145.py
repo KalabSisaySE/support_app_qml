@@ -8,6 +8,8 @@ import time
 import urllib.request
 import uuid
 
+from dotenv import load_dotenv
+
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtCore import QObject, Slot, Signal, QTimer, QUrl, Property, QThread, QUrlQuery, QByteArray
@@ -23,6 +25,8 @@ from support_app.registry_permission_manager import RegistryPermissionManager
 from support_app.browser_permission_manager import BrowserPermissionManager
 from support_app.rtmp_url_manager import RtmpUrlGenerator
 
+
+load_dotenv()
 
 def get_access_code():
     script_name = os.path.basename(sys.argv[0])
@@ -1288,6 +1292,8 @@ class MacrosoftBackend(QObject):
     printTime = Signal(str)
     isVisible = Signal(bool)
     readText = Signal(str)
+    userTypeChanged = Signal(bool)
+
 
     startStream = Signal()
     stopStream = Signal()
@@ -1330,6 +1336,12 @@ class MacrosoftBackend(QObject):
         super().__init__()
 
         # values
+        self._user_type = os.getenv("USER_TYPE", "client")
+        print(f"user_type: {self._user_type}")
+
+        self._is_user_admin = self._user_type == "lectoure"
+        print(f"is_user_admin: {self._is_user_admin}")
+
         self._progress = 0
         self._running_progresses = {}
         self._app_installation_status = "disabled"
@@ -1396,6 +1408,16 @@ class MacrosoftBackend(QObject):
         self.app_init_worker = None
 
         self.app_init()
+
+    @Property(bool, notify=userTypeChanged)
+    def is_user_lectoure(self):
+        return self._is_user_admin
+
+    @is_user_lectoure.setter
+    def is_user_lectoure(self, value):
+        if self._is_user_admin != value:
+            self._is_user_admin = value
+            self.userTypeChanged.emit(value)
 
     @Property(float, notify=progressChanged)
     def progress(self):
@@ -2020,7 +2042,8 @@ class MacrosoftBackend(QObject):
 
         # setup websocket
         if code != "Nenájdené":
-            self.setup_websockets(code)
+            if self.is_user_lectoure:
+                self.setup_websockets(code)
 
         # if data["is_obs_running"]:
         #     self.connect_to_obs_websocket()
@@ -2408,6 +2431,11 @@ if __name__ == "__main__":
     # 5. Load QML File
     qml_file = os.path.join(os.path.dirname(__file__), "qml/main.qml")
     engine.load(QUrl.fromLocalFile(qml_file))
+
+    print("path: ")
+    print(os.path.dirname(__file__))
+    print("file: ")
+    print(__file__)
 
     app.aboutToQuit.connect(backend.cleanup)
 
