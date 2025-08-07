@@ -24,10 +24,10 @@ class RtmpUrlGenerator:
         - video_name (str, optional): The desired name for the video. Will be sanitized.
         - lectoure_data (dict, optional): Data for external service integration.
         """
+        self.cloudflare_headers = get_cloudflare_headers()
         self.scraper = cloudscraper.create_scraper()
         self.token = self._get_token()
         self.video_data = None  # Will be set to the video's data after creation
-        self.cloudflare_headers = get_cloudflare_headers()
 
         self.lectoure_data = lectoure_data if lectoure_data else {}
 
