@@ -1,4 +1,3 @@
-import cloudscraper
 import string
 import random
 import requests
@@ -25,7 +24,6 @@ class RtmpUrlGenerator:
         - lectoure_data (dict, optional): Data for external service integration.
         """
         self.cloudflare_headers = get_cloudflare_headers()
-        self.scraper = cloudscraper.create_scraper()
         self.token = self._get_token()
         self.video_data = None  # Will be set to the video's data after creation
 
@@ -77,7 +75,7 @@ class RtmpUrlGenerator:
             return None
 
         create_url = f"{self.PEERTUBE_URL}/api/v1/videos/live"
-        headers = {"Authorization": f"Bearer {self.token}"}
+        create_video_req_headers = {"Authorization": f"Bearer {self.token}"}
         video_data = {
             'channelId': 1,
             'name': self.video_name,
@@ -86,8 +84,8 @@ class RtmpUrlGenerator:
 
         try:
             print(f"Step 2: Creating live video with name '{self.video_name}'...")
-            headers.update(self.cloudflare_headers)
-            response = requests.post(create_url, json=video_data, headers=headers)
+            create_video_req_headers.update(self.cloudflare_headers)
+            response = requests.post(create_url, json=video_data, headers=create_video_req_headers)
             response.raise_for_status()
 
             video_info = response.json().get('video', {})
@@ -119,11 +117,12 @@ class RtmpUrlGenerator:
             return None
 
         info_url = f"{self.PEERTUBE_URL}/api/v1/videos/live/{video_uuid}"
-        headers = {"Authorization": f"Bearer {self.token}"}
+        rtmp_url_req_headers = {"Authorization": f"Bearer {self.token}"}
 
         try:
             print(f"Step 3: Fetching info for live video UUID {video_uuid}...")
-            response = self.scraper.get(info_url, headers=headers)
+            rtmp_url_req_headers.update(self.cloudflare_headers)
+            response = requests.get(info_url, headers=rtmp_url_req_headers)
             response.raise_for_status()
 
             live_info = response.json()
@@ -161,10 +160,7 @@ class RtmpUrlGenerator:
                 "video_uuid": video_data.get('uuid'),
                 "video_id": video_data.get('id'),
             }
-            headers = {'Content-Type': 'application/json'}
-            # Using standard requests here as the external service may not need cloudscraper
-            headers.update(self.cloudflare_headers)
-            res = requests.post(self.SAVE_URL, headers=headers, json=data)
+            res = requests.post(self.SAVE_URL, headers=self.cloudflare_headers, json=data)
             print(f"Save response status: {res.status_code}")
             print(f"Save response message: {res.json()}")
         except Exception as e:
@@ -183,124 +179,11 @@ class RtmpUrlGenerator:
                 "class_id": self.lectoure_data.get('class_id'),
                 "room_id": self.lectoure_data.get('room_id'),
             }
-            headers = {'Content-Type': 'application/json'}
-            headers.update(self.cloudflare_headers)
-            res = requests.post(self.UPLOAD_URL, headers=headers, json=data)
+
+            res = requests.post(self.UPLOAD_URL, headers=self.cloudflare_headers, json=data)
             print(f"Upload trigger response status: {res.status_code}")
             print(f"Upload trigger response: {res.json()}")
         except Exception as e:
             print(f"❌ Error while triggering recording upload: {e}")
 
 
-# --- Example Usage ---
-if __name__ == "__main__":
-    # print("--- Running Test 1: Generate with a random name ---")
-    # generator = RtmpUrlGenerator()
-    # rtmp_details = generator.get_rtmp_url()
-    #
-    # if rtmp_details:
-    #     print("\n--- FINAL RESULT ---")
-    #     print(f"RTMP URL:   {rtmp_details[0]}")
-    #     print(f"Stream Key: {rtmp_details[1]}")
-    #     print("--------------------\n")
-    #     # Example of calling the other method
-    #     generator.upload_recording_to_vimeo()
-    # else:
-    #     print("\n--- FAILED TO GET RTMP DETAILS ---")
-    #
-    # print("\n--- Running Test 2: Provide a custom (long) name ---")
-    # # This name is too long and will be automatically truncated
-    # long_name = "this_is_a_very_long_video_name_that_exceeds_the_limit"
-    # generator_2 = RtmpUrlGenerator(video_name=long_name)
-    # generator_2.get_rtmp_url()
-    #
-    # print("\n--- Running Test 3: Provide a custom (short) name ---")
-    # # This name is too short and will be automatically padded
-    # short_name = "hi"
-    # generator_3 = RtmpUrlGenerator(video_name=short_name)
-    # generator_3.get_rtmp_url()
-
-    rtmp_generator = RtmpUrlGenerator()
-    token = rtmp_generator.token
-    # rtmp_generator._create_video()
-    # v_id = '635c151c-3d4f-4e3d-aca3-46ba53507f94'
-    # v_id = '256117b1-13ab-48db-b3fb-08c6625e0bac'
-
-    # url   = f"{PEERTUBE_URL}/api/v1/videos/{v_id}/source"
-    # url   = f"{PEERTUBE_URL}/api/v1/videos/"
-    # url = "https://mtube.macrosoft.sk/static/streaming-playlists/hls/private/635c151c-3d4f-4e3d-aca3-46ba53507f94/9024951b-0843-4a2d-b09e-d67d6327d666-720-fragmented.mp4"
-    # url = "https://mtube.macrosoft.sk/w/635c151c-3d4f-4e3d-aca3-46ba53507f94"
-    # url = "https://mtube.macrosoft.sk/w/256117b1-13ab-48db-b3fb-08c6625e0bac"
-    # url = "https://mtube.macrosoft.sk/videos/embed/635c151c-3d4f-4e3d-aca3-46ba53507f94"
-
-    v_id = '1624e076-cba9-4ff5-8eb3-2e5427d33e9f'
-    headers = {"Authorization": f"Bearer {token}"}
-    PEERTUBE_URL = "https://mtube.macrosoft.sk"
-    url   = f"{PEERTUBE_URL}/api/v1/videos/{v_id}"
-    headers.update(get_cloudflare_headers())
-    resp = requests.get(url, headers=headers)
-    print(f"resp: {resp}")
-
-    # for k, v in resp.json().items():
-    #     print(f"{k}  -  {v}")
-
-    # print(f"content: {resp.content}")
-    # print(resp.content)
-    # print(f"resp data: {resp.json()}")
-
-    # with open("new_video.mp4", "wb") as f:
-    #     print("file opened")
-    #     f.write(resp.content)
-
-
-
-    # playlists = resp.json()['streamingPlaylists']
-    #
-
-    # for data in resp.json()["streamingPlaylists"]:
-    #
-    #     for k, v in data.items():
-    #
-    #         if type(v) == list:
-    #             print(f"\n{k} is a list")
-    #             for item in v:
-    #                 print(f"\t{v}")
-    #             print()
-    #         else:
-    #             print(f"{k}  -  {v}")
-
-    #
-    # for data in resp.json()["streamingPlaylists"][0]["files"]:
-    #
-    #     for k, v in data.items():
-    #
-    #         if type(v) == list:
-    #             print(f"\n{k} is a list")
-    #             for item in v:
-    #                 print(f"\t{v}")
-    #             print()
-    #         else:
-    #             print(f"{k}  -  {v}")
-    #
-    #     print()
-
-
-
-
-
-
-
-
-    # print(resp.json()["streamingPlaylists"])
-
-    # for vid in playlists:
-    #     for k, v in vid.items():
-    #         if k == "files":
-    #             for data in v:
-    #                 for key, ve in data.items():
-    #                     print(f"{key} - {ve}")
-
-    # check video
-
-
-    # print(token)
