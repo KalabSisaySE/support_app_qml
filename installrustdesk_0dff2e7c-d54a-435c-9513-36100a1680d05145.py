@@ -197,8 +197,8 @@ class AppInstallationWorker(QObject):
         """installs and rust Macrosoft RustDesk"""
         self.log.emit("Začínam proces inštalácie...")
 
-        base_url = "https://online.macrosoft.sk/static/"
-        download_url = f"{base_url}ztpt/output/downloads/macrosoftconnectquicksupport.exe"
+        base_url = "https://cloud.macrosoft.sk/"
+        download_url = f"{base_url}support_app/macrosoftconnectquicksupport.exe"
         new_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
         temp_dir = os.environ.get("TEMP", new_path)
 
