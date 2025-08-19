@@ -508,7 +508,7 @@ Window {
                                 anchors.leftMargin: 10
 
                                 text: qsTr("Zobraziť záznamy")
-                                checked: true
+                                checked: false
                                 // UPDATED: Matched implicitHeight to the new indicator height
                                 implicitHeight: 16
                                 padding: 0
