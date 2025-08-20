@@ -1698,6 +1698,83 @@ class MacrosoftBackend(QObject):
         # Remove the task from our tracking dictionary
         del self._running_tasks[task_name]
 
+    # 1. THE PUBLIC SLOT FOR THE BUTTON
+    @Slot()
+    def one_click_setup(self):
+        """
+        Starts the one-click process: install the app (if not present)
+        and then set all permissions.
+        """
+        self.add_log("Spúšťa sa kompletné nastavenie na 1-klik...")
+
+        # Disable all relevant buttons to prevent user interference
+        self.is_app_install_btn_enabled = False
+        self.is_app_start_btn_enabled = False
+        self.is_app_service_btn_enabled = False
+        self.is_app_rust_id_btn_enabled = False
+        self.is_enable_microphone_only_btn_enabled = False
+        self.is_enable_microphone_and_camera_btn_enabled = False
+
+        # Check if the app is already installed to skip the installation step
+        if check_installation():
+            self.add_log("Aplikácia je už nainštalovaná. Prechádzam na nastavenie povolení.")
+            # If installed, skip directly to the permission worker (Step 2)
+            self._start_worker(
+                task_name="one_click_permissions",
+                worker_class=PermissionWorker,
+                start_method_name="set_microphone_and_camera_access_only",
+                finished_slot=self._on_one_click_step2_finished
+            )
+        else:
+            # If not installed, start with the installation worker (Step 1)
+            self._start_worker(
+                task_name="one_click_install",
+                worker_class=AppInstallationWorker,
+                start_method_name="handle_install",
+                # CRITICAL: The finished slot points to our chaining method
+                finished_slot=self._on_one_click_step1_finished
+            )
+
+    # 2. THE PRIVATE CHAINING SLOT (AFTER INSTALLATION)
+    @Slot(dict)
+    def _on_one_click_step1_finished(self, result_data):
+        """
+        Called after the installation worker finishes. It updates the UI and
+        starts the next worker in the chain (PermissionWorker).
+        """
+        self.add_log("Inštalácia dokončená. Pokračujem nastavením povolení...")
+
+        # First, update the UI based on the installation result
+        self.on_installation_finished(result_data)
+
+        # Now, start the second part of the chain: setting permissions
+        self._start_worker(
+            task_name="one_click_permissions",
+            worker_class=PermissionWorker,
+            start_method_name="set_microphone_and_camera_access_only",
+            # The finished slot now points to the final cleanup method
+            finished_slot=self._on_one_click_step2_finished
+        )
+
+    # 3. THE FINAL CLEANUP SLOT (AFTER PERMISSIONS)
+    @Slot(dict)
+    def _on_one_click_step2_finished(self, result):
+        """
+        Called after the PermissionWorker finishes. This is the end of the chain.
+        It updates the UI and re-enables all buttons.
+        """
+        self.add_log("Nastavenie povolení dokončené.")
+        self.update_permission_status(result)
+
+        self.add_log("Kompletné nastavenie na 1-klik bolo úspešne dokončené!")
+
+        # Re-enable all buttons now that the entire sequence is complete
+        self.is_app_install_btn_enabled = True
+        self.is_app_start_btn_enabled = check_installation()
+        self.is_app_service_btn_enabled = check_installation()
+        self.is_app_rust_id_btn_enabled = check_installation()
+        self.is_enable_microphone_only_btn_enabled = True
+        self.is_enable_microphone_and_camera_btn_enabled = True
 
     @Slot()
     def install_or_uninstall(self):

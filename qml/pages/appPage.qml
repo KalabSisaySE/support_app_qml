@@ -178,6 +178,23 @@ Item {
                     }
                 }
 
+                 // NEW: One Click Setup Button
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight + 10 // A bit more space for emphasis
+                    Label { text: qsTr("Kompletné Nastavenie:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton {
+                        id: oneClickSetupButton
+                        text: qsTr("Spustiť Inštaláciu na 1-Klik")
+                        Layout.preferredWidth: 170
+                        Layout.preferredHeight: 32
+                        colorDefault: "#27ae60" // A distinct green color
+                        enabled: backend.is_app_install_btn_enabled // Reuse the same enabled logic for now
+                        onClicked: backend.one_click_setup()
+                    }
+                }
+
                 // This spacer will take up all the extra vertical space
                 Item {
                     Layout.fillHeight: true
