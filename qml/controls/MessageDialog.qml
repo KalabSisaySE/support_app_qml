@@ -2,7 +2,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import Qt5Compat.GraphicalEffects // Import needed for the DropShadow effect
+import Qt5Compat.GraphicalEffects
 
 Dialog {
     id: messageDialog
@@ -10,18 +10,16 @@ Dialog {
     // --- Custom Properties ---
     property string dialogTitle: "Informácia"
     property string dialogText: ""
+    // ADDED: New property to control the dialog's state
+    property bool isSuccess: true
 
     // --- Core Settings ---
     anchors.centerIn: Overlay.overlay
     modal: true
     focus: true
     padding: 0
-    // UPDATED: Made the dialog larger
     width: Math.min(500, Overlay.overlay.width - 40)
-
-    // --- NEW: Close Policy ---
-    // This is the key to preventing the dialog from closing on outside clicks or Esc key.
-    // It can now ONLY be closed programmatically (e.g., by our button).
+    height: 240 // Increased height
     closePolicy: Popup.NoAutoClose
 
     // --- Animation State ---
@@ -32,17 +30,12 @@ Dialog {
     Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
     Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
 
-    // --- Custom Close Function ---
-    // We create our own function to handle the closing animation.
     function closeWithAnimation() {
-        // 1. Start the closing animation
         scale = 0.9
         opacity = 0
-        // 2. Use a timer to call the actual close() after the animation is done
         closeTimer.start()
     }
 
-    // When the component is ready, trigger the "open" animation
     Component.onCompleted: {
         scale = 1.0
         opacity = 1.0
@@ -50,11 +43,8 @@ Dialog {
 
     Timer {
         id: closeTimer
-        interval: 200 // Must match the animation duration
-        onTriggered: {
-            // This is the only place where the dialog is now told to actually close.
-            messageDialog.close();
-        }
+        interval: 200
+        onTriggered: messageDialog.close()
     }
 
     // --- Custom Visuals ---
@@ -62,14 +52,13 @@ Dialog {
         id: backgroundRect
         color: "#3a4150"
         radius: 8
-        border.color: "#16a086"
-        border.width: 1
+        // MODIFIED: Border color is now conditional
+        border.color: isSuccess ? "#16a086" : "#e74c3c" // Green for success, Red for fail
+        // MODIFIED: Border is slightly thicker to be more visible
+        border.width: 2
     }
 
-    // --- FIXED: Drop Shadow ---
     DropShadow {
-        // REMOVED: anchors.fill - it's not needed and was causing the error.
-        // The 'source' property is sufficient.
         source: backgroundRect
         radius: 15
         samples: 25
@@ -77,18 +66,38 @@ Dialog {
         verticalOffset: 4
     }
 
-    header: Rectangle {
-        color: "transparent"
-        height: 45
+    // MODIFIED: The header is now a Row to accommodate the icon
+    header: Row {
+        height: 55
+        spacing: 10
+        // FIXED: Removed "anchors.verticalCenter: parent.verticalCenter" to prevent anchor loop.
+        leftPadding: 15 // Use padding on the Row itself
 
+        // ADDED: The status icon
+        Image {
+            id: icon
+            width: 24
+            height: 24
+            anchors.verticalCenter: parent.verticalCenter
+            source: { isSuccess ? "../../images/svg_images/success_icon.svg" : "../../images/svg_images/fail_icon.svg" }
+            antialiasing: true
+            visible: false // The ColorOverlay will be the visible element
+
+            // FIXED: ColorOverlay is now a child of the Image to avoid conflict with the Row's layout.
+            ColorOverlay {
+                anchors.fill: parent
+                source: parent
+                color: "#ffffff"
+            }
+        }
+
+        // The title Label
         Label {
             text: dialogTitle
             font.bold: true
             font.pointSize: 12
             color: "#ffffff"
             anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.leftMargin: 20
         }
     }
 
@@ -103,27 +112,15 @@ Dialog {
 
     footer: DialogButtonBox {
         background: Rectangle { color: "transparent" }
+        padding: 15 // Added padding to the button box
 
-        Button {
+        // MODIFIED: Using your CustomButton for consistency
+        CustomButton {
             text: qsTr("OK")
-            // UPDATED: The button now calls our custom animation function
-            // instead of accept().
             onClicked: messageDialog.closeWithAnimation()
-
-            flat: true
-            background: Rectangle {
-                color: parent.down ? "#138a74" : "#16a086"
-                radius: 4
-                border.color: "#13b899"
-                border.width: 1
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "white"
-                font: parent.font
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVenter
-            }
+            // MODIFIED: The button's color is now conditional
+            colorDefault: isSuccess ? "#16a086" : "#c0392b"
+            implicitWidth: 100
         }
     }
 

@@ -92,7 +92,7 @@ Item {
                     Item { Layout.fillWidth: true }
                     CustomButton {
                         id: oneClickSetupButton
-                        text: qsTr("Spustiť Inštaláciu na 1-Klik")
+                        text: qsTr("Konfigurácia na 1 klik")
                         Layout.preferredWidth: 170
                         Layout.preferredHeight: 32
                         colorDefault: "#27ae60" // A distinct green color

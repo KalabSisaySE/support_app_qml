@@ -26,19 +26,19 @@ Window {
     // Text Edit Properties
     property alias actualPage: stackView.currentItem
 
-    // --- NEW: Centralized Dialog Loader ---
     QtObject {
         id: dialogManager
 
-        // This function will be called from Python
-        function showMessage(title, text) {
-            // Dynamically create an instance of our dialog component
+        // UPDATED: Add the 'isSuccess' parameter
+        function showMessage(title, text, isSuccess) {
             var component = Qt.createComponent("controls/MessageDialog.qml");
             if (component.status === Component.Ready) {
                 var dialog = component.createObject(mainWindow);
                 if (dialog) {
                     dialog.dialogTitle = title;
                     dialog.dialogText = text;
+                    // NEW: Pass the success state to the dialog
+                    dialog.isSuccess = isSuccess;
                     dialog.open();
                 } else {
                     console.error("Error creating dialog object.");
@@ -52,9 +52,9 @@ Window {
     // --- NEW: Connection to Backend Signal ---
     Connections {
         target: backend
-        // Function name must be on<SignalName>
-        function onShowDialog(title, text) {
-            dialogManager.showMessage(title, text);
+        // UPDATED: Add the 'isSuccess' parameter
+        function onShowDialog(title, text, isSuccess) {
+            dialogManager.showMessage(title, text, isSuccess);
         }
     }
 
@@ -682,10 +682,6 @@ Window {
 
     Connections{
         target: backend
-
-        function onReadText(text){
-            actualPage.setText = text
-        }
 
         function onNewLogAdded(text) {
             logTextArea.append(`(${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}): ` + text)
