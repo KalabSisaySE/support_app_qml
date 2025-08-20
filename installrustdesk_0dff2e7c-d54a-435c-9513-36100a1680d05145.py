@@ -1330,13 +1330,14 @@ class MacrosoftBackend(QObject):
         super().__init__()
 
         # values
-        self._user_type = os.getenv("USER_TYPE", "client")
+        self._user_type = os.getenv("USER_TYPE", "lectoure")
         print(f"user_type: {self._user_type}")
 
         self._is_user_admin = self._user_type == "lectoure"
         print(f"is_user_admin: {self._is_user_admin}")
 
         self._progress = 0
+        self._running_tasks = {}
         self._running_progresses = {}
         self._app_installation_status = "disabled"
         self._app_service_status = "disabled"
@@ -1365,35 +1366,8 @@ class MacrosoftBackend(QObject):
 
         self.lectoure_ws_data = None
 
-        self.app_installation_thread = None
-        self.app_installation_worker = None
-
-        self.obs_installation_thread = None
-        self.obs_installation_worker = None
-
-        self.app_start_thread = None
-        self.app_start_worker = None
-
-        self.app_service_thread = None
-        self.app_service_worker = None
-
         self.app_websocket_thread = None
         self.app_websocket_worker = None
-
-        self.app_rust_id_thread = None
-        self.app_rust_id_worker = None
-
-        self.microphone_only_thread = None
-        self.microphone_only_worker = None
-
-        self.microphone_and_camera_thread = None
-        self.microphone_and_camera_worker = None
-
-        self.open_browser_thread = None
-        self.open_browser_worker = None
-
-        self.open_obs_thread = None
-        self.open_obs_worker = None
 
         self.obs_ws_thread = None
         self.obs_ws_worker = None
@@ -1651,190 +1625,191 @@ class MacrosoftBackend(QObject):
         """adds a new log to UI"""
         self.newLogAdded.emit(log)
 
+    # Add this method inside the MacrosoftBackend class
+
+    def _start_worker(self, task_name: str, worker_class, start_method_name: str, finished_slot, worker_args=None):
+        """
+        A generic function to create, configure, and start a worker in a new thread.
+
+        Args:
+            task_name (str): A unique name for the task (e.g., "app_install").
+            worker_class: The worker class to instantiate (e.g., AppInstallationWorker).
+            start_method_name (str): The name of the method to run when the thread starts.
+            finished_slot (callable): The method to call when the worker is finished.
+            worker_args (tuple, optional): A tuple of arguments to pass to the worker's constructor.
+        """
+        if task_name in self._running_tasks:
+            self.add_log(f"Úloha '{task_name}' už beží.")
+            return
+
+        thread = QThread()
+        worker_args = worker_args or ()  # Ensure it's a tuple
+        worker = worker_class(*worker_args)
+        worker.moveToThread(thread)
+
+        # Get the actual method from the worker instance
+        start_method = getattr(worker, start_method_name)
+        thread.started.connect(start_method)
+
+        # Connect standard signals that most workers have
+        if hasattr(worker, 'progress_changed'):
+            worker.progress_changed.connect(self.update_progress)
+        if hasattr(worker, 'log'):
+            worker.log.connect(self.add_log)
+
+        # The 'finished' signal is crucial for cleanup. We connect it to a generic
+        # handler that will then call the specific finished_slot provided.
+        # We use a lambda to pass the task_name and the specific slot to the cleanup method.
+        worker.finished.connect(lambda *result: self._on_task_finished(task_name, finished_slot, result))
+
+        # Store references for tracking and cleanup
+        self._running_tasks[task_name] = {"thread": thread, "worker": worker}
+
+        thread.start()
+
+    # Add this method inside the MacrosoftBackend class
+
+    def _on_task_finished(self, task_name, specific_finished_slot, result):
+        """
+        Generic cleanup handler for any worker that finishes.
+        """
+        if task_name not in self._running_tasks:
+            return
+
+        task_info = self._running_tasks[task_name]
+        thread = task_info["thread"]
+        worker = task_info["worker"]
+
+        # Call the specific finished slot passed to _start_worker
+        # This handles signals with or without arguments (like finished() vs finished(dict))
+        if result:
+            specific_finished_slot(*result)
+        else:
+            specific_finished_slot()
+
+        # Perform the cleanup
+        thread.quit()
+        thread.wait()
+
+        # Let Qt's event loop delete the objects safely
+        worker.deleteLater()
+        thread.deleteLater()
+
+        # Remove the task from our tracking dictionary
+        del self._running_tasks[task_name]
+
+
     @Slot()
     def install_or_uninstall(self):
         """dynamically installs or uninstalls Macrosoft RustDesk based on the current status"""
 
-        if self.app_installation_thread and self.app_installation_thread.isRunning():
-            self.app_installation_thread.quit()
-            self.app_installation_thread.wait()
-
-        self.app_installation_thread = QThread()
-        self.app_installation_worker = AppInstallationWorker()
-        self.app_installation_worker.moveToThread(self.app_installation_thread)
-
-        self.app_installation_thread.started.connect(self.app_installation_worker.handle_install)
-
-        self.app_installation_worker.progress_changed.connect(self.update_progress)
-        self.app_installation_worker.log.connect(self.add_log)
-        self.app_installation_worker.finished.connect(self.on_installation_finished)
-        # self.worker.finished.connect(self.install_thread.quit)
-        # self.install_thread.finished.connect(self.install_thread.deleteLater)
-
-        # Start the thread
         self.is_app_install_btn_enabled = False
         self.is_app_start_btn_enabled = False
         self.is_app_service_btn_enabled = False
         self.is_app_rust_id_btn_enabled = False
-        self.app_installation_thread.start()
+
+        self._start_worker(
+            task_name="app_installation",
+            worker_class=AppInstallationWorker,
+            start_method_name="handle_install",
+            finished_slot=self.on_installation_finished
+        )
 
 
     @Slot()
     def install_obs(self):
         """install and updates OBS configs"""
 
-        if self.obs_installation_thread and self.obs_installation_thread.isRunning():
-            self.obs_installation_thread.quit()
-            self.obs_installation_thread.wait()
-
-        self.obs_installation_thread = QThread()
-        self.obs_installation_worker = OBSInstallationWorker()
-        self.obs_installation_worker.moveToThread(self.obs_installation_thread)
-
-        self.obs_installation_thread.started.connect(self.obs_installation_worker.install_app)
-
-        self.obs_installation_worker.progress_changed.connect(self.update_progress)
-        self.obs_installation_worker.log.connect(self.add_log)
-        self.obs_installation_worker.finished.connect(self.on_obs_installation_finished)
-
         # Start the thread
         self.is_obs_install_btn_enabled = False
         self.is_open_obs_btn_enabled = False
         self.is_obs_record_btn_enabled = False
-        self.obs_installation_thread.start()
+        self._start_worker(
+            task_name="obs_installation",
+            worker_class=OBSInstallationWorker,
+            start_method_name="install_app",
+            finished_slot=self.on_obs_installation_finished
+        )
 
     @Slot()
     def start_app(self):
         """open Macrosoft RustDesk application"""
-        if self.app_start_thread and self.app_start_thread.isRunning():
-            self.app_start_thread.quit()
-            self.app_start_thread.wait()
 
-        self.app_start_thread = QThread()
-        self.app_start_worker = StartAppWorker()
-        self.app_start_worker.moveToThread(self.app_start_thread)
-
-        self.app_start_thread.started.connect(self.app_start_worker.start_macrosoftconnect)
-
-        self.app_start_worker.progress_changed.connect(self.update_progress)
-        self.app_start_worker.log.connect(self.add_log)
-        self.app_start_worker.finished.connect(self.on_start_app_finished)
-
-        # Start the thread
         self.is_app_start_btn_enabled = False
-        self.app_start_thread.start()
+        self._start_worker(
+            task_name="app_start",
+            worker_class=StartAppWorker,
+            start_method_name="start_macrosoftconnect",
+            finished_slot=self.on_start_app_finished
+        )
 
     @Slot()
     def get_rustid(self):
         """finds the apps rust id"""
-        if self.app_rust_id_thread and self.app_rust_id_thread.isRunning():
-            self.app_rust_id_thread.quit()
-            self.app_rust_id_thread.wait()
-
-        self.app_rust_id_thread = QThread()
-        self.app_rust_id_worker = UserInfoWorker()
-        self.app_rust_id_worker.moveToThread(self.app_rust_id_thread)
-
-        self.app_rust_id_thread.started.connect(self.app_rust_id_worker.get_rustdesk_id)
-
-        self.app_rust_id_worker.progress_changed.connect(self.update_progress)
-        self.app_rust_id_worker.log.connect(self.add_log)
-        self.app_rust_id_worker.finished.connect(self.on_get_rustid_finished)
 
         # Start the thread
         self.is_app_rust_id_btn_enabled = False
-        self.app_rust_id_thread.start()
+        self._start_worker(
+            task_name="app_rust_id",
+            worker_class=UserInfoWorker,
+            start_method_name="get_rustdesk_id",
+            finished_slot=self.on_get_rustid_finished
+        )
 
 
     @Slot()
     def toggle_service(self):
         """turns on/off Macrosoft Rustdesk service"""
-        if self.app_service_thread and self.app_service_thread.isRunning():
-            self.app_service_thread.quit()
-            self.app_service_thread.wait()
-
-        self.app_service_thread = QThread()
-        self.app_service_worker = AppServiceWorker()
-        self.app_service_worker.moveToThread(self.app_service_thread)
-
-        if self.is_service_on():
-            self.app_service_thread.started.connect(self.app_service_worker.stop_service)
-        else:
-            self.app_service_thread.started.connect(self.app_service_worker.start_service)
-
-        self.app_service_worker.progress_changed.connect(self.update_progress)
-        self.app_service_worker.log.connect(self.add_log)
-        self.app_service_worker.finished.connect(self.on_toggle_service_finished)
-
-        # self.is_app_install_btn_enabled = True
+        start_method_name = "stop_service" if self.is_service_on() else "start_service"
         self.is_app_service_btn_enabled = False
-        self.app_service_thread.start()
+
+        self._start_worker(
+            task_name="app_service",
+            worker_class=AppServiceWorker,
+            start_method_name=start_method_name,
+            finished_slot=self.on_toggle_service_finished
+        )
 
     @Slot()
     def open_webpage(self):
         """opens Macrosoft website in user's browser"""
-        if self.open_browser_thread and self.open_browser_thread.isRunning():
-            self.open_browser_thread.quit()
-            self.open_browser_thread.wait()
-
-        self.open_browser_thread = QThread()
-        self.open_browser_worker = OpenBrowserWorker()
-        self.open_browser_worker.moveToThread(self.open_browser_thread)
-
-        self.open_browser_thread.started.connect(self.open_browser_worker.open_browser)
-
-        self.open_browser_worker.progress_changed.connect(self.update_progress)
-        self.open_browser_worker.log.connect(self.add_log)
-        self.open_browser_worker.finished.connect(self.on_open_webpage_finished)
 
         self.is_open_browser_btn_enabled = False
-        self.open_browser_thread.start()
+        self._start_worker(
+            task_name="open_browser",
+            worker_class=OpenBrowserWorker,
+            start_method_name="open_browser",
+            finished_slot=self.on_open_webpage_finished
+        )
 
 
     @Slot()
     def enable_microphone_only(self):
         """changes user devices settings to enable mic access"""
-        if self.microphone_only_thread and self.microphone_only_thread.isRunning():
-            self.microphone_only_thread.quit()
-            self.microphone_only_thread.wait()
-
-        self.microphone_only_thread = QThread()
-        self.microphone_only_worker = PermissionWorker()
-        self.microphone_only_worker.moveToThread(self.microphone_only_thread)
-
-        self.microphone_only_thread.started.connect(self.microphone_only_worker.set_microphone_access_only)
-
-        self.microphone_only_worker.progress_changed.connect(self.update_progress)
-        self.microphone_only_worker.log.connect(self.add_log)
-        self.microphone_only_worker.finished.connect(self.on_enable_microphone_only_finished)
-
         self.is_enable_microphone_only_btn_enabled = False
         self.is_enable_microphone_and_camera_btn_enabled = False
-        self.microphone_only_thread.start()
+
+        self._start_worker(
+            task_name="microphone_only",
+            worker_class=PermissionWorker,
+            start_method_name="set_microphone_access_only",
+            finished_slot=self.on_enable_microphone_only_finished
+        )
 
 
     @Slot()
     def enable_microphone_and_camera(self):
         """changes user devices settings to enable mic and camera access"""
-        if self.microphone_and_camera_thread and self.microphone_and_camera_thread.isRunning():
-            self.microphone_and_camera_thread.quit()
-            self.microphone_and_camera_thread.wait()
-
-        self.microphone_and_camera_thread = QThread()
-        self.microphone_and_camera_worker = PermissionWorker()
-        self.microphone_and_camera_worker.moveToThread(self.microphone_and_camera_thread)
-
-        self.microphone_and_camera_thread.started.connect(
-            self.microphone_and_camera_worker.set_microphone_and_camera_access_only
-        )
-
-        self.microphone_and_camera_worker.progress_changed.connect(self.update_progress)
-        self.microphone_and_camera_worker.log.connect(self.add_log)
-        self.microphone_and_camera_worker.finished.connect(self.on_enable_microphone_and_camera_finished)
 
         self.is_enable_microphone_only_btn_enabled = False
         self.is_enable_microphone_and_camera_btn_enabled = False
-        self.microphone_and_camera_thread.start()
+
+        self._start_worker(
+            task_name="microphone_and_camera",
+            worker_class=PermissionWorker,
+            start_method_name="set_microphone_and_camera_access_only",
+            finished_slot=self.on_enable_microphone_and_camera_finished
+        )
 
     @Slot()
     def toggle_recording(self):
@@ -1950,22 +1925,13 @@ class MacrosoftBackend(QObject):
     @Slot()
     def open_obs(self):
         """opens OBS"""
-        if self.open_obs_thread and self.open_obs_thread.isRunning():
-            self.open_obs_thread.quit()
-            self.open_obs_thread.wait()
-
-        self.open_obs_thread = QThread()
-        self.open_obs_worker = OpenOBSWorker()
-        self.open_obs_worker.moveToThread(self.open_obs_thread)
-
-        self.open_obs_thread.started.connect(self.open_obs_worker.open_obs_app)
-
-        self.open_obs_worker.progress_changed.connect(self.update_progress)
-        self.open_obs_worker.log.connect(self.add_log)
-        self.open_obs_worker.finished.connect(self.on_open_obs_finished)
-
         self.is_open_obs_btn_enabled = False
-        self.open_obs_thread.start()
+        self._start_worker(
+            task_name="open_obs",
+            worker_class=OpenOBSWorker,
+            start_method_name="open_obs_app",
+            finished_slot=self.on_open_obs_finished
+        )
 
 
     @Slot(float, str)
@@ -2173,25 +2139,10 @@ class MacrosoftBackend(QObject):
 
         self.is_app_install_btn_enabled = True
 
-        self.app_installation_thread.quit()
-        self.app_installation_thread.wait()
-        self.app_installation_thread.deleteLater()
-        self.app_installation_thread = None
-
-        self.app_installation_worker.deleteLater()
-        self.app_installation_worker = None
 
     @Slot()
     def on_obs_installation_finished(self):
         """updates obs installation status"""
-        self.obs_installation_thread.quit()
-        self.obs_installation_thread.wait()
-        self.obs_installation_thread.deleteLater()
-        self.obs_installation_thread = None
-
-        self.obs_installation_worker.deleteLater()
-        self.obs_installation_worker = None
-
         self.obs_installation_status = "enabled" if is_obs_installed() else "disabled"
         self.is_obs_install_btn_enabled = False
         self.is_open_obs_btn_enabled = True
@@ -2201,40 +2152,17 @@ class MacrosoftBackend(QObject):
     def on_start_app_finished(self):
         """cleans up when start app button is clicked"""
 
-        self.app_start_thread.quit()
-        self.app_start_thread.wait()
-        self.app_start_thread.deleteLater()
-        self.app_start_thread = None
-
-        self.app_start_worker.deleteLater()
-        self.app_start_worker = None
         self.is_app_start_btn_enabled = check_installation()
 
     @Slot()
-    def on_get_rustid_finished(self):
+    def on_get_rustid_finished(self, result):
         """cleans up when start app button is clicked"""
 
-        self.app_rust_id_thread.quit()
-        self.app_rust_id_thread.wait()
-        self.app_rust_id_thread.deleteLater()
-        self.app_rust_id_thread = None
-
-        self.app_rust_id_worker.deleteLater()
-        self.app_rust_id_worker = None
         self.is_app_rust_id_btn_enabled = True
 
     @Slot()
     def on_toggle_service_finished(self):
         """cleans up when start service button is clicked"""
-
-        self.app_service_thread.quit()
-        self.app_service_thread.wait()
-        self.app_service_thread.deleteLater()
-        self.app_service_thread = None
-
-        self.app_service_worker.deleteLater()
-        self.app_service_worker = None
-        # self.is_app_start_enabled = check_installation()
 
         self.app_service_status = "enabled" if check_installation() and self.is_service_on() else "disabled"
 
@@ -2242,27 +2170,10 @@ class MacrosoftBackend(QObject):
 
     @Slot()
     def on_open_webpage_finished(self):
-
-        self.open_browser_thread.quit()
-        self.open_browser_thread.wait()
-        self.open_browser_thread.deleteLater()
-        self.open_browser_thread = None
-
-        self.open_browser_worker.deleteLater()
-        self.open_browser_worker = None
-
         self.is_open_browser_btn_enabled = True
+
     @Slot()
     def on_open_obs_finished(self):
-
-        self.open_obs_thread.quit()
-        self.open_obs_thread.wait()
-        self.open_obs_thread.deleteLater()
-        self.open_obs_thread = None
-
-        self.open_obs_worker.deleteLater()
-        self.open_obs_worker = None
-
         self.is_open_obs_btn_enabled = True
 
     @Slot(dict)
@@ -2270,32 +2181,13 @@ class MacrosoftBackend(QObject):
 
         self.update_permission_status(result)
 
-
-        self.microphone_only_thread.quit()
-        self.microphone_only_thread.wait()
-        self.microphone_only_thread.deleteLater()
-        self.microphone_only_thread = None
-
-        self.microphone_only_worker.deleteLater()
-        self.microphone_only_worker = None
-
         self.is_enable_microphone_only_btn_enabled = True
         self.is_enable_microphone_and_camera_btn_enabled = True
 
-        # if "microphone_only" in self._running_progresses:
-        #     del self._running_progresses["microphone_only"]
 
     @Slot(dict)
     def on_enable_microphone_and_camera_finished(self, result):
         self.update_permission_status(result)
-
-        self.microphone_and_camera_thread.quit()
-        self.microphone_and_camera_thread.wait()
-        self.microphone_and_camera_thread.deleteLater()
-        self.microphone_and_camera_thread = None
-
-        self.microphone_and_camera_worker.deleteLater()
-        self.microphone_and_camera_worker = None
 
         self.is_enable_microphone_only_btn_enabled = True
         self.is_enable_microphone_and_camera_btn_enabled = True

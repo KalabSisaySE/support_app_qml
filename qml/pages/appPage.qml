@@ -83,53 +83,99 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: qsTr("Aplikácia MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
-                    Item { Layout.fillWidth: true }
-                    StatusIndicator { id: appIndicator; size: 20; status: backend.app_installation_status; Layout.alignment: Qt.AlignVCenter;}
+                    Label {
+                        text: qsTr("Aplikácia MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    StatusIndicator {
+                        id:
+                            appIndicator; size: 20; status: backend.app_installation_status; Layout.alignment: Qt.AlignVCenter; }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: qsTr("Služba MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
-                    Item { Layout.fillWidth: true }
-                    StatusIndicator { id: serviceIndicator; size: 20; status: backend.app_service_status; Layout.alignment: Qt.AlignVCenter;}
+                    Label {
+                        text: qsTr("Služba MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    StatusIndicator {
+                        id:
+                            serviceIndicator; size: 20; status: backend.app_service_status; Layout.alignment: Qt.AlignVCenter; }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: qsTr("Vaše ID:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
-                    Item { Layout.fillWidth: true }
-                    Text { text: backend.rust_id; Layout.alignment: Qt.AlignRight | Qt.AlignVCenter; font.pixelSize: 16; font.italic: true; font.bold: true; color: "#13b899"; rightPadding: 10 }
+                    Label {
+                        text: qsTr("Vaše ID:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    Text {
+                        text: backend.rust_id; Layout.alignment: Qt.AlignRight | Qt.AlignVCenter; font.pixelSize: 16; font.italic: true; font.bold: true; color: "#13b899"; rightPadding: 10
+                    }
                 }
 
                 // --- Bottom Group: Buttons ---
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: qsTr("Aplikácia Macrosoft QuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
-                    Item { Layout.fillWidth: true }
-                    CustomButton { id: macrosoftQuickSupportButton; text: qsTr("Inštalovať"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_install_btn_enabled; onClicked: backend.install_or_uninstall() }
+                    Label {
+                        text: qsTr("Aplikácia Macrosoft QuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    CustomButton {
+                        id:
+                            macrosoftQuickSupportButton; text: qsTr("Inštalovať"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_install_btn_enabled; onClicked: backend.install_or_uninstall()
+                    }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: "Spustiť Aplikáciu:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
-                    Item { Layout.fillWidth: true }
-                    CustomButton { id: startAppButton; text: "Spustiť MacrosoftQuickSupport"; Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_start_btn_enabled; onClicked: backend.start_app() }
+                    Label {
+                        text: "Spustiť Aplikáciu:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    CustomButton {
+                        id:
+                            startAppButton; text: "Spustiť MacrosoftQuickSupport"; Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_start_btn_enabled; onClicked: backend.start_app()
+                    }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: "Služba:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
-                    Item { Layout.fillWidth: true }
-                    CustomButton { id: startServiceButton; text: "Spustiť službu"; Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_service_btn_enabled; onClicked: backend.toggle_service() }
+                    Label {
+                        text: "Služba:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    CustomButton {
+                        id:
+                            startServiceButton; text: "Spustiť službu"; Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_service_btn_enabled; onClicked: backend.toggle_service()
+                    }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: "Získať ID pre prístup:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
-                    Item { Layout.fillWidth: true }
-                    CustomButton { id: getRustIdButton; text: "Získať ID"; Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_rust_id_btn_enabled; onClicked: backend.get_rustid() }
+                    Label {
+                        text: "Získať ID pre prístup:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    CustomButton {
+                        id:
+                            getRustIdButton; text: "Získať ID"; Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_app_rust_id_btn_enabled; onClicked: backend.get_rustid()
+                    }
                 }
 
                 // This spacer will take up all the extra vertical space
