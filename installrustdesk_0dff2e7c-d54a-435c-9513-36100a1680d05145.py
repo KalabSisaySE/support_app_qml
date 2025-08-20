@@ -1287,13 +1287,7 @@ class OBSClientWorker(QObject):
 
 class MacrosoftBackend(QObject):
     # Signal Set Name
-    setName = Signal(str)
-    addCounter = Signal(str)
-    printTime = Signal(str)
-    isVisible = Signal(bool)
-    readText = Signal(str)
     userTypeChanged = Signal(bool)
-
 
     startStream = Signal()
     stopStream = Signal()
@@ -2322,57 +2316,6 @@ class MacrosoftBackend(QObject):
             self.permission_status = "checking"
         else:
             self.permission_status = "disabled"
-
-    @Slot(str)
-    def openFile(self, filePath):
-        try:
-            with open(QUrl(filePath).toLocalFile(), encoding="utf-8") as file:
-                text = file.read()
-                self.readText.emit(text)
-        except Exception as e:
-            pass
-
-    # Read Text
-    @Slot(str)
-    def getTextField(self, text):
-        self.textField = text
-
-    # Write File
-    @Slot(str)
-    def writeFile(self, filePath):
-        try:
-            with open(QUrl(filePath).toLocalFile(), "w", encoding="utf-8") as file:
-                file.write(self.textField)
-        except Exception as e:
-            pass
-
-    # Show / Hide Rectangle
-    @Slot(bool)
-    def showHideRectangle(self, isChecked):
-        self.isVisible.emit(isChecked)
-
-    # Set Timer Function
-    def setTime(self):
-        now = datetime.datetime.now()
-        formatDate = now.strftime("Now is %H:%M:%S %p of %Y/%m/%d")
-        self.printTime.emit(formatDate)
-
-    # Function Set Name To Label
-    @Slot(str)
-    def welcomeText(self, name):
-        self.setName.emit(f"Welcome, {name}")
-
-    @Slot()
-    def start_action(self):
-        pass
-
-    @Slot(str)
-    def new_signal(self, text):
-        # for i in range(10):
-        #     time.sleep(1)
-        import random
-        i = random.randint(1, 10)
-        self.addCounter.emit(f"Counter: {i}")
 
     def cleanup(self):
         """

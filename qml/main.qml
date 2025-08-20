@@ -119,13 +119,6 @@ Window {
                 anchors.topMargin: 0
                 z: 2
 
-                ToggleButton {
-                    onClicked: animationMenu.running = true
-                    // FIX: Ensure the toggle button renders on top of sibling items like the titleBar,
-                    // preventing its hover effect from bleeding underneath.
-                    z: 1
-                }
-
                 Rectangle {
                     id: topBarDescription
                     y: 28
