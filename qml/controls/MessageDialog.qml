@@ -10,7 +10,6 @@ Dialog {
     // --- Custom Properties ---
     property string dialogTitle: "Informácia"
     property string dialogText: ""
-    // ADDED: New property to control the dialog's state
     property bool isSuccess: true
 
     // --- Core Settings ---
@@ -19,7 +18,7 @@ Dialog {
     focus: true
     padding: 0
     width: Math.min(500, Overlay.overlay.width - 40)
-    height: 240 // Increased height
+    height: 240
     closePolicy: Popup.NoAutoClose
 
     // --- Animation State ---
@@ -52,9 +51,7 @@ Dialog {
         id: backgroundRect
         color: "#3a4150"
         radius: 8
-        // MODIFIED: Border color is now conditional
-        border.color: isSuccess ? "#16a086" : "#e74c3c" // Green for success, Red for fail
-        // MODIFIED: Border is slightly thicker to be more visible
+        border.color: isSuccess ? "#16a086" : "#e74c3c"
         border.width: 2
     }
 
@@ -66,27 +63,23 @@ Dialog {
         verticalOffset: 4
     }
 
-    // MODIFIED: The header is now a Row to accommodate the icon
     header: Row {
         height: 55
         spacing: 10
-        // FIXED: Removed "anchors.verticalCenter: parent.verticalCenter" to prevent anchor loop.
-        leftPadding: 15 // Use padding on the Row itself
+        leftPadding: 15
 
-        // ADDED: The status icon
+        // FIXED: The status icon is now visible and uses layer.effect for the color overlay.
         Image {
             id: icon
             width: 24
             height: 24
             anchors.verticalCenter: parent.verticalCenter
-            source: { isSuccess ? "../../images/svg_images/success_icon.svg" : "../../images/svg_images/fail_icon.svg" }
+            source: isSuccess ? "../../images/svg_images/success_icon.svg" : "../../images/svg_images/fail_icon.svg"
             antialiasing: true
-            visible: false // The ColorOverlay will be the visible element
 
-            // FIXED: ColorOverlay is now a child of the Image to avoid conflict with the Row's layout.
-            ColorOverlay {
-                anchors.fill: parent
-                source: parent
+            // By enabling the layer, we can apply an effect directly.
+            layer.enabled: true
+            layer.effect: ColorOverlay {
                 color: "#ffffff"
             }
         }
@@ -112,13 +105,11 @@ Dialog {
 
     footer: DialogButtonBox {
         background: Rectangle { color: "transparent" }
-        padding: 15 // Added padding to the button box
+        padding: 15
 
-        // MODIFIED: Using your CustomButton for consistency
         CustomButton {
             text: qsTr("OK")
             onClicked: messageDialog.closeWithAnimation()
-            // MODIFIED: The button's color is now conditional
             colorDefault: isSuccess ? "#16a086" : "#c0392b"
             implicitWidth: 100
         }
