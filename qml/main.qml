@@ -26,6 +26,38 @@ Window {
     // Text Edit Properties
     property alias actualPage: stackView.currentItem
 
+    // --- NEW: Centralized Dialog Loader ---
+    QtObject {
+        id: dialogManager
+
+        // This function will be called from Python
+        function showMessage(title, text) {
+            // Dynamically create an instance of our dialog component
+            var component = Qt.createComponent("controls/MessageDialog.qml");
+            if (component.status === Component.Ready) {
+                var dialog = component.createObject(mainWindow);
+                if (dialog) {
+                    dialog.dialogTitle = title;
+                    dialog.dialogText = text;
+                    dialog.open();
+                } else {
+                    console.error("Error creating dialog object.");
+                }
+            } else {
+                console.error("Error loading dialog component:", component.errorString());
+            }
+        }
+    }
+
+    // --- NEW: Connection to Backend Signal ---
+    Connections {
+        target: backend
+        // Function name must be on<SignalName>
+        function onShowDialog(title, text) {
+            dialogManager.showMessage(title, text);
+        }
+    }
+
     // Internal functions
     QtObject{
         id: internal

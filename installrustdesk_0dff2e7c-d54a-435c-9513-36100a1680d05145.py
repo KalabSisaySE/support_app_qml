@@ -1288,6 +1288,7 @@ class OBSClientWorker(QObject):
 class MacrosoftBackend(QObject):
     # Signal Set Name
     userTypeChanged = Signal(bool)
+    showDialog = Signal(str, str)
 
     startStream = Signal()
     stopStream = Signal()
@@ -2193,7 +2194,7 @@ class MacrosoftBackend(QObject):
     @Slot(dict)
     def on_installation_finished(self, result_data):
         """updates app state, cleans up, releases resources"""
-
+        print(f"\n\n\ton_installation_finished\n")
         if result_data.get("app_installed"):
             self.app_installation_status = "enabled"
 
@@ -2206,6 +2207,10 @@ class MacrosoftBackend(QObject):
             self.is_app_start_btn_enabled = True
             self.is_app_service_btn_enabled = True
             self.is_app_rust_id_btn_enabled = True
+
+            # --- NEW: Show success dialog ---
+            self.showDialog.emit("Inštalácia Úspešná", "Aplikácia Macrosoft QuickSupport bola úspešne nainštalovaná.")
+
         else:
             self.app_installation_status = "disabled"
             self.app_service_status = "disabled"
@@ -2213,6 +2218,16 @@ class MacrosoftBackend(QObject):
             self.is_app_start_btn_enabled = False
             self.is_app_service_btn_enabled = False
             self.is_app_rust_id_btn_enabled = False
+
+            # --- NEW: Show different dialog for uninstallation ---
+            # We check if the uninstaller path exists to guess if it was an uninstall action
+            uninstall_path = os.path.join("C:\\Program Files\\MacrosoftConnectQuickSupport",
+                                          "Uninstall MacrosoftConnectQuickSupport.lnk")
+            if not os.path.exists(uninstall_path):
+                self.showDialog.emit("Odinštalovanie Dokončené", "Aplikácia bola úspešne odinštalovaná.")
+            else:
+                # It might be a failed installation, you can add more logic here
+                self.showDialog.emit("Chyba", "Počas inštalácie sa vyskytla chyba.")
 
         self.is_app_install_btn_enabled = True
 
