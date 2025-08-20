@@ -1777,6 +1777,8 @@ class MacrosoftBackend(QObject):
         self.is_enable_microphone_only_btn_enabled = True
         self.is_enable_microphone_and_camera_btn_enabled = True
 
+        self.showDialog.emit("Inštalácia Úspešná", "Kompletné nastavenie na 1-klik bolo úspešne dokončené!", True)
+
     @Slot()
     def install_or_uninstall(self):
         """dynamically installs or uninstalls Macrosoft RustDesk based on the current status"""
