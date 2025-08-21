@@ -7,6 +7,7 @@ import sys
 import time
 import urllib.request
 import uuid
+import webbrowser
 
 from dotenv import load_dotenv
 
@@ -28,7 +29,29 @@ from support_app.rtmp_url_manager import RtmpUrlGenerator
 
 load_dotenv()
 
+# At the top of your script
+APP_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'MacrosoftSupport')
+CONFIG_FILE_PATH = os.path.join(APP_DATA_PATH, 'config.json')
+
+def save_access_code(access_code):
+    """Saves the access code to a persistent config file."""
+    os.makedirs(APP_DATA_PATH, exist_ok=True)
+    with open(CONFIG_FILE_PATH, 'w') as f:
+        json.dump({'access_code': access_code}, f)
+
 def get_access_code():
+    """Gets the access code from the config file, falling back to old methods."""
+    # 1. Try to read from the new config file
+    if os.path.exists(CONFIG_FILE_PATH):
+        try:
+            with open(CONFIG_FILE_PATH, 'r') as f:
+                config = json.load(f)
+                if 'access_code' in config:
+                    return config['access_code']
+        except Exception:
+            pass # File might be corrupt, fall through
+
+    # 2. Fallback to original methods
     script_name = os.path.basename(sys.argv[0])
     access = "Nenájdené"
     if "installrustdesk_" in script_name:
@@ -37,25 +60,73 @@ def get_access_code():
             .replace(".py", "")
             .replace(".exe", "")
         )
-    elif script_name.endswith(".exe") :
-
+    elif script_name.endswith(".exe"):
         try:
-            # Get the directory of the script/exe
             base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
             file_path = os.path.join(base_path, "installer_path.txt")
-
-            # Read file content
             with open(file_path, 'r') as file:
                 content = file.read().strip()
                 code = extract_installer_code(content)
                 if code:
                     return code
-
-        except Exception as e:
+        except Exception:
             pass
 
     return access
 
+class AccountAuthWorker(QObject):
+    """
+    Manages the web authentication flow.
+    """
+    log = Signal(str)
+    finished = Signal(dict) # Emits a dict with new user info on success
+
+    def __init__(self):
+        super().__init__()
+        self.token = str(uuid.uuid4())
+        self.polling_timer = QTimer(self)
+        self.polling_timer.setInterval(3000) # Poll every 3 seconds
+        self.polling_timer.timeout.connect(self.poll_for_token_status)
+        self.attempts = 0
+        self.max_attempts = 100 # 5 minutes (100 * 3s)
+
+    @Slot()
+    def start_auth_flow(self):
+        """Opens the browser and starts polling."""
+        self.log.emit("Otváranie prehliadača pre overenie identity...")
+        url = f"https://online.macrosoft.sk/desktop-auth/?token={self.token}"
+        try:
+            webbrowser.open(url)
+            self.log.emit("Prosím, dokončite prihlásenie vo vašom webovom prehliadači.")
+            self.polling_timer.start()
+        except Exception as e:
+            self.log.emit(f"Nepodarilo sa otvoriť prehliadač: {e}")
+            self.finished.emit({}) # Emit empty dict on failure
+
+    def poll_for_token_status(self):
+        """Makes an API call to check the token's status."""
+        self.attempts += 1
+        if self.attempts > self.max_attempts:
+            self.log.emit("Časový limit pre prihlásenie vypršal.")
+            self.polling_timer.stop()
+            self.finished.emit({})
+            return
+
+        try:
+            url = f"https://online.macrosoft.sk/api/desktop-auth/check/{self.token}/"
+            req = urllib.request.Request(url, headers=get_cloudflare_headers())
+            with urllib.request.urlopen(req) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode())
+                    if data.get('status') == 'success':
+                        self.log.emit("Identita úspešne overená.")
+                        self.polling_timer.stop()
+                        self.finished.emit(data) # Success!
+                # If status is 202 (Pending) or 404 (Not Found yet), we just wait for the next poll.
+
+        except Exception as e:
+            # Don't log every failed poll attempt unless it's a major error
+            pass
 
 class InitializeApp(QObject):
     """initializes app state in a thread (prevent powershell flashes)"""
@@ -1289,6 +1360,7 @@ class MacrosoftBackend(QObject):
     # Signal Set Name
     userTypeChanged = Signal(bool)
     showDialog = Signal(str, str, bool)
+    changeAccountBtnEnabledChanged = Signal(bool)
 
     startStream = Signal()
     stopStream = Signal()
@@ -1358,6 +1430,7 @@ class MacrosoftBackend(QObject):
         self._is_open_obs_btn_enabled = False
         self._is_obs_install_btn_enabled = False
         self._is_obs_record_btn_enabled = False
+        self._is_change_account_btn_enabled = True
 
         self._access_code = "Nenájdené"
         self._rust_id = "Nenájdené"
@@ -1387,6 +1460,65 @@ class MacrosoftBackend(QObject):
         if self._is_user_admin != value:
             self._is_user_admin = value
             self.userTypeChanged.emit(value)
+
+    @Property(bool, notify=changeAccountBtnEnabledChanged)
+    def is_change_account_btn_enabled(self):
+        return self._is_change_account_btn_enabled
+
+    @is_change_account_btn_enabled.setter
+    def is_change_account_btn_enabled(self, is_enabled):
+        if self._is_change_account_btn_enabled != is_enabled:
+            self._is_change_account_btn_enabled = is_enabled
+            self.changeAccountBtnEnabledChanged.emit(is_enabled)
+
+    @Slot()
+    def change_account(self):
+        """Starts the web authentication flow."""
+        self.is_change_account_btn_enabled = False
+        self.add_log("Spúšťa sa proces zmeny účtu...")
+        self._start_worker(
+            task_name="account_auth",
+            worker_class=AccountAuthWorker,  # Your new worker
+            start_method_name="start_auth_flow",
+            finished_slot=self.on_account_auth_finished
+        )
+
+    @Slot(dict)
+    def on_account_auth_finished(self, result_data):
+        """Handles the result from the AccountAuthWorker."""
+        new_access_code = result_data.get('access_code')
+
+        if new_access_code:
+            self.add_log("Účet bol úspešne zmenený.")
+
+            # 1. Save the new code persistently
+            save_access_code(new_access_code)
+
+            # 2. Update the backend state
+            self.access_code = new_access_code
+            self.username = result_data.get('full_name', 'Nenájdené')
+
+            # 3. Re-initialize websockets with the new identity
+            # This will disconnect the old one and connect the new one
+            self.setup_websockets(new_access_code)
+
+            # 4. Optionally, re-report RustDesk ID for the new user
+            if self.rust_id != "Nenájdené":
+                # You might want a simple way to re-run this
+                url = f"https://online.macrosoft.sk/rustdesk/?access={new_access_code}&rustdesk={self.rust_id}"
+                try:
+                    req = urllib.request.Request(url, headers=get_cloudflare_headers())
+                    urllib.request.urlopen(req)
+                except Exception as e:
+                    self.add_log(f"Nepodarilo sa znovu nahlásiť RustDesk ID: {e}")
+
+            self.showDialog.emit("Účet Zmenený", "Vaša identita bola úspešne aktualizovaná.", True)
+        else:
+            self.add_log("Proces zmeny účtu zlyhal alebo bol zrušený.")
+            self.showDialog.emit("Chyba", "Nepodarilo sa zmeniť účet.", False)
+
+        self.is_change_account_btn_enabled = True
+
 
     @Property(float, notify=progressChanged)
     def progress(self):
