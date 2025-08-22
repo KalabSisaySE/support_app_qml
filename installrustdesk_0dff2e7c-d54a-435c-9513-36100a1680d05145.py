@@ -1511,7 +1511,7 @@ class MacrosoftBackend(QObject):
             self.add_log("Účet bol úspešne zmenený.")
 
             # 1. Save the new code persistently
-            save_login_info(new_access_code)
+            save_login_info(new_access_code, is_lectoure)
 
             # 2. Update the backend state
             self.access_code = new_access_code
