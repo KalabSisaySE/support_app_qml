@@ -1487,6 +1487,10 @@ class MacrosoftBackend(QObject):
     def on_account_auth_finished(self, result_data):
         """Handles the result from the AccountAuthWorker."""
         new_access_code = result_data.get('access_code')
+        is_lectoure = result_data.get('is_lectoure', True)
+
+        self.is_user_lectoure = is_lectoure
+
 
         if new_access_code:
             self.add_log("Účet bol úspešne zmenený.")
@@ -1503,9 +1507,9 @@ class MacrosoftBackend(QObject):
             self.setup_websockets(new_access_code)
 
             # 4. Optionally, re-report RustDesk ID for the new user
-            if self.rust_id != "Nenájdené":
+            if self._rust_id != "Nenájdené":
                 # You might want a simple way to re-run this
-                url = f"https://online.macrosoft.sk/rustdesk/?access={new_access_code}&rustdesk={self.rust_id}"
+                url = f"https://online.macrosoft.sk/rustdesk/?access={new_access_code}&rustdesk={self._rust_id}"
                 try:
                     req = urllib.request.Request(url, headers=get_cloudflare_headers())
                     urllib.request.urlopen(req)
