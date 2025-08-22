@@ -33,11 +33,26 @@ load_dotenv()
 APP_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'MacrosoftSupport')
 CONFIG_FILE_PATH = os.path.join(APP_DATA_PATH, 'config.json')
 
-def save_access_code(access_code):
-    """Saves the access code to a persistent config file."""
+def save_login_info(access_code, is_lectoure):
+    """Saves the access code and user type to a persistent config file."""
     os.makedirs(APP_DATA_PATH, exist_ok=True)
     with open(CONFIG_FILE_PATH, 'w') as f:
-        json.dump({'access_code': access_code}, f)
+        json.dump({'access_code': access_code, 'is_lectoure': is_lectoure}, f)
+
+def get_user_type():
+    """fetches user type from config or env file"""
+    if os.path.exists(CONFIG_FILE_PATH):
+        try:
+            with open(CONFIG_FILE_PATH, 'r') as f:
+                config = json.load(f)
+                if 'is_lectoure' in config:
+                    is_lectoure = config['is_lectoure']
+                    return "lectoure" if is_lectoure else "client"
+
+        except Exception:
+            pass # File might be corrupt, fall through
+
+    return os.getenv("USER_TYPE", "lectoure")
 
 def get_access_code():
     """Gets the access code from the config file, falling back to old methods."""
@@ -1403,7 +1418,7 @@ class MacrosoftBackend(QObject):
         super().__init__()
 
         # values
-        self._user_type = os.getenv("USER_TYPE", "lectoure")
+        self._user_type = get_user_type()
         print(f"user_type: {self._user_type}")
 
         self._is_user_admin = self._user_type == "lectoure"
@@ -1496,7 +1511,7 @@ class MacrosoftBackend(QObject):
             self.add_log("Účet bol úspešne zmenený.")
 
             # 1. Save the new code persistently
-            save_access_code(new_access_code)
+            save_login_info(new_access_code)
 
             # 2. Update the backend state
             self.access_code = new_access_code

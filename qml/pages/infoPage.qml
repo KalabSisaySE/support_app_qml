@@ -59,6 +59,7 @@ Item {
                     Label { text: qsTr("Aktualizovať účet:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     CustomButton { text: qsTr("Zmeniť účet / Prihlásiť sa"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_change_account_btn_enabled; onClicked: backend.change_account() }
+                    visible: backend.is_user_lectoure
                 }
 
                 // --- User Info ---
