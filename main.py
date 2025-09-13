@@ -8,8 +8,9 @@ import time
 import urllib.request
 import uuid
 import webbrowser
+import requests
+import re
 
-from dotenv import load_dotenv
 
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
@@ -27,46 +28,44 @@ from support_app.browser_permission_manager import BrowserPermissionManager
 from support_app.rtmp_url_manager import RtmpUrlGenerator
 
 
-load_dotenv()
-
 # At the top of your script
 APP_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'MacrosoftSupport')
 CONFIG_FILE_PATH = os.path.join(APP_DATA_PATH, 'config.json')
 
-def save_login_info(access_code, is_lectoure):
+def save_login_info(access_code):
     """Saves the access code and user type to a persistent config file."""
-    os.makedirs(APP_DATA_PATH, exist_ok=True)
-    with open(CONFIG_FILE_PATH, 'w') as f:
-        json.dump({'access_code': access_code, 'is_lectoure': is_lectoure}, f)
+    base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+    file_path = os.path.join(base_path, "installer_path.txt")
+
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(f"Installer Path: MacrosoftSupportInstaller_{access_code}_.exe\n")
 
 def get_user_type():
     """fetches user type from config or env file"""
-    if os.path.exists(CONFIG_FILE_PATH):
-        try:
-            with open(CONFIG_FILE_PATH, 'r') as f:
-                config = json.load(f)
-                if 'is_lectoure' in config:
-                    is_lectoure = config['is_lectoure']
-                    return "lectoure" if is_lectoure else "client"
+    try:
+        access_code = get_access_code()
+        base_url = "https://online.macrosoft.sk"
+        full_url = f"{base_url}/support/app/get-user-type?access_code={access_code}"
+        res = requests.get(full_url, headers=get_cloudflare_headers())
 
-        except Exception:
-            pass # File might be corrupt, fall through
+        return res.json()['user_type']
+
+    except Exception as e:
+        if os.path.exists(CONFIG_FILE_PATH):
+            try:
+                with open(CONFIG_FILE_PATH, 'r') as f:
+                    config = json.load(f)
+                    if 'is_lectoure' in config:
+                        is_lectoure = config['is_lectoure']
+                        return "lectoure" if is_lectoure else "client"
+
+            except Exception:
+                pass # File might be corrupt, fall through
 
     return os.getenv("USER_TYPE", "lectoure")
 
 def get_access_code():
     """Gets the access code from the config file, falling back to old methods."""
-    # 1. Try to read from the new config file
-    if os.path.exists(CONFIG_FILE_PATH):
-        try:
-            with open(CONFIG_FILE_PATH, 'r') as f:
-                config = json.load(f)
-                if 'access_code' in config:
-                    return config['access_code']
-        except Exception:
-            pass # File might be corrupt, fall through
-
-    # 2. Fallback to original methods
     script_name = os.path.basename(sys.argv[0])
     access = "Nenájdené"
     if "installrustdesk_" in script_name:
@@ -88,6 +87,35 @@ def get_access_code():
             pass
 
     return access
+
+def is_version_string(s: str) -> bool:
+    s = s.strip()
+    pattern = r'^\d+(\.\d+)*$'
+    return re.match(pattern, s) is not None
+
+
+def get_latest_obs_download_url():
+
+    download_url = "https://cdn-fastly.obsproject.com/downloads/OBS-Studio-31.1.2-Windows-x64-Installer.exe"
+
+    try:
+        url = "https://github.com/obsproject/obs-studio/releases/latest"
+        base_url = "https://cdn-fastly.obsproject.com/downloads/"
+
+        resp = requests.get(url, allow_redirects=True)
+        latest_link = resp.url
+        latest_version = latest_link[latest_link.find("tag/"):].replace("tag/", "")
+
+        if is_version_string(latest_version):
+            print("latest version is here")
+            download_url = f"{base_url}OBS-Studio-{latest_version}-Windows-x64-Installer.exe"
+    except:
+        pass
+
+    return download_url
+
+
+
 
 class AccountAuthWorker(QObject):
     """
@@ -253,6 +281,7 @@ class AppInstallationWorker(QObject):
     progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal(dict)
+    selfUninstallTriggered = Signal()
 
     def __init__(self):
         super().__init__()
@@ -354,7 +383,7 @@ class AppInstallationWorker(QObject):
         self.finished.emit(self.result_data)
 
     def uninstall_app(self):
-        """uninstalls and rust Macrosoft RustDesk"""
+        """uninstalls MacrosoftConnectQuickSupport and then triggers self-uninstall."""
         uninstall_path = os.path.join(
             "C:\\Program Files\\MacrosoftConnectQuickSupport",
             "Uninstall MacrosoftConnectQuickSupport.lnk",
@@ -366,14 +395,16 @@ class AppInstallationWorker(QObject):
             return
 
         try:
+            # --- This part for uninstalling MacrosoftConnectQuickSupport remains the same ---
             SW_HIDE = 0
             result = ctypes.windll.shell32.ShellExecuteW(
                 None, "open", uninstall_path, None, None, SW_HIDE
             )
             if result <= 32:
                 raise Exception(f"ShellExecuteW zlyhalo s kódom {result}")
+
             app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
-            max_wait_time = 120  # Maximum wait time in seconds
+            max_wait_time = 120
             start_time = time.time()
             while os.path.exists(app_path):
                 if time.time() - start_time > max_wait_time:
@@ -381,9 +412,27 @@ class AppInstallationWorker(QObject):
                     break
                 time.sleep(1)
             self.log.emit("MacrosoftConnectQuickSupport bol odinštalovaný úspešne.")
+
+            # --- START: NEW SELF-UNINSTALL LOGIC ---
+            # Check if running as a compiled executable (frozen by PyInstaller)
+            if getattr(sys, 'frozen', False):
+                app_dir = os.path.dirname(sys.executable)
+                main_uninstaller_path = os.path.join(app_dir, "unins000.exe")
+
+                if os.path.exists(main_uninstaller_path):
+                    self.log.emit("Spúšťanie odinštalácie hlavnej aplikácie...")
+                    # Launch the main app's uninstaller silently and detach it
+                    subprocess.Popen([main_uninstaller_path, "/SILENT"])
+                    # Emit signal to tell the main app to close
+                    self.selfUninstallTriggered.emit()
+                else:
+                    self.log.emit("Odinštalačný program hlavnej aplikácie (unins000.exe) nebol nájdený.")
+            # --- END: NEW SELF-UNINSTALL LOGIC ---
+
         except Exception as e:
             self.log.emit(f"Nepodarilo sa spustiť odinštalátor: {e}")
 
+        # Emit finished signal to allow the worker thread to be cleaned up
         self.finished.emit(self.result_data)
 
     def get_rustdesk_id(self):
@@ -1042,6 +1091,7 @@ class OpenOBSWorker(QObject):
 
         self.finished.emit()
 
+
 class OBSInstallationWorker(QObject):
     """manages macrosoft rustdesk installation and uninstallation"""
     progress_changed = Signal(float, str)
@@ -1068,12 +1118,16 @@ class OBSInstallationWorker(QObject):
     @Slot()
     def install_app(self):
         """installs and rust Macrosoft RustDesk"""
-        self.log.emit("Začínam proces inštalácie...")
+        self.log.emit("Začínam proces inštalácie OBS...")
 
-        download_url = "https://cdn-fastly.obsproject.com/downloads/OBS-Studio-31.0.2-Windows-Installer.exe"
+        download_url = get_latest_obs_download_url()
+        if not download_url:
+            self.log.emit("Inštalácia OBS bola zrušená, pretože sa nepodarilo nájsť odkaz na stiahnutie.")
+            self.finished.emit()
+            return
+
         new_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
         temp_dir = os.environ.get("TEMP", new_path)
-
         os.makedirs(temp_dir, exist_ok=True)
         installer_path = os.path.join(temp_dir, "obs_installer.exe")
 
@@ -1094,30 +1148,25 @@ class OBSInstallationWorker(QObject):
                             self.progress_changed.emit(percent, self.process_name)
         except Exception as e:
             self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
-            self.finished.emit(self.result_data)
+            self.finished.emit()
             return
 
         try:
-            # Prepare startup info to hide cmd window
-            self.log.emit(f"Inštaluje sa Macrosoft Connect Quick Support...")
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            SW_HIDE = 0
-            startupinfo.wShowWindow = SW_HIDE
-
-            # Run the installer
-            process = subprocess.run( [installer_path, "/S"], )
-
+            self.log.emit("Inštaluje sa OBS Studio...")
+            # Run the installer silently
+            subprocess.run([installer_path, "/S"], check=True)
+            self.log.emit("OBS Studio bolo úspešne nainštalované.")
             time.sleep(5)
 
             setup_obs_config()
             start_obs(first_time=True)
 
+        except subprocess.CalledProcessError as e:
+            self.log.emit(f"Inštalátor OBS zlyhal s chybou: {e}")
         except Exception as e:
             self.log.emit(f"Chyba počas inštalácie: {e}")
 
         self.finished.emit()
-
 class OBSClientWorker(QObject):
 
     connection = Signal(bool)
@@ -1511,7 +1560,7 @@ class MacrosoftBackend(QObject):
             self.add_log("Účet bol úspešne zmenený.")
 
             # 1. Save the new code persistently
-            save_login_info(new_access_code, is_lectoure)
+            save_login_info(new_access_code)
 
             # 2. Update the backend state
             self.access_code = new_access_code
@@ -1779,46 +1828,37 @@ class MacrosoftBackend(QObject):
 
     # Add this method inside the MacrosoftBackend class
 
+
     def _start_worker(self, task_name: str, worker_class, start_method_name: str, finished_slot, worker_args=None):
         """
         A generic function to create, configure, and start a worker in a new thread.
-
-        Args:
-            task_name (str): A unique name for the task (e.g., "app_install").
-            worker_class: The worker class to instantiate (e.g., AppInstallationWorker).
-            start_method_name (str): The name of the method to run when the thread starts.
-            finished_slot (callable): The method to call when the worker is finished.
-            worker_args (tuple, optional): A tuple of arguments to pass to the worker's constructor.
         """
-        if task_name in self._running_tasks:
-            self.add_log(f"Úloha '{task_name}' už beží.")
-            return
+        # ... (initial part of the method is unchanged)
 
         thread = QThread()
-        worker_args = worker_args or ()  # Ensure it's a tuple
+        worker_args = worker_args or ()
         worker = worker_class(*worker_args)
         worker.moveToThread(thread)
 
-        # Get the actual method from the worker instance
         start_method = getattr(worker, start_method_name)
         thread.started.connect(start_method)
 
-        # Connect standard signals that most workers have
         if hasattr(worker, 'progress_changed'):
             worker.progress_changed.connect(self.update_progress)
         if hasattr(worker, 'log'):
             worker.log.connect(self.add_log)
 
-        # The 'finished' signal is crucial for cleanup. We connect it to a generic
-        # handler that will then call the specific finished_slot provided.
-        # We use a lambda to pass the task_name and the specific slot to the cleanup method.
+        # --- START: ADD THIS BLOCK ---
+        # Special handling for the self-uninstall signal from AppInstallationWorker
+        if hasattr(worker, 'selfUninstallTriggered'):
+            worker.selfUninstallTriggered.connect(self.quit_application)
+        # --- END: ADD THIS BLOCK ---
+
         worker.finished.connect(lambda *result: self._on_task_finished(task_name, finished_slot, result))
 
-        # Store references for tracking and cleanup
         self._running_tasks[task_name] = {"thread": thread, "worker": worker}
 
         thread.start()
-
     # Add this method inside the MacrosoftBackend class
 
     def _on_task_finished(self, task_name, specific_finished_slot, result):
@@ -1854,8 +1894,7 @@ class MacrosoftBackend(QObject):
     @Slot()
     def one_click_setup(self):
         """
-        Starts the one-click process: install the app (if not present)
-        and then set all permissions.
+        Starts the one-click process: install app, set permissions, and (if lectoure) install OBS.
         """
         self.add_log("Spúšťa sa kompletné nastavenie na 1-klik...")
 
@@ -1866,6 +1905,7 @@ class MacrosoftBackend(QObject):
         self.is_app_rust_id_btn_enabled = False
         self.is_enable_microphone_only_btn_enabled = False
         self.is_enable_microphone_and_camera_btn_enabled = False
+        self.is_obs_install_btn_enabled = False
 
         # Check if the app is already installed to skip the installation step
         if check_installation():
@@ -1875,7 +1915,7 @@ class MacrosoftBackend(QObject):
                 task_name="one_click_permissions",
                 worker_class=PermissionWorker,
                 start_method_name="set_microphone_and_camera_access_only",
-                finished_slot=self._on_one_click_step2_finished
+                finished_slot=self._on_one_click_permissions_finished
             )
         else:
             # If not installed, start with the installation worker (Step 1)
@@ -1883,9 +1923,71 @@ class MacrosoftBackend(QObject):
                 task_name="one_click_install",
                 worker_class=AppInstallationWorker,
                 start_method_name="handle_install",
-                # CRITICAL: The finished slot points to our chaining method
-                finished_slot=self._on_one_click_step1_finished
+                finished_slot=self._on_one_click_install_finished
             )
+
+    @Slot(dict)
+    def _on_one_click_install_finished(self, result_data):
+        """
+        Called after the installation worker finishes. Starts the permission worker.
+        """
+        self.add_log("Inštalácia aplikácie dokončená. Pokračujem nastavením povolení...")
+        self.on_installation_finished(result_data)  # Update UI based on installation
+
+        self._start_worker(
+            task_name="one_click_permissions",
+            worker_class=PermissionWorker,
+            start_method_name="set_microphone_and_camera_access_only",
+            finished_slot=self._on_one_click_permissions_finished
+        )
+
+    @Slot(dict)
+    def _on_one_click_permissions_finished(self, result_data):
+        """
+        Called after the PermissionWorker finishes. Checks if OBS needs to be installed.
+        """
+        self.add_log("Nastavenie povolení dokončené.")
+        self.update_permission_status(result_data)
+
+        # Check if we need to install OBS (lectoure user and OBS not installed)
+        if self.is_user_lectoure and not is_obs_installed():
+            self.add_log("Používateľ je lektor, spúšťa sa inštalácia OBS...")
+            self._start_worker(
+                task_name="one_click_obs_install",
+                worker_class=OBSInstallationWorker,
+                start_method_name="install_app",
+                finished_slot=self._on_one_click_obs_finished
+            )
+        else:
+            if self.is_user_lectoure and is_obs_installed():
+                self.add_log("OBS je už nainštalovaný, krok sa preskakuje.")
+            self._on_one_click_complete()
+
+    @Slot()
+    def _on_one_click_obs_finished(self):
+        """
+        Called after the OBSInstallationWorker finishes.
+        """
+        self.add_log("Inštalácia OBS dokončená.")
+        self.on_obs_installation_finished()
+        self._on_one_click_complete()
+
+    def _on_one_click_complete(self):
+        """
+        Called at the very end of the one-click chain. Re-enables buttons and shows a success message.
+        """
+        self.add_log("Kompletné nastavenie na 1-klik bolo úspešne dokončené!")
+
+        # Re-enable all buttons now that the entire sequence is complete
+        self.is_app_install_btn_enabled = True
+        self.is_app_start_btn_enabled = check_installation()
+        self.is_app_service_btn_enabled = check_installation()
+        self.is_app_rust_id_btn_enabled = check_installation()
+        self.is_enable_microphone_only_btn_enabled = True
+        self.is_enable_microphone_and_camera_btn_enabled = True
+        self.is_obs_install_btn_enabled = not is_obs_installed()
+
+        self.showDialog.emit("Nastavenie Dokončené", "Kompletné nastavenie na 1-klik bolo úspešne dokončené!", True)
 
     # 2. THE PRIVATE CHAINING SLOT (AFTER INSTALLATION)
     @Slot(dict)
@@ -1945,6 +2047,12 @@ class MacrosoftBackend(QObject):
             start_method_name="handle_install",
             finished_slot=self.on_installation_finished
         )
+
+    @Slot()
+    def quit_application(self):
+        """Gracefully quits the application."""
+        self.add_log("Aplikácia sa zatvára na základe požiadavky na odinštalovanie.")
+        QGuiApplication.instance().quit()
 
 
     @Slot()

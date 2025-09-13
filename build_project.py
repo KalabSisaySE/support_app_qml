@@ -63,12 +63,11 @@ def run_command(command, env=None):
 
 
 
-def compile_application(user_type):
+def compile_application():
     """
     Compiles the application using PyInstaller for a specific user type.
     """
     print(f"\n>>> Compiling ...")
-
 
     # Clean up previous build files
     if os.path.exists('output'):
@@ -104,7 +103,7 @@ def compile_application(user_type):
     # Run the compilation
     run_command(pyinstaller_command)
 
-    print(f">>> Successfully compiled {user_type.upper()} version into 'dist' folder.")
+    print(f">>> Successfully compiled version into '{OUTPUT_DIR}' folder.")
 
 
 def prepare_installer_directory():
@@ -132,12 +131,8 @@ def main():
     print("=== Macrosoft Support Build Automation ===")
     print("==========================================")
 
-    # --- CHOOSE WHICH VERSION TO BUILD ---
-    # Change this variable to 'client' to build the client version
-    build_type = "lectoure"
-
     # 1. Compile the application for the chosen build type
-    compile_application(build_type)
+    compile_application()
 
     # 2. Prepare the final directory structure for Inno Setup
     prepare_installer_directory()
@@ -154,7 +149,7 @@ def main():
 
 
     print("\n==========================================")
-    print(f"=== Build Process for '{build_type.upper()}' Completed Successfully ===")
+    print(f"=== Build Process for Completed Successfully ===")
     print("==========================================")
 
 
