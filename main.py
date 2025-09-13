@@ -415,18 +415,19 @@ class AppInstallationWorker(QObject):
 
             # --- START: NEW SELF-UNINSTALL LOGIC ---
             # Check if running as a compiled executable (frozen by PyInstaller)
-            if getattr(sys, 'frozen', False):
-                app_dir = os.path.dirname(sys.executable)
-                main_uninstaller_path = os.path.join(app_dir, "unins000.exe")
+            if get_user_type() == "client":
+                if getattr(sys, 'frozen', False):
+                    app_dir = os.path.dirname(sys.executable)
+                    main_uninstaller_path = os.path.join(app_dir, "unins000.exe")
 
-                if os.path.exists(main_uninstaller_path):
-                    self.log.emit("Spúšťanie odinštalácie hlavnej aplikácie...")
-                    # Launch the main app's uninstaller silently and detach it
-                    subprocess.Popen([main_uninstaller_path, "/SILENT"])
-                    # Emit signal to tell the main app to close
-                    self.selfUninstallTriggered.emit()
-                else:
-                    self.log.emit("Odinštalačný program hlavnej aplikácie (unins000.exe) nebol nájdený.")
+                    if os.path.exists(main_uninstaller_path):
+                        self.log.emit("Spúšťanie odinštalácie hlavnej aplikácie...")
+                        # Launch the main app's uninstaller silently and detach it
+                        subprocess.Popen([main_uninstaller_path, "/SILENT"])
+                        # Emit signal to tell the main app to close
+                        self.selfUninstallTriggered.emit()
+                    else:
+                        self.log.emit("Odinštalačný program hlavnej aplikácie (unins000.exe) nebol nájdený.")
             # --- END: NEW SELF-UNINSTALL LOGIC ---
 
         except Exception as e:
