@@ -26,13 +26,13 @@ def get_process_command_lines(process_name):
     except Exception as e:
         return []
 
-
 def is_app_running():
     """
     Check if a Macrosoft Remote Desktop is running.
     :return: True if the process is running, False otherwise.
     """
-    process_name = "macrosoftconnectquicksupport.exe"
+    from main import NAME, EXE_NAME
+    process_name = f"{EXE_NAME}.exe"
 
     for proc in psutil.process_iter(['name']):
         try:
@@ -50,7 +50,6 @@ def is_service_running(service_name):
         return False
     except Exception as e:
         return False
-
 
 def get_full_name(access):
     import requests
@@ -76,7 +75,6 @@ def open_website(access):
         return True
     else:
         return False
-
 
 def is_user_admin():
     try:
@@ -127,7 +125,8 @@ def extract_installer_code(input_str):
 
 def check_installation():
     """Check if the application is installed on user's computer."""
-    app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+    from main import NAME, EXE_NAME
+    app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
     return os.path.exists(app_path)
 
 def is_obs_installed():
@@ -295,3 +294,6 @@ def get_cloudflare_headers():
         "cf-access-client-id": "e5227eb75bb71fa25a09e6bed7362bb1.access",
         "cf-access-client-secret": "32097cf5a9639d6bd46e818112e0171119be7754a1acd243f703116f93ca9a38",
     }
+
+
+

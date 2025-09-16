@@ -115,6 +115,14 @@ def get_latest_obs_download_url():
     return download_url
 
 
+NAME = "MacrosoftConnectQuickSupport" if get_user_type() == "client" else "MacrosoftConnect"
+EXE_NAME = "macrosoftconnectquicksupport" if get_user_type() == "client" else "macrosoftconnect"
+
+
+print(f"\n\n\n\nmain.py .....")
+print(f"\tname: {NAME}")
+print(f"\texe_name: {EXE_NAME}")
+print()
 
 
 class AccountAuthWorker(QObject):
@@ -199,12 +207,12 @@ class InitializeApp(QObject):
         # APP STATUS
         if check_installation():
             self.result["is_app_installed"] = True
-            self.result["is_app_service_running"] = is_service_running("MacrosoftConnectQuickSupport")
+            self.result["is_app_service_running"] = is_service_running(NAME)
 
             # get rust_id
             try:
                 max_attempts = 3
-                app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+                app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
 
                 result = subprocess.run(
                     [app_path, "--get-id"],
@@ -292,10 +300,10 @@ class AppInstallationWorker(QObject):
         }
         self.access = get_access_code()
         self.manager = ServiceManager(
-            service_name="MacrosoftConnectQuickSupport",
-            display_name="MacrosoftConnectQuickSupport Service",
+            service_name=f"{NAME}",
+            display_name=f"{NAME} Service",
             binary_path=(
-                r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
+                fr'"C:\Program Files\{NAME}\{EXE_NAME}.exe" --service'
             ),
         )
         self.process_name = "app_installation"
@@ -313,12 +321,12 @@ class AppInstallationWorker(QObject):
         self.log.emit("Začínam proces inštalácie...")
 
         base_url = "https://cloud.macrosoft.sk/"
-        download_url = f"{base_url}support_app/macrosoftconnectquicksupport.exe"
+        download_url = f"{base_url}support_app/{EXE_NAME}.exe"
         new_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
         temp_dir = os.environ.get("TEMP", new_path)
 
         os.makedirs(temp_dir, exist_ok=True)
-        installer_path = os.path.join(temp_dir, "macrosoftconnectquicksupport.exe")
+        installer_path = os.path.join(temp_dir, f"{EXE_NAME}.exe")
 
         try:
             req = urllib.request.Request(
@@ -383,10 +391,10 @@ class AppInstallationWorker(QObject):
         self.finished.emit(self.result_data)
 
     def uninstall_app(self):
-        """uninstalls MacrosoftConnectQuickSupport and then triggers self-uninstall."""
+        """uninstalls macrosoft connect and then triggers self-uninstall."""
         uninstall_path = os.path.join(
-            "C:\\Program Files\\MacrosoftConnectQuickSupport",
-            "Uninstall MacrosoftConnectQuickSupport.lnk",
+            f"C:\\Program Files\\{NAME}",
+            f"Uninstall {NAME}.lnk",
         )
 
         if not os.path.exists(uninstall_path):
@@ -395,7 +403,7 @@ class AppInstallationWorker(QObject):
             return
 
         try:
-            # --- This part for uninstalling MacrosoftConnectQuickSupport remains the same ---
+            # --- This part for uninstalling Macrosoft Connect remains the same ---
             SW_HIDE = 0
             result = ctypes.windll.shell32.ShellExecuteW(
                 None, "open", uninstall_path, None, None, SW_HIDE
@@ -403,7 +411,7 @@ class AppInstallationWorker(QObject):
             if result <= 32:
                 raise Exception(f"ShellExecuteW zlyhalo s kódom {result}")
 
-            app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+            app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
             max_wait_time = 120
             start_time = time.time()
             while os.path.exists(app_path):
@@ -411,7 +419,7 @@ class AppInstallationWorker(QObject):
                     self.log.emit("Odinštalácia trvá príliš dlho.")
                     break
                 time.sleep(1)
-            self.log.emit("MacrosoftConnectQuickSupport bol odinštalovaný úspešne.")
+            self.log.emit(f"{NAME} bol odinštalovaný úspešne.")
 
             # --- START: NEW SELF-UNINSTALL LOGIC ---
             # Check if running as a compiled executable (frozen by PyInstaller)
@@ -438,11 +446,11 @@ class AppInstallationWorker(QObject):
 
     def get_rustdesk_id(self):
         """Retrieve the RustDesk ID."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
 
         if not os.path.exists(app_path):
             self.log.emit(
-                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+                f"{NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {NAME}"
             )
             return "Nenájdené"
 
@@ -488,8 +496,8 @@ class AppInstallationWorker(QObject):
 
 
     def start_macrosoftconnect(self):
-        """Start the MacrosoftConnectQuickSupport application."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+        """Start the Macrosoft Connect application."""
+        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
         if not os.path.exists(app_path):
             return
 
@@ -505,9 +513,9 @@ class AppInstallationWorker(QObject):
             return
 
     def start_service(self):
-        """Start the MacrosoftConnectQuickSupport service."""
+        """Start the Macrosoft Connect service."""
         try:
-            if is_service_running("MacrosoftConnectQuickSupport"):
+            if is_service_running(f"{NAME}"):
                 self.log.emit("Služba je spustená...")
                 return True
 
@@ -526,22 +534,22 @@ class AppInstallationWorker(QObject):
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit("Služba MacrosoftConnectQuickSupport je spustená.")
+            self.log.emit(f"Služba {NAME} je spustená.")
             return True
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť službu MacrosoftConnectQuickSupport., {e}")
+            self.log.emit(f"Nepodarilo sa spustiť službu {NAME}., {e}")
 
 
     def stop_service(self):
-        """Stop the MacrosoftConnectQuickSupport service."""
+        """Stop the Macrosoft Connect service."""
         try:
-            if is_service_running("MacrosoftConnectQuickSupport"):
+            if is_service_running(f"{NAME}"):
                 self.log.emit("Služba je spustená.")
                 if is_app_running():
                     self.log.emit("Aplikácia je spustená.")
                     self.manager.stop_service()
-                    self.log.emit("Služba MacrosoftConnectQuickSupport bola zastavená.")
+                    self.log.emit(f"Služba {NAME} bola zastavená.")
                     return True
                 else:
                     self.log.emit("Služba nie je spustená...")
@@ -550,7 +558,7 @@ class AppInstallationWorker(QObject):
                 return True
         except Exception as e:
             self.log.emit(
-                f"Nepodarilo sa zastaviť službu MacrosoftConnectQuickSupport. {e}"
+                f"Nepodarilo sa zastaviť službu {NAME}. {e}"
             )
 
 class StartAppWorker(QObject):
@@ -565,12 +573,12 @@ class StartAppWorker(QObject):
 
     @Slot()
     def start_macrosoftconnect(self):
-        """Start the MacrosoftConnectQuickSupport application."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+        """Start the Macrosoft Connect application."""
+        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
 
         if not os.path.exists(app_path):
             self.log.emit(
-                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+                f"{NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {NAME}"
             )
 
         try:
@@ -580,9 +588,9 @@ class StartAppWorker(QObject):
                 stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
-            self.log.emit("MacrosoftConnectQuickSupport bol spustený.")
+            self.log.emit(f"{NAME} bol spustený.")
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť MacrosoftConnectQuickSupport: {e}")
+            self.log.emit(f"Nepodarilo sa spustiť {NAME}: {e}")
 
         self.finished.emit()
 
@@ -592,10 +600,10 @@ class AppServiceWorker(QObject):
     log = Signal(str)
     finished = Signal()
     manager = ServiceManager(
-        service_name="MacrosoftConnectQuickSupport",
-        display_name="MacrosoftConnectQuickSupport Service",
+        service_name=f"{NAME}",
+        display_name=f"{NAME} Service",
         binary_path=(
-            r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
+            fr'"C:\Program Files\{NAME}\{EXE_NAME}.exe" --service'
         ),
     )
 
@@ -604,8 +612,8 @@ class AppServiceWorker(QObject):
         self.process_name = "app_service"
 
     def start_macrosoftconnect(self):
-        """Start the MacrosoftConnectQuickSupport application."""
-        app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+        """Start the Macrosoft Connect application."""
+        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
 
         if not os.path.exists(app_path):
             return
@@ -623,7 +631,7 @@ class AppServiceWorker(QObject):
 
     @Slot()
     def start_service(self, signals=None):
-        """Start the MacrosoftConnectQuickSupport service."""
+        """Start the Macrosoft Connect service."""
         try:
             if not check_installation():
                 self.log.emit("Aplikácia nie je nainštalovaná. Najprv nainštalujte aplikáciu...")
@@ -642,21 +650,21 @@ class AppServiceWorker(QObject):
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit("Služba MacrosoftConnectQuickSupport je spustená.")
+            self.log.emit(f"Služba {NAME} je spustená.")
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť službu MacrosoftConnectQuickSupport., {e}")
+            self.log.emit(f"Nepodarilo sa spustiť službu {NAME}., {e}")
 
         self.finished.emit()
 
     @Slot()
     def stop_service(self):
-        """Stop the MacrosoftConnectQuickSupport service."""
+        """Stop the Macrosoft Connect service."""
         try:
-            if is_service_running("MacrosoftConnectQuickSupport"):
+            if is_service_running(f"{NAME}"):
                 if is_app_running():
                     self.manager.stop_service()
-                    self.log.emit("Služba MacrosoftConnectQuickSupport bola zastavená.")
+                    self.log.emit(f"Služba {NAME} bola zastavená.")
 
                 else:
                     self.log.emit("Služba nie je spustená...")
@@ -664,7 +672,7 @@ class AppServiceWorker(QObject):
                 self.log.emit("Služba nie je spustená...")
         except Exception as e:
             self.log.emit(
-                f"Nepodarilo sa zastaviť službu MacrosoftConnectQuickSupport. {e}"
+                f"Nepodarilo sa zastaviť službu {NAME}. {e}"
             )
 
         self.finished.emit()
@@ -682,7 +690,7 @@ class UserInfoWorker(QObject):
             "rust_id": "Nenájdené"
         }
         self.access = get_access_code()
-        self.app_path = r"C:\Program Files\MacrosoftConnectQuickSupport\macrosoftconnectquicksupport.exe"
+        self.app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
         self.process_name = "user_info"
 
     @Slot()
@@ -690,7 +698,7 @@ class UserInfoWorker(QObject):
         """Retrieve the RustDesk ID."""
         if not os.path.exists(self.app_path):
             self.log.emit(
-                "MacrosoftConnectQuickSupport nie je nainštalovaný, prosím kliknite na Inštalovať MacrosoftConnectQuickSupport"
+                f"{NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {NAME}"
             )
             self.finished.emit(self.result_data)
 
@@ -1108,10 +1116,10 @@ class OBSInstallationWorker(QObject):
         }
         self.access = get_access_code()
         self.manager = ServiceManager(
-            service_name="MacrosoftConnectQuickSupport",
-            display_name="MacrosoftConnectQuickSupport Service",
+            service_name=f"{NAME}",
+            display_name=f"{NAME} Service",
             binary_path=(
-                r'"C:\Program Files\MacrosoftConnectQuickSupport\MacrosoftConnectQuickSupport.exe" --service'
+                fr'"C:\Program Files\{NAME}\{EXE_NAME}.exe" --service'
             ),
         )
         self.process_name = "obs_install"
@@ -2449,7 +2457,7 @@ class MacrosoftBackend(QObject):
 
     def is_service_on(self):
         """checks if Macrosoft rustdesk service is running"""
-        return is_service_running("MacrosoftConnectQuickSupport")
+        return is_service_running(f"{NAME}")
 
 
 
@@ -2483,8 +2491,8 @@ class MacrosoftBackend(QObject):
 
             # --- NEW: Show different dialog for uninstallation ---
             # We check if the uninstaller path exists to guess if it was an uninstall action
-            uninstall_path = os.path.join("C:\\Program Files\\MacrosoftConnectQuickSupport",
-                                          "Uninstall MacrosoftConnectQuickSupport.lnk")
+            uninstall_path = os.path.join(f"C:\\Program Files\\{NAME}",
+                                          f"Uninstall {NAME}.lnk")
             if not os.path.exists(uninstall_path):
                 self.showDialog.emit("Odinštalovanie Dokončené", "Aplikácia bola úspešne odinštalovaná.", True)
             else:
