@@ -1,11 +1,20 @@
-import os
 import json
-import psutil
+import os
 import shutil
 import sqlite3
 import tempfile
 import time
 
+import psutil
+
+SITE_URL = 'https://online.macrosoft.sk'
+SITE_URL_KEY = f'{SITE_URL}:443,*'
+
+FIREFOX_PROFILES_INI = ('Mozilla', 'Firefox', 'profiles.ini')
+FIREFOX_PERMISSIONS_DB = 'permissions.sqlite'
+FIREFOX_USER_DIR = ('Mozilla', 'Firefox')
+
+BROWSER_PROCESS_NAMES = ["chrome.exe", "firefox.exe", "msedge.exe", "brave.exe"]
 
 
 class BrowserPermissionManager:
@@ -16,7 +25,7 @@ class BrowserPermissionManager:
 
         try:
             self.user_account = os.getlogin()
-        except:
+        except Exception:
             pass
 
         if self.user_account:
@@ -27,6 +36,14 @@ class BrowserPermissionManager:
             self.chrome_basepath = ""
             self.brave_basepath = ""
             self.edge_basepath = ""
+
+    def _chromium_browser_paths(self):
+        """The Chromium based browsers and their user data directories."""
+        return (
+            ("Edge", self.edge_basepath),
+            ("Chrome", self.chrome_basepath),
+            ("Brave", self.brave_basepath),
+        )
 
     def find_preferences_files(self, base_path):
         """
@@ -79,7 +96,6 @@ class BrowserPermissionManager:
         temp_file = file_path + ".json"
         shutil.copyfile(file_path, temp_file)
 
-
         try:
             # Load JSON content
             with open(temp_file, "r", encoding="utf-8") as file:
@@ -97,29 +113,21 @@ class BrowserPermissionManager:
                 raise ValueError("Required keys 'media_stream_camera' and 'media_stream_mic' do not exist.")
 
             # Data to add or update
-            url_key = "https://online.macrosoft.sk:443,*"
-            # update_data = {
-            #     "last_modified": "13379863098972389",
-            #     "last_used": "13379863095987050",
-            #     "last_visit": "13379385600000000",
-            #     "setting": 1,
-            # }
-
             update_data = {
                 "setting": 1,
             }
 
             # Update or add the key in media_stream_camera
-            if url_key in media_stream_camera:
-                media_stream_camera[url_key]["setting"] = 1
+            if SITE_URL_KEY in media_stream_camera:
+                media_stream_camera[SITE_URL_KEY]["setting"] = 1
             else:
-                media_stream_camera[url_key] = update_data
+                media_stream_camera[SITE_URL_KEY] = update_data
 
             # Update or add the key in media_stream_mic
-            if url_key in media_stream_mic:
-                media_stream_mic[url_key]["setting"] = 1
+            if SITE_URL_KEY in media_stream_mic:
+                media_stream_mic[SITE_URL_KEY]["setting"] = 1
             else:
-                media_stream_mic[url_key] = update_data
+                media_stream_mic[SITE_URL_KEY] = update_data
 
             # Save back to the original file
             with open(file_path, "w", encoding="utf-8") as file:
@@ -136,139 +144,69 @@ class BrowserPermissionManager:
                 os.remove(temp_file)
 
     def set_browser_permissions(self):
-        # URL to allow
-        site_url = 'https://online.macrosoft.sk'
-
-        # For Edge
-        try:
-            if os.path.exists(self.edge_basepath):
-                edge_preferences = self.find_preferences_files(self.edge_basepath)
-
-                for preference in edge_preferences:
-                    self.modify_preference_file(preference)
-        except Exception as e:
-            pass
-
-        # For Chrome
-        try:
-            if os.path.exists(self.chrome_basepath):
-                chrome_preferences = self.find_preferences_files(self.chrome_basepath)
-
-                for preference in chrome_preferences:
-                    self.modify_preference_file(preference)
-        except Exception as e:
-            pass
-
-        # For Brave (Brave uses Chromium policies)
-        try:
-            if os.path.exists(self.brave_basepath):
-                brave_preferences = self.find_preferences_files(self.brave_basepath)
-
-                for preference in brave_preferences:
-                    self.modify_preference_file(preference)
-        except Exception as e:
-            pass
+        """Grant microphone and camera access to the site in every browser."""
+        for _, base_path in self._chromium_browser_paths():
+            try:
+                if os.path.exists(base_path):
+                    for preference in self.find_preferences_files(base_path):
+                        self.modify_preference_file(preference)
+            except Exception:
+                pass
 
         # For Firefox
         try:
             self.set_firefox_permissions()
-        except Exception as e:
+        except Exception:
             pass
 
     def is_browser_permissions_allowed(self):
-        site_url = 'https://online.macrosoft.sk'
         permissions_allowed = False
 
-        # Check Edge
-        try:
-            if os.path.exists(self.edge_basepath):
-                edge_preferences = self.find_preferences_files(self.edge_basepath)
-                for preference in edge_preferences:
-                    if not self.check_preference_file_settings(preference):
-                        return
-            permissions_allowed = True
-        except:
-            pass  # Silently skip if Edge is not installed or error occurs
-
-        # Check Chrome
-        try:
-            if os.path.exists(self.chrome_basepath):
-                chrome_preferences = self.find_preferences_files(self.chrome_basepath)
-                for preference in chrome_preferences:
-                    if not self.check_preference_file_settings(preference):
-                        return
-            permissions_allowed = True
-        except:
-            pass  # Silently skip if Chrome is not installed or error occurs
-
-        # Check Brave
-        try:
-            if os.path.exists(self.brave_basepath):
-                brave_preferences = self.find_preferences_files(self.brave_basepath)
-                for preference in brave_preferences:
-                    if not self.check_preference_file_settings(preference):
-                        return
-            permissions_allowed = True
-        except:
-            pass  # Silently skip if Brave is not installed or error occurs
+        # Check the Chromium based browsers (Edge, Chrome, Brave)
+        for _, base_path in self._chromium_browser_paths():
+            try:
+                if os.path.exists(base_path):
+                    for preference in self.find_preferences_files(base_path):
+                        if not self.check_preference_file_settings(preference):
+                            return
+                permissions_allowed = True
+            except Exception:
+                pass  # Silently skip if the browser is not installed or an error occurs
 
         # Check Firefox
         try:
             appdata = os.getenv('APPDATA')
-            profiles_ini_path = os.path.join(appdata, 'Mozilla', 'Firefox', 'profiles.ini')
-            if os.path.exists(profiles_ini_path):
-                with open(profiles_ini_path, 'r') as f:
-                    lines = f.readlines()
+            for profile in self._read_firefox_profiles():
+                if 'Path' not in profile:
+                    continue
 
-                profiles = []
-                current_profile = {}
-                for line in lines:
-                    line = line.strip()
-                    if line.startswith('['):
-                        if current_profile:
-                            profiles.append(current_profile)
-                            current_profile = {}
-                    elif '=' in line:
-                        key, value = line.split('=', 1)
-                        current_profile[key.strip()] = value.strip()
-                if current_profile:
-                    profiles.append(current_profile)
+                profile_dir = self._firefox_profile_dir(profile, appdata)
+                permissions_file = os.path.join(profile_dir, FIREFOX_PERMISSIONS_DB)
+                if not os.path.exists(permissions_file):
+                    continue
 
-                # Now, for each profile, check the permissions
-                for profile in profiles:
-                    if 'Path' in profile:
-                        profile_path = profile['Path']
-                        is_relative = profile.get('IsRelative', '1') == '1'
-                        if is_relative:
-                            profile_dir = os.path.join(appdata, 'Mozilla', 'Firefox', profile_path)
-                        else:
-                            profile_dir = profile_path
-                        permissions_file = os.path.join(profile_dir, 'permissions.sqlite')
-                        if os.path.exists(permissions_file):
-                            # Connect to the SQLite database
-                            conn = sqlite3.connect(permissions_file)
-                            c = conn.cursor()
-                            # Check if permissions table exists
-                            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
-                            if c.fetchone():
-                                c.execute('SELECT permission FROM moz_perms WHERE origin=? AND type=?', (site_url, 'microphone'))
-                                mic_permission = c.fetchone()
-                                c.execute('SELECT permission FROM moz_perms WHERE origin=? AND type=?', (site_url, 'camera'))
-                                cam_permission = c.fetchone()
-                                if mic_permission and mic_permission[0] == 1 and cam_permission and cam_permission[0] == 1:
-                                    permissions_allowed = True
-                            conn.close()
-        except:
-            pass  # Silently skip if Firefox is not installed or error occurs
+                conn = sqlite3.connect(permissions_file)
+                c = conn.cursor()
+                # Check if permissions table exists
+                c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
+                if c.fetchone():
+                    c.execute('SELECT permission FROM moz_perms WHERE origin=? AND type=?', (SITE_URL, 'microphone'))
+                    mic_permission = c.fetchone()
+                    c.execute('SELECT permission FROM moz_perms WHERE origin=? AND type=?', (SITE_URL, 'camera'))
+                    cam_permission = c.fetchone()
+                    if mic_permission and mic_permission[0] == 1 and cam_permission and cam_permission[0] == 1:
+                        permissions_allowed = True
+                conn.close()
+        except Exception:
+            pass  # Silently skip if Firefox is not installed or an error occurs
 
         return permissions_allowed
 
     def check_and_close_browser(self):
-        browsers = ["chrome.exe", "firefox.exe", "msedge.exe", "brave.exe"]
         for proc in psutil.process_iter(['pid', 'name']):
             try:
                 # Check if the process name matches any browser executable
-                if proc.info['name'] in browsers:
+                if proc.info['name'] in BROWSER_PROCESS_NAMES:
                     proc.terminate()  # Terminate the browser process
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
@@ -302,27 +240,56 @@ class BrowserPermissionManager:
             if not (exceptions or media_stream_camera) or not (exceptions or media_stream_mic):
                 return
 
-            # Data to add or update
-            url_key = "https://online.macrosoft.sk:443,*"
-
             camera_perm = False
             mic_perm = False
 
             # Update or add the key in media_stream_camera
-            if url_key in media_stream_camera:
-                camera_perm = media_stream_camera[url_key]["setting"] == 1
+            if SITE_URL_KEY in media_stream_camera:
+                camera_perm = media_stream_camera[SITE_URL_KEY]["setting"] == 1
 
-            if url_key in media_stream_mic:
-                mic_perm = media_stream_mic[url_key]["setting"] == 1
+            if SITE_URL_KEY in media_stream_mic:
+                mic_perm = media_stream_mic[SITE_URL_KEY]["setting"] == 1
 
             return camera_perm and mic_perm
 
-        except Exception as e:
+        except Exception:
             return
 
-    def set_firefox_permissions(self):
-        site_url = 'https://online.macrosoft.sk'
+    def _read_firefox_profiles(self):
+        """Parse profiles.ini and return the list of profile dictionaries."""
+        appdata = os.getenv('APPDATA')
+        profiles_ini_path = os.path.join(appdata, *FIREFOX_PROFILES_INI)
+        if not os.path.exists(profiles_ini_path):
+            return []
 
+        with open(profiles_ini_path, 'r') as f:
+            lines = f.readlines()
+
+        profiles = []
+        current_profile = {}
+        for line in lines:
+            line = line.strip()
+            if line.startswith('['):
+                if current_profile:
+                    profiles.append(current_profile)
+                    current_profile = {}
+            elif '=' in line:
+                key, value = line.split('=', 1)
+                current_profile[key.strip()] = value.strip()
+        if current_profile:
+            profiles.append(current_profile)
+
+        return profiles
+
+    def _firefox_profile_dir(self, profile, appdata):
+        """Resolve the on-disk directory of a Firefox profile."""
+        profile_path = profile['Path']
+        is_relative = profile.get('IsRelative', '1') == '1'
+        if is_relative:
+            return os.path.join(appdata, *FIREFOX_USER_DIR, profile_path)
+        return profile_path
+
+    def set_firefox_permissions(self):
         # Kill Firefox processes if running to avoid conflicts with database access
         for proc in psutil.process_iter(['name']):
             if proc.info['name'] and 'firefox' in proc.info['name'].lower():
@@ -331,59 +298,43 @@ class BrowserPermissionManager:
         time.sleep(2)
 
         appdata = os.getenv('APPDATA')
-        profiles_ini_path = os.path.join(appdata, 'Mozilla', 'Firefox', 'profiles.ini')
-        if os.path.exists(profiles_ini_path):
-            with open(profiles_ini_path, 'r') as f:
-                lines = f.readlines()
+        profiles_ini_path = os.path.join(appdata, *FIREFOX_PROFILES_INI)
+        if not os.path.exists(profiles_ini_path):
+            return
 
-            profiles = []
-            current_profile = {}
-            for line in lines:
-                line = line.strip()
-                if line.startswith('['):
-                    if current_profile:
-                        profiles.append(current_profile)
-                        current_profile = {}
-                elif '=' in line:
-                    key, value = line.split('=', 1)
-                    current_profile[key.strip()] = value.strip()
-            if current_profile:
-                profiles.append(current_profile)
+        # Now, for each profile, modify the permissions
+        for profile in self._read_firefox_profiles():
+            if 'Path' not in profile:
+                continue
 
-            # Now, for each profile, modify the permissions
-            for profile in profiles:
-                if 'Path' in profile:
-                    profile_path = profile['Path']
-                    is_relative = profile.get('IsRelative', '1') == '1'
-                    if is_relative:
-                        profile_dir = os.path.join(appdata, 'Mozilla', 'Firefox', profile_path)
-                    else:
-                        profile_dir = profile_path
-                    permissions_file = os.path.join(profile_dir, 'permissions.sqlite')
-                    if os.path.exists(permissions_file):
-                        # Copy permissions.sqlite to a temporary file
-                        temp_permissions_file = os.path.join(tempfile.gettempdir(), 'permissions.sqlite')
-                        shutil.copy2(permissions_file, temp_permissions_file)
-                        # Connect to the SQLite database
-                        conn = sqlite3.connect(temp_permissions_file)
-                        c = conn.cursor()
-                        # Check if permissions table exists
-                        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
-                        if c.fetchone():
-                            # Insert or replace permission
-                            # permission values: 1=Allow, 2=Deny, 3=Prompt
-                            permissions = [
-                                (site_url, 'microphone', 1),
-                                (site_url, 'camera', 1)
-                            ]
-                            for host, type_, permission in permissions:
-                                c.execute(
-                                    'REPLACE INTO moz_perms (origin, type, permission, expireType, expireTime, modificationTime) VALUES (?,?,?,?,?,?)',
-                                    (host, type_, permission, 0, 0, int(time.time() * 1000)))
-                            conn.commit()
-                        conn.close()
-                        # Copy the temp file back to the original
-                        shutil.copy2(temp_permissions_file, permissions_file)
-                        os.remove(temp_permissions_file)
+            profile_dir = self._firefox_profile_dir(profile, appdata)
+            permissions_file = os.path.join(profile_dir, FIREFOX_PERMISSIONS_DB)
+            if not os.path.exists(permissions_file):
+                continue
 
-            return True
+            # Copy permissions.sqlite to a temporary file
+            temp_permissions_file = os.path.join(tempfile.gettempdir(), FIREFOX_PERMISSIONS_DB)
+            shutil.copy2(permissions_file, temp_permissions_file)
+            # Connect to the SQLite database
+            conn = sqlite3.connect(temp_permissions_file)
+            c = conn.cursor()
+            # Check if permissions table exists
+            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='moz_perms'")
+            if c.fetchone():
+                # Insert or replace permission
+                # permission values: 1=Allow, 2=Deny, 3=Prompt
+                permissions = [
+                    (SITE_URL, 'microphone', 1),
+                    (SITE_URL, 'camera', 1)
+                ]
+                for host, type_, permission in permissions:
+                    c.execute(
+                        'REPLACE INTO moz_perms (origin, type, permission, expireType, expireTime, modificationTime) VALUES (?,?,?,?,?,?)',
+                        (host, type_, permission, 0, 0, int(time.time() * 1000)))
+                conn.commit()
+            conn.close()
+            # Copy the temp file back to the original
+            shutil.copy2(temp_permissions_file, permissions_file)
+            os.remove(temp_permissions_file)
+
+        return True
