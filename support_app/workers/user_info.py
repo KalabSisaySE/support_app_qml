@@ -1,18 +1,14 @@
 """Worker that resolves and reports the Macrosoft Connect RustDesk id."""
 
 import os
-import subprocess
-import time
-import urllib.request
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from support_app.app_config import (
-    EXE_NAME,
-    NAME,
-    RUSTDESK_REPORT_URL,
-    get_access_code,
-    get_cloudflare_headers,
+from support_app.app_config import NAME, get_access_code
+from support_app.macrosoft_connect import (
+    app_executable_path,
+    query_rustdesk_id,
+    report_rustdesk_id,
 )
 from support_app.utils import get_full_name
 
@@ -30,7 +26,7 @@ class UserInfoWorker(QObject):
             "rust_id": "Nenájdené"
         }
         self.access = get_access_code()
-        self.app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
+        self.app_path = app_executable_path()
         self.process_name = "user_info"
 
     @Slot()
@@ -43,13 +39,7 @@ class UserInfoWorker(QObject):
             self.finished.emit(self.result_data)
 
         try:
-            result = subprocess.run(
-                [self.app_path, "--get-id"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            rustdesk_id = result.stdout.strip() if result.stdout else "Nenájdené"
+            rustdesk_id = query_rustdesk_id(self.app_path) or "Nenájdené"
 
             self.log.emit(f"Vaše ID je: {rustdesk_id}")
             self.report_rustdesk_id(rustdesk_id)
@@ -62,23 +52,12 @@ class UserInfoWorker(QObject):
 
     def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
         """Report the RustDesk ID to the server."""
-        if self.access:
-            url = f"{RUSTDESK_REPORT_URL}?access={self.access}&rustdesk={rustdesk_id}"
-            attempt = 0
-            while attempt < max_attempts:
-                attempt += 1
-                try:
-                    req = urllib.request.Request(url, headers=get_cloudflare_headers())
-                    with urllib.request.urlopen(req) as response:
-                        if response.status == 200:
-                            self.log.emit("ID bolo úspešne odoslané.")
-                            break
-                        else:
-                            self.log.emit(f"Odozva servera: {response.status}")
-                            if attempt < max_attempts:
-                                time.sleep(1)
-                except Exception as e:
-                    self.log.emit(f"Nepodarilo sa odoslať ID: {e}")
+        report_rustdesk_id(
+            self.access,
+            rustdesk_id,
+            log=self.log.emit,
+            max_attempts=max_attempts,
+        )
 
     @Slot()
     def set_username(self):

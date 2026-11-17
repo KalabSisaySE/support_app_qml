@@ -5,8 +5,11 @@ import subprocess
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from support_app.app_config import EXE_NAME, NAME
-from support_app.rust_service_manager import ServiceManager
+from support_app.app_config import NAME
+from support_app.macrosoft_connect import (
+    app_executable_path,
+    create_service_manager,
+)
 from support_app.utils import check_installation, is_app_running, is_service_running
 
 
@@ -23,7 +26,7 @@ class StartAppWorker(QObject):
     @Slot()
     def start_macrosoftconnect(self):
         """Start the Macrosoft Connect application."""
-        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
+        app_path = app_executable_path()
 
         if not os.path.exists(app_path):
             self.log.emit(
@@ -49,13 +52,7 @@ class AppServiceWorker(QObject):
     progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal()
-    manager = ServiceManager(
-        service_name=f"{NAME}",
-        display_name=f"{NAME} Service",
-        binary_path=(
-            fr'"C:\Program Files\{NAME}\{EXE_NAME}.exe" --service'
-        ),
-    )
+    manager = create_service_manager()
 
     def __init__(self):
         super().__init__()
@@ -63,7 +60,7 @@ class AppServiceWorker(QObject):
 
     def start_macrosoftconnect(self):
         """Start the Macrosoft Connect application."""
-        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
+        app_path = app_executable_path()
 
         if not os.path.exists(app_path):
             return

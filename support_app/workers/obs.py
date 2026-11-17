@@ -12,14 +12,12 @@ from PySide6.QtCore import QObject, QUrl, Signal, Slot
 from PySide6.QtWebSockets import QWebSocket
 
 from support_app.app_config import (
-    EXE_NAME,
     FALLBACK_DOWNLOAD_DIR,
-    NAME,
     get_access_code,
     get_latest_obs_download_url,
 )
+from support_app.macrosoft_connect import create_service_manager
 from support_app.rtmp_url_manager import RtmpUrlGenerator
-from support_app.rust_service_manager import ServiceManager
 from support_app.utils import (
     is_obs_installed,
     is_obs_running,
@@ -69,13 +67,7 @@ class OBSInstallationWorker(QObject):
             "rust_id": "Nenájdené"
         }
         self.access = get_access_code()
-        self.manager = ServiceManager(
-            service_name=f"{NAME}",
-            display_name=f"{NAME} Service",
-            binary_path=(
-                fr'"C:\Program Files\{NAME}\{EXE_NAME}.exe" --service'
-            ),
-        )
+        self.manager = create_service_manager()
         self.process_name = "obs_install"
 
     @Slot()

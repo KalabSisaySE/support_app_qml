@@ -1,19 +1,17 @@
 """Initial application state discovery worker."""
 
-import subprocess
-import time
-import urllib.request
-
 from PySide6.QtCore import QObject, Signal, Slot
 
 from support_app.app_config import (
-    EXE_NAME,
     NAME,
-    RUSTDESK_REPORT_URL,
     get_access_code,
-    get_cloudflare_headers,
 )
 from support_app.browser_permission_manager import BrowserPermissionManager
+from support_app.macrosoft_connect import (
+    app_executable_path,
+    query_rustdesk_id,
+    report_rustdesk_id,
+)
 from support_app.registry_permission_manager import RegistryPermissionManager
 from support_app.utils import (
     check_installation,
@@ -60,38 +58,11 @@ class InitializeApp(QObject):
 
             # get rust_id
             try:
-                max_attempts = 3
-                app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
-
-                result = subprocess.run(
-                    [app_path, "--get-id"],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-
-                rust_id = result.stdout.strip() if result.stdout else ""
+                rust_id = query_rustdesk_id(app_executable_path())
                 self.result["rust_id"] = rust_id
+                report_rustdesk_id(code, rust_id)
 
-                # report rustdesk
-                if code:
-                    url = f"{RUSTDESK_REPORT_URL}?access={code}&rustdesk={rust_id}"
-                    attempt = 0
-                    while attempt < max_attempts:
-                        attempt += 1
-                        try:
-                            req = urllib.request.Request(url, headers=get_cloudflare_headers())
-
-                            with urllib.request.urlopen(req) as response:
-                                if response.status == 200:
-                                    break
-                                else:
-                                    if attempt < max_attempts:
-                                        time.sleep(1)
-                        except Exception as e:
-                            pass
-
-            except Exception as e:
+            except Exception:
                 self.result["is_app_installed"] = False
         else:
             self.result["is_app_installed"] = False

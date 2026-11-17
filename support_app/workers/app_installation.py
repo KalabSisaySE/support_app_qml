@@ -13,12 +13,17 @@ from support_app.app_config import (
     EXE_NAME,
     FALLBACK_DOWNLOAD_DIR,
     NAME,
-    RUSTDESK_REPORT_URL,
     get_access_code,
     get_cloudflare_headers,
     get_user_type,
 )
-from support_app.rust_service_manager import ServiceManager
+from support_app.macrosoft_connect import (
+    app_executable_path,
+    create_service_manager,
+    query_rustdesk_id,
+    report_rustdesk_id,
+    uninstall_shortcut_path,
+)
 from support_app.utils import (
     check_installation,
     is_app_running,
@@ -41,13 +46,7 @@ class AppInstallationWorker(QObject):
             "rust_id": "Nenájdené"
         }
         self.access = get_access_code()
-        self.manager = ServiceManager(
-            service_name=f"{NAME}",
-            display_name=f"{NAME} Service",
-            binary_path=(
-                fr'"C:\Program Files\{NAME}\{EXE_NAME}.exe" --service'
-            ),
-        )
+        self.manager = create_service_manager()
         self.process_name = "app_installation"
 
     @Slot()
@@ -133,10 +132,7 @@ class AppInstallationWorker(QObject):
 
     def uninstall_app(self):
         """uninstalls macrosoft connect and then triggers self-uninstall."""
-        uninstall_path = os.path.join(
-            f"C:\\Program Files\\{NAME}",
-            f"Uninstall {NAME}.lnk",
-        )
+        uninstall_path = uninstall_shortcut_path()
 
         if not os.path.exists(uninstall_path):
             self.log.emit("Odinštalačný súbor nebol nájdený.")
@@ -152,7 +148,7 @@ class AppInstallationWorker(QObject):
             if result <= 32:
                 raise Exception(f"ShellExecuteW zlyhalo s kódom {result}")
 
-            app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
+            app_path = app_executable_path()
             max_wait_time = 120
             start_time = time.time()
             while os.path.exists(app_path):
@@ -187,7 +183,7 @@ class AppInstallationWorker(QObject):
 
     def get_rustdesk_id(self):
         """Retrieve the RustDesk ID."""
-        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
+        app_path = app_executable_path()
 
         if not os.path.exists(app_path):
             self.log.emit(
@@ -196,14 +192,7 @@ class AppInstallationWorker(QObject):
             return "Nenájdené"
 
         try:
-            result = subprocess.run(
-                [app_path, "--get-id"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            rustdesk_id = result.stdout.strip() if result.stdout else "Nenájdené"
-
+            rustdesk_id = query_rustdesk_id(app_path) or "Nenájdené"
 
             self.log.emit(f"Vaše ID je: {rustdesk_id}")
             self.report_rustdesk_id(rustdesk_id)
@@ -215,29 +204,17 @@ class AppInstallationWorker(QObject):
 
     def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
         """report the RustDesk ID to the server."""
-        if self.access:
-            url = f"{RUSTDESK_REPORT_URL}?access={self.access}&rustdesk={rustdesk_id}"
-            attempt = 0
-
-            while attempt < max_attempts:
-                attempt += 1
-                try:
-                    req = urllib.request.Request(url, headers=get_cloudflare_headers())
-                    with urllib.request.urlopen(req) as response:
-                        if response.status == 200:
-                            self.log.emit("ID bolo úspešne odoslané.")
-                            break
-                        else:
-                            self.log.emit(f"Odozva servera: {response.status}")
-                            if attempt < max_attempts:
-                                time.sleep(1)
-                except Exception as e:
-                    self.log.emit(f"Nepodarilo sa odoslať ID: {e}")
+        report_rustdesk_id(
+            self.access,
+            rustdesk_id,
+            log=self.log.emit,
+            max_attempts=max_attempts,
+        )
 
 
     def start_macrosoftconnect(self):
         """Start the Macrosoft Connect application."""
-        app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
+        app_path = app_executable_path()
         if not os.path.exists(app_path):
             return
 

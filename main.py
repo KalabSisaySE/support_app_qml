@@ -18,6 +18,7 @@ from support_app.app_config import (
     save_login_info,
 )
 from support_app.utils import check_installation, is_obs_installed, is_service_running
+from support_app.macrosoft_connect import uninstall_shortcut_path
 from support_app.workers import (
     AccountAuthWorker,
     AppInstallationWorker,
@@ -1102,8 +1103,7 @@ class MacrosoftBackend(QObject):
 
             # --- NEW: Show different dialog for uninstallation ---
             # We check if the uninstaller path exists to guess if it was an uninstall action
-            uninstall_path = os.path.join(f"C:\\Program Files\\{NAME}",
-                                          f"Uninstall {NAME}.lnk")
+            uninstall_path = uninstall_shortcut_path()
             if not os.path.exists(uninstall_path):
                 self.showDialog.emit("Odinštalovanie Dokončené", "Aplikácia bola úspešne odinštalovaná.", True)
             else:

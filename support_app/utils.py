@@ -113,9 +113,8 @@ def get_latest_access_code():
 
 def check_installation():
     """Check if the application is installed on user's computer."""
-    from support_app.app_config import NAME, EXE_NAME
-    app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
-    return os.path.exists(app_path)
+    from support_app.macrosoft_connect import app_executable_path
+    return os.path.exists(app_executable_path())
 
 def is_obs_installed():
     """Check if OBS is installed"""
