@@ -2,8 +2,7 @@ import string
 import random
 import requests
 
-from support_app.utils import get_cloudflare_headers
-
+from support_app.app_config import get_cloudflare_headers
 
 class RtmpUrlGenerator:
     # --- Class-level constants for better organization ---

@@ -8,8 +8,6 @@ import time
 import urllib.request
 import uuid
 import webbrowser
-import requests
-import re
 
 
 from PySide6.QtGui import QGuiApplication
@@ -19,104 +17,26 @@ from PySide6.QtWebSockets import QWebSocket
 from PySide6.QtNetwork import QAbstractSocket, QNetworkRequest
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from support_app.utils import is_app_running, is_service_running, get_full_name, extract_installer_code, \
+from support_app.app_config import (
+    DESKTOP_AUTH_CHECK_URL,
+    DESKTOP_AUTH_URL,
+    EXE_NAME,
+    NAME,
+    RUSTDESK_REPORT_URL,
+    SUPPORT_WEBSOCKET_URL,
+    get_access_code,
+    get_cloudflare_headers,
+    get_latest_obs_download_url,
+    get_user_type,
+    save_login_info,
+)
+from support_app.utils import is_app_running, is_service_running, get_full_name, \
     check_installation, open_website, is_obs_running, is_obs_installed, start_obs, close_obs, \
-    setup_obs_config, check_obs_config, get_cloudflare_headers
+    setup_obs_config, check_obs_config
 from support_app.rust_service_manager import ServiceManager
 from support_app.registry_permission_manager import RegistryPermissionManager
 from support_app.browser_permission_manager import BrowserPermissionManager
 from support_app.rtmp_url_manager import RtmpUrlGenerator
-
-
-# At the top of your script
-APP_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'MacrosoftSupport')
-CONFIG_FILE_PATH = os.path.join(APP_DATA_PATH, 'config.json')
-
-def save_login_info(access_code):
-    """Saves the access code and user type to a persistent config file."""
-    base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-    file_path = os.path.join(base_path, "installer_path.txt")
-
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.write(f"Installer Path: MacrosoftSupportInstaller_{access_code}_.exe\n")
-
-def get_user_type():
-    """fetches user type from config or env file"""
-    try:
-        access_code = get_access_code()
-        base_url = "https://online.macrosoft.sk"
-        full_url = f"{base_url}/support/app/get-user-type?access_code={access_code}"
-        res = requests.get(full_url, headers=get_cloudflare_headers())
-
-        return res.json()['user_type']
-
-    except Exception as e:
-        if os.path.exists(CONFIG_FILE_PATH):
-            try:
-                with open(CONFIG_FILE_PATH, 'r') as f:
-                    config = json.load(f)
-                    if 'is_lectoure' in config:
-                        is_lectoure = config['is_lectoure']
-                        return "lectoure" if is_lectoure else "client"
-
-            except Exception:
-                pass # File might be corrupt, fall through
-
-    return os.getenv("USER_TYPE", "lectoure")
-
-def get_access_code():
-    """Gets the access code from the config file, falling back to old methods."""
-    script_name = os.path.basename(sys.argv[0])
-    access = "Nenájdené"
-    if "installrustdesk_" in script_name:
-        access = (
-            script_name.replace("installrustdesk_", "")
-            .replace(".py", "")
-            .replace(".exe", "")
-        )
-    elif script_name.endswith(".exe"):
-        try:
-            base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-            file_path = os.path.join(base_path, "installer_path.txt")
-            with open(file_path, 'r') as file:
-                content = file.read().strip()
-                code = extract_installer_code(content)
-                if code:
-                    return code
-        except Exception:
-            pass
-
-    return access
-
-def is_version_string(s: str) -> bool:
-    s = s.strip()
-    pattern = r'^\d+(\.\d+)*$'
-    return re.match(pattern, s) is not None
-
-
-def get_latest_obs_download_url():
-
-    download_url = "https://cdn-fastly.obsproject.com/downloads/OBS-Studio-31.1.2-Windows-x64-Installer.exe"
-
-    try:
-        url = "https://github.com/obsproject/obs-studio/releases/latest"
-        base_url = "https://cdn-fastly.obsproject.com/downloads/"
-
-        resp = requests.get(url, allow_redirects=True)
-        latest_link = resp.url
-        latest_version = latest_link[latest_link.find("tag/"):].replace("tag/", "")
-
-        if is_version_string(latest_version):
-            print("latest version is here")
-            download_url = f"{base_url}OBS-Studio-{latest_version}-Windows-x64-Installer.exe"
-    except:
-        pass
-
-    return download_url
-
-
-NAME = "MacrosoftConnectQuickSupport" if get_user_type() == "client" else "MacrosoftConnect"
-EXE_NAME = "macrosoftconnectquicksupport" if get_user_type() == "client" else "macrosoftconnect"
 
 
 print(f"\n\n\n\nmain.py .....")
@@ -145,7 +65,7 @@ class AccountAuthWorker(QObject):
     def start_auth_flow(self):
         """Opens the browser and starts polling."""
         self.log.emit("Otváranie prehliadača pre overenie identity...")
-        url = f"https://online.macrosoft.sk/desktop-auth/?token={self.token}"
+        url = f"{DESKTOP_AUTH_URL}?token={self.token}"
         try:
             webbrowser.open(url)
             self.log.emit("Prosím, dokončite prihlásenie vo vašom webovom prehliadači.")
@@ -164,7 +84,7 @@ class AccountAuthWorker(QObject):
             return
 
         try:
-            url = f"https://online.macrosoft.sk/api/desktop-auth/check/{self.token}/"
+            url = f"{DESKTOP_AUTH_CHECK_URL}{self.token}/"
             req = urllib.request.Request(url, headers=get_cloudflare_headers())
             with urllib.request.urlopen(req) as response:
                 if response.status == 200:
@@ -226,7 +146,7 @@ class InitializeApp(QObject):
 
                 # report rustdesk
                 if code:
-                    url = f"https://online.macrosoft.sk/rustdesk/?access={code}&rustdesk={rust_id}"
+                    url = f"{RUSTDESK_REPORT_URL}?access={code}&rustdesk={rust_id}"
                     attempt = 0
                     while attempt < max_attempts:
                         attempt += 1
@@ -475,8 +395,7 @@ class AppInstallationWorker(QObject):
     def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
         """report the RustDesk ID to the server."""
         if self.access:
-            base_url = "https://online.macrosoft.sk/rustdesk/"
-            url = f"{base_url}?access={self.access}&rustdesk={rustdesk_id}"
+            url = f"{RUSTDESK_REPORT_URL}?access={self.access}&rustdesk={rustdesk_id}"
             attempt = 0
 
             while attempt < max_attempts:
@@ -723,7 +642,7 @@ class UserInfoWorker(QObject):
     def report_rustdesk_id(self, rustdesk_id, max_attempts=3):
         """Report the RustDesk ID to the server."""
         if self.access:
-            url = f"https://online.macrosoft.sk/rustdesk/?access={self.access}&rustdesk={rustdesk_id}"
+            url = f"{RUSTDESK_REPORT_URL}?access={self.access}&rustdesk={rustdesk_id}"
             attempt = 0
             while attempt < max_attempts:
                 attempt += 1
@@ -953,7 +872,7 @@ class WebSocketWorker(QObject):
         self.access = get_access_code()
 
         # WebSocket setup
-        url = QUrl("wss://online.macrosoft.sk/ws/support/")
+        url = QUrl(SUPPORT_WEBSOCKET_URL)
         query = QUrlQuery()
         query.addQueryItem("access_code", self.access)
         url.setQuery(query)
@@ -961,11 +880,12 @@ class WebSocketWorker(QObject):
         request = QNetworkRequest(url)
 
         # 2. Set the Cloudflare service token headers
-        # Note: Header names and values must be QByteArray, so we use b''
-        cf_client_id = "e5227eb75bb71fa25a09e6bed7362bb1.access"
-        cf_client_secret = "32097cf5a9639d6bd46e818112e0171119be7754a1acd243f703116f93ca9a38"
-        request.setRawHeader(QByteArray(b'cf-access-client-id'), QByteArray(cf_client_id.encode('utf-8')))
-        request.setRawHeader(QByteArray(b'cf-access-client-secret'), QByteArray(cf_client_secret.encode('utf-8')))
+        # Note: Header names and values must be QByteArray, so we encode them
+        for header_name, header_value in get_cloudflare_headers().items():
+            request.setRawHeader(
+                QByteArray(header_name.encode('utf-8')),
+                QByteArray(header_value.encode('utf-8')),
+            )
         self.url = url
         self.request = request
 
@@ -1582,7 +1502,7 @@ class MacrosoftBackend(QObject):
             # 4. Optionally, re-report RustDesk ID for the new user
             if self._rust_id != "Nenájdené":
                 # You might want a simple way to re-run this
-                url = f"https://online.macrosoft.sk/rustdesk/?access={new_access_code}&rustdesk={self._rust_id}"
+                url = f"{RUSTDESK_REPORT_URL}?access={new_access_code}&rustdesk={self._rust_id}"
                 try:
                     req = urllib.request.Request(url, headers=get_cloudflare_headers())
                     urllib.request.urlopen(req)

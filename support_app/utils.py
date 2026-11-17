@@ -11,7 +11,12 @@ import win32con
 import json
 import string
 import secrets
-import re
+
+from support_app.app_config import (
+    FULL_NAME_URL,
+    LATEST_ACCESS_CODE_URL,
+    get_cloudflare_headers,
+)
 
 def get_process_command_lines(process_name):
     try:
@@ -31,7 +36,7 @@ def is_app_running():
     Check if a Macrosoft Remote Desktop is running.
     :return: True if the process is running, False otherwise.
     """
-    from main import NAME, EXE_NAME
+    from support_app.app_config import NAME, EXE_NAME
     process_name = f"{EXE_NAME}.exe"
 
     for proc in psutil.process_iter(['name']):
@@ -52,9 +57,8 @@ def is_service_running(service_name):
         return False
 
 def get_full_name(access):
-    import requests
     if access:
-        url = f'https://online.macrosoft.sk/rustdesk/username/?access={access}'
+        url = f'{FULL_NAME_URL}?access={access}'
         try:
             res = requests.get(url, headers=get_cloudflare_headers())
 
@@ -97,7 +101,7 @@ def get_latest_access_code():
     try:
         my_ip = get_public_ip()
         if my_ip:
-            url = "https://online.macrosoft.sk/get/lectoure/access/"
+            url = LATEST_ACCESS_CODE_URL
             res = requests.post(url, json={"ip_address": my_ip}, headers=get_cloudflare_headers())
 
             if res.status_code == 200:
@@ -107,25 +111,9 @@ def get_latest_access_code():
     except:
         return ""
 
-def extract_installer_code(input_str):
-    try:
-        pattern = re.compile(
-            r'MacrosoftSupportInstaller_([^_]+)_.*?\.exe',
-            re.IGNORECASE
-        )
-
-        if match := pattern.search(input_str):
-            code = match.group(1)
-            if len(code) > 0:
-                return code
-
-    except Exception as e:
-        pass
-
-
 def check_installation():
     """Check if the application is installed on user's computer."""
-    from main import NAME, EXE_NAME
+    from support_app.app_config import NAME, EXE_NAME
     app_path = fr"C:\Program Files\{NAME}\{EXE_NAME}.exe"
     return os.path.exists(app_path)
 
@@ -287,13 +275,5 @@ def check_obs_config():
                 return alert and auth and server and port
     except Exception as e:
         return
-
-
-def get_cloudflare_headers():
-    return {
-        "cf-access-client-id": "e5227eb75bb71fa25a09e6bed7362bb1.access",
-        "cf-access-client-secret": "32097cf5a9639d6bd46e818112e0171119be7754a1acd243f703116f93ca9a38",
-    }
-
 
 
