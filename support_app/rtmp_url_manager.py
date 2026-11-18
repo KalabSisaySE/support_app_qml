@@ -101,7 +101,8 @@ class RtmpUrlGenerator:
                 return None
         except Exception as e:
             print(f"❌ Exception when creating live video: {e}")
-            if 'response' in locals(): print(f"Response Body: {response.text}")
+            if 'response' in locals():
+                print(f"Response Body: {response.text}")
             return None
 
     def get_rtmp_url(self):
@@ -136,7 +137,8 @@ class RtmpUrlGenerator:
                 return None
         except Exception as e:
             print(f"❌ Exception when fetching RTMP details: {e}")
-            if 'response' in locals(): print(f"Response Body: {response.text}")
+            if 'response' in locals():
+                print(f"Response Body: {response.text}")
             return None
 
     def _generate_random_name(self, length=12):
@@ -150,7 +152,7 @@ class RtmpUrlGenerator:
             return
 
         try:
-            print(f"Saving video UUID to external service...")
+            print("Saving video UUID to external service...")
             data = {
                 "class_type": self.lectoure_data.get('class_type'),
                 "class_id": self.lectoure_data.get('class_id'),

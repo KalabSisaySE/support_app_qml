@@ -4,6 +4,17 @@
 .venv
 output
 
+# Tooling caches and packaging artifacts
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.pyright/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
 *~
 *.autosave
 *.a

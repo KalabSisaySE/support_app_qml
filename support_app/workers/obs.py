@@ -47,7 +47,7 @@ class OpenOBSWorker(QObject):
                 self.log.emit("OBS bol spustený...")
             else:
                 self.log.emit("OBS je už spustený.")
-        except Exception as e:
+        except Exception:
             self.log.emit("Nepodarilo sa spustiť OBS.")
 
         self.finished.emit()
@@ -308,7 +308,7 @@ class OBSClientWorker(QObject):
         self.log.emit("OBSClient spúšťa stream.")
         if is_obs_installed():
             self.is_start_stream_called = True
-            is_rtmp_set = self.set_custom_rtmp()
+            self.set_custom_rtmp()
         else:
             self.log.emit("Nepodarilo sa spustiť stream, OBS nie je nainštalovaný.")
 

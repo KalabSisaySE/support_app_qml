@@ -64,6 +64,6 @@ class AccountAuthWorker(QObject):
                         self.finished.emit(data) # Success!
                 # If status is 202 (Pending) or 404 (Not Found yet), we just wait for the next poll.
 
-        except Exception as e:
+        except Exception:
             # Don't log every failed poll attempt unless it's a major error
             pass

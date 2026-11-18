@@ -14,7 +14,7 @@ def is_admin():
     """Check if we're already running with admin privileges"""
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 
@@ -40,6 +40,6 @@ if __name__ == "__main__":
             else:  # Elevation failed/canceled
                 launch_main_app()
 
-        except Exception as e:
+        except Exception:
             # Fallback if elevation fails
             launch_main_app()

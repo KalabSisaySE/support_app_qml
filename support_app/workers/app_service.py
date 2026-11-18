@@ -73,7 +73,7 @@ class AppServiceWorker(QObject):
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
             return True
-        except Exception as e:
+        except Exception:
             return
 
     @Slot()

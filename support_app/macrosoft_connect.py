@@ -11,7 +11,6 @@ import time
 import urllib.request
 
 from support_app.app_config import (
-    DEFAULT_ACCESS_CODE,
     EXE_NAME,
     NAME,
     RUSTDESK_REPORT_URL,

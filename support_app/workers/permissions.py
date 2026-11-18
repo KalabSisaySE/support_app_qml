@@ -112,7 +112,6 @@ class PermissionWorker(QObject):
 
     def set_browser_permissions(self):
         # URL to allow
-        site_url = 'https://online.macrosoft.sk'
         inc = 9
 
         # For Edge

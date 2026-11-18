@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 import sys
@@ -67,14 +66,14 @@ def compile_application():
     """
     Compiles the application using PyInstaller for a specific user type.
     """
-    print(f"\n>>> Compiling ...")
+    print("\n>>> Compiling ...")
 
     # Clean up previous build files
     if os.path.exists('output'):
-        print(f"\n>>> output directory existed and has been removed ...")
+        print("\n>>> output directory existed and has been removed ...")
         shutil.rmtree('output')
     if os.path.exists('build'):
-        print(f"\n>>> build directory existed and has been removed ...")
+        print("\n>>> build directory existed and has been removed ...")
         shutil.rmtree('build')
 
 
@@ -110,7 +109,7 @@ def prepare_installer_directory():
     """
     Creates the final 'installer' directory required by the Inno Setup script.
     """
-    print(f">>> Preparing installer directory ...")
+    print(">>> Preparing installer directory ...")
 
     for file in FILES_TO_REMOVE:
         if os.path.isfile(file):
@@ -149,7 +148,7 @@ def main():
 
 
     print("\n==========================================")
-    print(f"=== Build Process for Completed Successfully ===")
+    print("=== Build Process for Completed Successfully ===")
     print("==========================================")
 
 

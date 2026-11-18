@@ -141,7 +141,7 @@ class WebSocketWorker(QObject):
 
                 self.send_message(msg)
                 self.message_received.emit(message)
-        except Exception as e:
+        except Exception:
             self.message_received.emit(message)
 
     def send_message(self, message):

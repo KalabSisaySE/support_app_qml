@@ -1011,7 +1011,7 @@ class MacrosoftBackend(QObject):
     @Slot(dict)
     def on_installation_finished(self, result_data):
         """updates app state, cleans up, releases resources"""
-        print(f"\n\n\ton_installation_finished\n")
+        print("\n\n\ton_installation_finished\n")
         if result_data.get("app_installed"):
             self.app_installation_status = "enabled"
 

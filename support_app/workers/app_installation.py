@@ -94,14 +94,14 @@ class AppInstallationWorker(QObject):
 
         try:
             # Prepare startup info to hide cmd window
-            self.log.emit(f"Inštaluje sa Macrosoft Connect Quick Support...")
+            self.log.emit("Inštaluje sa Macrosoft Connect Quick Support...")
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             SW_HIDE = 0
             startupinfo.wShowWindow = SW_HIDE
 
             # Run the installer
-            process = subprocess.Popen(
+            subprocess.Popen(
                 [installer_path, "--silent-install"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -226,7 +226,7 @@ class AppInstallationWorker(QObject):
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
             return True
-        except Exception as e:
+        except Exception:
             return
 
     def start_service(self):

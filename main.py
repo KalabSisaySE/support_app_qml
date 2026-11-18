@@ -12,7 +12,7 @@ from support_app.app_config import EXE_NAME, NAME
 from support_app.backend import MacrosoftBackend
 
 
-print(f"\n\n\n\nmain.py .....")
+print("\n\n\n\nmain.py .....")
 print(f"\tname: {NAME}")
 print(f"\texe_name: {EXE_NAME}")
 print()

@@ -26,9 +26,9 @@ def get_process_command_lines(process_name):
                 cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
                 print(f"\n\t\t\tcmdline: {cmdline}")
                 command_lines.append(cmdline)
-        print(f"\n\t\t\tcmdline over")
+        print("\n\t\t\tcmdline over")
         return command_lines
-    except Exception as e:
+    except Exception:
         return []
 
 def is_app_running():
@@ -53,7 +53,7 @@ def is_service_running(service_name):
         return service.status() == 'running'
     except psutil.NoSuchProcess:
         return False
-    except Exception as e:
+    except Exception:
         return False
 
 def get_full_name(access):
@@ -68,7 +68,7 @@ def get_full_name(access):
             else:
                 return 'Neznáme meno'
 
-        except Exception as e:
+        except Exception:
             return ""
     return ""
 
@@ -83,7 +83,7 @@ def open_website(access):
 def is_user_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
+    except Exception:
         return False
 
 def get_local_ip():
@@ -108,7 +108,7 @@ def get_latest_access_code():
                 return res.json().get('access_code', "")
         else:
             return ""
-    except:
+    except Exception:
         return ""
 
 def check_installation():
@@ -238,7 +238,7 @@ def setup_obs_config():
                 "server_password": generated_password,
                 "server_port": 4455
             }
-    except Exception as e:
+    except Exception:
         config_data = {}
 
     config_data["server_enabled"] = True
@@ -272,7 +272,7 @@ def check_obs_config():
                 port = config_data["server_port"] == 4455
 
                 return alert and auth and server and port
-    except Exception as e:
+    except Exception:
         return
 
 

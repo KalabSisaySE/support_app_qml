@@ -1,0 +1,2 @@
+# Developer dependencies (runtime + build + test/lint tooling)
+-e .[dev,build]

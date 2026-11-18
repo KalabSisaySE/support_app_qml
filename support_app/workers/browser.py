@@ -27,7 +27,7 @@ class OpenBrowserWorker(QObject):
             else:
                 self.log.emit("Nepodarilo sa otvoriť webovú stránku.")
 
-        except Exception as e:
+        except Exception:
             self.log.emit("Nepodarilo sa otvoriť webovú stránku.")
 
         self.finished.emit()
