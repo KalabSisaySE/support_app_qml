@@ -10,14 +10,15 @@ from PySide6.QtQuickControls2 import QQuickStyle
 
 from support_app import app_config
 from support_app.backend import MacrosoftBackend
+from support_app.logging_setup import configure_logging, get_logger
+
+logger = get_logger(__name__)
 
 
 def main():
     """Create the Qt application, expose the backend and load the QML UI."""
-    print("\n\n\n\nmain.py .....")
-    print(f"\tname: {app_config.NAME}")
-    print(f"\texe_name: {app_config.EXE_NAME}")
-    print()
+    configure_logging()
+    logger.info("main.py starting (name=%s, exe=%s)", app_config.NAME, app_config.EXE_NAME)
 
     # 1. Set the desired Qt Quick Controls style before creating the application
     QQuickStyle.setStyle("Fusion")  # Options: "Basic", "Fusion", "Material", "Imagine", etc.
@@ -39,10 +40,8 @@ def main():
     qml_file = os.path.join(os.path.dirname(__file__), "qml/main.qml")
     engine.load(QUrl.fromLocalFile(qml_file))
 
-    print("path: ")
-    print(os.path.dirname(__file__))
-    print("file: ")
-    print(__file__)
+    logger.info("QML directory: %s", os.path.dirname(__file__))
+    logger.info("QML entry point: %s", __file__)
 
     app.aboutToQuit.connect(backend.cleanup)
 

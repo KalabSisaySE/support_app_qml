@@ -15,6 +15,7 @@ from support_app.app_config import (
     get_user_type,
     save_login_info,
 )
+from support_app.logging_setup import get_logger
 from support_app.macrosoft_connect import uninstall_shortcut_path
 from support_app.utils import check_installation, is_obs_installed, is_service_running
 from support_app.workers import (
@@ -31,6 +32,8 @@ from support_app.workers import (
     UserInfoWorker,
     WebSocketWorker,
 )
+
+logger = get_logger(__name__)
 
 
 class MacrosoftBackend(QObject):
@@ -81,10 +84,10 @@ class MacrosoftBackend(QObject):
 
         # values
         self._user_type = get_user_type()
-        print(f"user_type: {self._user_type}")
+        logger.info("user_type: %s", self._user_type)
 
         self._is_user_admin = self._user_type == "lectoure"
-        print(f"is_user_admin: {self._is_user_admin}")
+        logger.info("is_user_admin: %s", self._is_user_admin)
 
         self._progress = 0
         self._running_tasks = {}
@@ -437,6 +440,7 @@ class MacrosoftBackend(QObject):
     @Slot(str)
     def add_log(self, log):
         """adds a new log to UI"""
+        logger.info("%s", log)
         self.newLogAdded.emit(log)
 
     # Add this method inside the MacrosoftBackend class
@@ -1011,7 +1015,7 @@ class MacrosoftBackend(QObject):
     @Slot(dict)
     def on_installation_finished(self, result_data):
         """updates app state, cleans up, releases resources"""
-        print("\n\n\ton_installation_finished\n")
+        logger.debug("on_installation_finished")
         if result_data.get("app_installed"):
             self.app_installation_status = "enabled"
 

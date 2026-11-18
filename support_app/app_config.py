@@ -14,6 +14,7 @@ import re
 
 import requests
 
+from support_app.logging_setup import get_logger
 from support_app.settings import (
     APP_DATA_PATH,
     CONFIG_FILE_PATH,
@@ -24,6 +25,8 @@ from support_app.settings import (
     load_settings,
     save_login_info,
 )
+
+logger = get_logger(__name__)
 
 __all__ = [
     "APP_DATA_PATH",
@@ -119,7 +122,7 @@ def get_latest_obs_download_url():
         latest_version = latest_link[latest_link.find("tag/"):].replace("tag/", "")
 
         if is_version_string(latest_version):
-            print("latest version is here")
+            logger.debug("Latest OBS version resolved from upstream.")
             download_url = f"{base_url}OBS-Studio-{latest_version}-Windows-x64-Installer.exe"
     except Exception:
         pass

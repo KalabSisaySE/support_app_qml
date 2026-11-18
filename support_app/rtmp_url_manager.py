@@ -1,8 +1,13 @@
-import string
 import random
+import string
+
 import requests
 
 from support_app.app_config import get_cloudflare_headers
+from support_app.logging_setup import get_logger
+
+logger = get_logger(__name__)
+
 
 class RtmpUrlGenerator:
     # --- Class-level constants for better organization ---
@@ -53,24 +58,24 @@ class RtmpUrlGenerator:
             "password": self.PEERTUBE_PASSWORD
         }
         try:
-            print("Step 1: Requesting access token...")
+            logger.info("Requesting PeerTube access token.")
             response = requests.post(token_url, data=payload, headers=self.cloudflare_headers)
             response.raise_for_status()  # Raise an error for bad status codes
             access_token = response.json().get("access_token")
             if access_token:
-                print("✅ Token received successfully!\n")
+                logger.info("PeerTube access token received.")
                 return access_token
             else:
-                print("❌ Failed to get access token from response.")
+                logger.warning("PeerTube token response did not contain an access token.")
                 return None
         except Exception as e:
-            print(f"❌ Exception when fetching token: {e}")
+            logger.warning("Exception when fetching PeerTube token: %s", e)
             return None
 
     def _create_video(self):
         """Creates a live video placeholder using a direct API call."""
         if not self.token:
-            print("Cannot create video: No access token.")
+            logger.warning("Cannot create live video: no PeerTube access token.")
             return None
 
         create_url = f"{self.PEERTUBE_URL}/api/v1/videos/live"
@@ -82,7 +87,7 @@ class RtmpUrlGenerator:
         }
 
         try:
-            print(f"Step 2: Creating live video with name '{self.video_name}'...")
+            logger.info("Creating live video with name %r.", self.video_name)
             create_video_req_headers.update(self.cloudflare_headers)
             response = requests.post(create_url, json=video_data, headers=create_video_req_headers)
             response.raise_for_status()
@@ -90,19 +95,19 @@ class RtmpUrlGenerator:
             video_info = response.json().get('video', {})
 
             if video_info:
-                print(f"✅ Live video created successfully! (UUID: {video_info.get('uuid')})\n")
-                print(f"✅ Live video data: {video_info})\n")
+                logger.info("Live video created (UUID: %s).", video_info.get('uuid'))
+                logger.debug("Live video data: %s", video_info)
 
                 self.video_data = video_info  # Store the data
                 self.save_live_video_data(video_info)  # Call the save hook
                 return video_info
             else:
-                print("❌ Video created, but UUID not found in response.")
+                logger.warning("Live video created but no UUID was returned.")
                 return None
         except Exception as e:
-            print(f"❌ Exception when creating live video: {e}")
+            logger.warning("Exception when creating live video: %s", e)
             if 'response' in locals():
-                print(f"Response Body: {response.text}")
+                logger.debug("Response body: %s", response.text)
             return None
 
     def get_rtmp_url(self):
@@ -120,7 +125,7 @@ class RtmpUrlGenerator:
         rtmp_url_req_headers = {"Authorization": f"Bearer {self.token}"}
 
         try:
-            print(f"Step 3: Fetching info for live video UUID {video_uuid}...")
+            logger.info("Fetching RTMP details for live video %s.", video_uuid)
             rtmp_url_req_headers.update(self.cloudflare_headers)
             response = requests.get(info_url, headers=rtmp_url_req_headers)
             response.raise_for_status()
@@ -130,15 +135,15 @@ class RtmpUrlGenerator:
             stream_key = live_info.get('streamKey')
 
             if rtmp_url and stream_key:
-                print("✅ RTMP details fetched successfully!")
+                logger.info("RTMP details fetched successfully.")
                 return [rtmp_url, stream_key]
             else:
-                print("❌ Failed to find RTMP details in the response.")
+                logger.warning("RTMP details missing from the PeerTube response.")
                 return None
         except Exception as e:
-            print(f"❌ Exception when fetching RTMP details: {e}")
+            logger.warning("Exception when fetching RTMP details: %s", e)
             if 'response' in locals():
-                print(f"Response Body: {response.text}")
+                logger.debug("Response body: %s", response.text)
             return None
 
     def _generate_random_name(self, length=12):
@@ -152,7 +157,7 @@ class RtmpUrlGenerator:
             return
 
         try:
-            print("Saving video UUID to external service...")
+            logger.info("Saving live video UUID to the external service.")
             data = {
                 "class_type": self.lectoure_data.get('class_type'),
                 "class_id": self.lectoure_data.get('class_id'),
@@ -162,19 +167,19 @@ class RtmpUrlGenerator:
                 "video_id": video_data.get('id'),
             }
             res = requests.post(self.SAVE_URL, headers=self.cloudflare_headers, json=data)
-            print(f"Save response status: {res.status_code}")
-            print(f"Save response message: {res.json()}")
+            logger.info("Save response status: %s", res.status_code)
+            logger.debug("Save response message: %s", res.json())
         except Exception as e:
-            print(f"❌ Error while saving video uuid: {e}")
+            logger.warning("Error while saving live video UUID: %s", e)
 
     def upload_recording_to_vimeo(self):
         """Triggers video upload to an external service once recording is complete."""
         if not (self.lectoure_data and self.video_data):
-            print("Skipping upload: Missing lecture data or video ID.")
+            logger.debug("Skipping upload: missing lecture data or video ID.")
             return
 
         try:
-            print(f"Triggering upload for video {self.video_data.get('uuid')}...")
+            logger.info("Triggering upload for video %s.", self.video_data.get('uuid'))
             data = {
                 "class_type": self.lectoure_data.get('class_type'),
                 "class_id": self.lectoure_data.get('class_id'),
@@ -182,9 +187,7 @@ class RtmpUrlGenerator:
             }
 
             res = requests.post(self.UPLOAD_URL, headers=self.cloudflare_headers, json=data)
-            print(f"Upload trigger response status: {res.status_code}")
-            print(f"Upload trigger response: {res.json()}")
+            logger.info("Upload trigger response status: %s", res.status_code)
+            logger.debug("Upload trigger response: %s", res.json())
         except Exception as e:
-            print(f"❌ Error while triggering recording upload: {e}")
-
-
+            logger.warning("Error while triggering recording upload: %s", e)

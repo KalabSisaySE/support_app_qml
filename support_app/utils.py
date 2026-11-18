@@ -17,6 +17,9 @@ from support_app.app_config import (
     LATEST_ACCESS_CODE_URL,
     get_cloudflare_headers,
 )
+from support_app.logging_setup import get_logger
+
+logger = get_logger(__name__)
 
 def get_process_command_lines(process_name):
     try:
@@ -24,9 +27,9 @@ def get_process_command_lines(process_name):
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             if proc.info['name'] and proc.info['name'].lower() == process_name.lower():
                 cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
-                print(f"\n\t\t\tcmdline: {cmdline}")
+                logger.debug("cmdline: %s", cmdline)
                 command_lines.append(cmdline)
-        print("\n\t\t\tcmdline over")
+        logger.debug("cmdline over")
         return command_lines
     except Exception:
         return []
@@ -163,7 +166,7 @@ def set_obs_exit_confirmation():
         with open(obs_settings_path, 'w', encoding='utf-8-sig') as f:
             f.writelines(lines)
 
-        print("OBS closed and ConfirmOnExit set to false.")
+        logger.info("OBS closed and ConfirmOnExit set to false.")
 
 def start_obs(first_time=False):
     """Start OBS with confirmation dialog disabled."""
