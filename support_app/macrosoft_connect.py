@@ -8,9 +8,8 @@ callers only deal with the behaviour they actually need.
 import os
 import subprocess
 import time
-import urllib.request
 
-from support_app import app_config
+from support_app import api, app_config
 from support_app.rust_service_manager import ServiceManager
 
 PROGRAM_FILES_DIR = r"C:\Program Files"
@@ -76,16 +75,19 @@ def report_rustdesk_id(access, rustdesk_id, log=None, max_attempts=3):
     while attempt < max_attempts:
         attempt += 1
         try:
-            req = urllib.request.Request(url, headers=app_config.get_cloudflare_headers())
-            with urllib.request.urlopen(req) as response:
-                if response.status == 200:
-                    if log:
-                        log("ID bolo úspešne odoslané.")
-                    return True
+            response = api.get(
+                url,
+                headers=app_config.get_cloudflare_headers(),
+                retries=0,
+            )
+            if response.status_code == 200:
                 if log:
-                    log(f"Odozva servera: {response.status}")
-                if attempt < max_attempts:
-                    time.sleep(1)
+                    log("ID bolo úspešne odoslané.")
+                return True
+            if log:
+                log(f"Odozva servera: {response.status_code}")
+            if attempt < max_attempts:
+                time.sleep(1)
         except Exception as e:
             if log:
                 log(f"Nepodarilo sa odoslať ID: {e}")

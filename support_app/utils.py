@@ -17,6 +17,7 @@ from support_app.app_config import (
     LATEST_ACCESS_CODE_URL,
     get_cloudflare_headers,
 )
+from support_app import api
 from support_app.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -63,7 +64,7 @@ def get_full_name(access):
     if access:
         url = f'{FULL_NAME_URL}?access={access}'
         try:
-            res = requests.get(url, headers=get_cloudflare_headers())
+            res = api.get(url, headers=get_cloudflare_headers(), retries=0)
 
             json_data = res.json()
             if json_data.get('status') == 'found':
@@ -95,7 +96,7 @@ def get_local_ip():
 
 def get_public_ip():
     try:
-        return requests.get("https://api64.ipify.org?format=text").text
+        return api.get("https://api64.ipify.org?format=text").text
     except requests.RequestException:
         return
 
@@ -105,7 +106,7 @@ def get_latest_access_code():
         my_ip = get_public_ip()
         if my_ip:
             url = LATEST_ACCESS_CODE_URL
-            res = requests.post(url, json={"ip_address": my_ip}, headers=get_cloudflare_headers())
+            res = api.post(url, json={"ip_address": my_ip}, headers=get_cloudflare_headers())
 
             if res.status_code == 200:
                 return res.json().get('access_code', "")

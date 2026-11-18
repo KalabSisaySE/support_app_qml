@@ -1,8 +1,7 @@
 import random
 import string
 
-import requests
-
+from support_app import api
 from support_app.app_config import get_cloudflare_headers
 from support_app.logging_setup import get_logger
 
@@ -59,7 +58,7 @@ class RtmpUrlGenerator:
         }
         try:
             logger.info("Requesting PeerTube access token.")
-            response = requests.post(token_url, data=payload, headers=self.cloudflare_headers)
+            response = api.post(token_url, data=payload, headers=self.cloudflare_headers)
             response.raise_for_status()  # Raise an error for bad status codes
             access_token = response.json().get("access_token")
             if access_token:
@@ -89,7 +88,7 @@ class RtmpUrlGenerator:
         try:
             logger.info("Creating live video with name %r.", self.video_name)
             create_video_req_headers.update(self.cloudflare_headers)
-            response = requests.post(create_url, json=video_data, headers=create_video_req_headers)
+            response = api.post(create_url, json=video_data, headers=create_video_req_headers)
             response.raise_for_status()
 
             video_info = response.json().get('video', {})
@@ -127,7 +126,7 @@ class RtmpUrlGenerator:
         try:
             logger.info("Fetching RTMP details for live video %s.", video_uuid)
             rtmp_url_req_headers.update(self.cloudflare_headers)
-            response = requests.get(info_url, headers=rtmp_url_req_headers)
+            response = api.get(info_url, headers=rtmp_url_req_headers)
             response.raise_for_status()
 
             live_info = response.json()
@@ -166,7 +165,7 @@ class RtmpUrlGenerator:
                 "video_uuid": video_data.get('uuid'),
                 "video_id": video_data.get('id'),
             }
-            res = requests.post(self.SAVE_URL, headers=self.cloudflare_headers, json=data)
+            res = api.post(self.SAVE_URL, headers=self.cloudflare_headers, json=data)
             logger.info("Save response status: %s", res.status_code)
             logger.debug("Save response message: %s", res.json())
         except Exception as e:
@@ -186,7 +185,7 @@ class RtmpUrlGenerator:
                 "room_id": self.lectoure_data.get('room_id'),
             }
 
-            res = requests.post(self.UPLOAD_URL, headers=self.cloudflare_headers, json=data)
+            res = api.post(self.UPLOAD_URL, headers=self.cloudflare_headers, json=data)
             logger.info("Upload trigger response status: %s", res.status_code)
             logger.debug("Upload trigger response: %s", res.json())
         except Exception as e:

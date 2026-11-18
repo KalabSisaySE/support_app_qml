@@ -12,8 +12,7 @@ time; do not bind the attributes at import time.
 import os
 import re
 
-import requests
-
+from support_app import api
 from support_app.logging_setup import get_logger
 from support_app.settings import (
     APP_DATA_PATH,
@@ -36,6 +35,7 @@ __all__ = [
     "DEFAULT_FULL_NAME",
     "DESKTOP_AUTH_CHECK_URL",
     "DESKTOP_AUTH_URL",
+    "DOWNLOAD_TIMEOUT_SECONDS",
     "FALLBACK_DOWNLOAD_DIR",
     "FULL_NAME_URL",
     "INSTALLER_PATH_FILE_NAME",
@@ -58,6 +58,9 @@ __all__ = [
 # Directory of the application sources (the parent of this package).
 APP_ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FALLBACK_DOWNLOAD_DIR = os.path.join(APP_ROOT_PATH, "downloads")
+
+# Installer downloads are large; allow more time than regular API calls.
+DOWNLOAD_TIMEOUT_SECONDS = 30.0
 
 # --- Identity defaults ------------------------------------------------------
 DEFAULT_FULL_NAME = "Nenájdené"
@@ -97,7 +100,7 @@ def get_user_type():
     try:
         access_code = get_access_code()
         full_url = f"{USER_TYPE_URL}?access_code={access_code}"
-        res = requests.get(full_url, headers=get_cloudflare_headers())
+        res = api.get(full_url, headers=get_cloudflare_headers(), retries=0)
 
         return res.json()['user_type']
 
@@ -117,7 +120,7 @@ def get_latest_obs_download_url():
         url = "https://github.com/obsproject/obs-studio/releases/latest"
         base_url = "https://cdn-fastly.obsproject.com/downloads/"
 
-        resp = requests.get(url, allow_redirects=True)
+        resp = api.get(url, allow_redirects=True)
         latest_link = resp.url
         latest_version = latest_link[latest_link.find("tag/"):].replace("tag/", "")
 

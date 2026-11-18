@@ -3,12 +3,11 @@
 import json
 import os
 import time
-import urllib.request
 
 from PySide6.QtCore import Property, QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
-from support_app import app_config
+from support_app import api, app_config
 from support_app.app_config import (
     RUSTDESK_REPORT_URL,
     get_cloudflare_headers,
@@ -191,8 +190,7 @@ class MacrosoftBackend(QObject):
                 # You might want a simple way to re-run this
                 url = f"{RUSTDESK_REPORT_URL}?access={new_access_code}&rustdesk={self._rust_id}"
                 try:
-                    req = urllib.request.Request(url, headers=get_cloudflare_headers())
-                    urllib.request.urlopen(req)
+                    api.get(url, headers=get_cloudflare_headers(), retries=0)
                 except Exception as e:
                     self.add_log(f"Nepodarilo sa znovu nahlásiť RustDesk ID: {e}")
 

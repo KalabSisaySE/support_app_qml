@@ -11,6 +11,7 @@ import uuid
 from PySide6.QtCore import QObject, QUrl, Signal, Slot
 from PySide6.QtWebSockets import QWebSocket
 
+from support_app import app_config
 from support_app.app_config import (
     FALLBACK_DOWNLOAD_DIR,
     get_access_code,
@@ -86,7 +87,7 @@ class OBSInstallationWorker(QObject):
         installer_path = os.path.join(temp_dir, "obs_installer.exe")
 
         try:
-            with urllib.request.urlopen(download_url) as response:
+            with urllib.request.urlopen(download_url, timeout=app_config.DOWNLOAD_TIMEOUT_SECONDS) as response:
                 total_size = int(response.getheader("Content-Length", "0"))
                 block_size = 8192
                 with open(installer_path, "wb") as file:

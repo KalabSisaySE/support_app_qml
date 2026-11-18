@@ -72,7 +72,7 @@ class AppInstallationWorker(QObject):
                 download_url,
                 headers=get_cloudflare_headers(),
             )
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=app_config.DOWNLOAD_TIMEOUT_SECONDS) as response:
                 total_size = int(response.getheader("Content-Length", "0"))
                 block_size = 8192
                 with open(installer_path, "wb") as file:

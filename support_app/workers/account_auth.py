@@ -7,6 +7,7 @@ import webbrowser
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
+from support_app import api
 from support_app.app_config import (
     DESKTOP_AUTH_CHECK_URL,
     DESKTOP_AUTH_URL,
@@ -55,7 +56,7 @@ class AccountAuthWorker(QObject):
         try:
             url = f"{DESKTOP_AUTH_CHECK_URL}{self.token}/"
             req = urllib.request.Request(url, headers=get_cloudflare_headers())
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req, timeout=api.DEFAULT_TIMEOUT_SECONDS) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode())
                     if data.get('status') == 'success':
