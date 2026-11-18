@@ -1,29 +1,62 @@
 """Central application configuration.
 
-This module is the single source of truth for filesystem paths, service
-endpoints, static credentials and the user-type driven application
-identity.  It intentionally does not import any other ``support_app``
-module so that it can be imported from anywhere without circular imports.
+This module is the single source of truth for service endpoints, static
+credentials and the user-type driven application identity.
+
+The identity is resolved **lazily** on first access to ``NAME``/``EXE_NAME``
+so importing this module (e.g. in tests) never performs network I/O.  Use
+``from support_app import app_config`` and read ``app_config.NAME`` at call
+time; do not bind the attributes at import time.
 """
 
-import json
 import os
 import re
-import sys
 
 import requests
 
-# --- Filesystem paths -------------------------------------------------------
-APP_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'MacrosoftSupport')
-CONFIG_FILE_PATH = os.path.join(APP_DATA_PATH, 'config.json')
-INSTALLER_PATH_FILE_NAME = "installer_path.txt"
+from support_app.settings import (
+    APP_DATA_PATH,
+    CONFIG_FILE_PATH,
+    DEFAULT_ACCESS_CODE,
+    INSTALLER_PATH_FILE_NAME,
+    extract_installer_code,
+    get_access_code,
+    load_settings,
+    save_login_info,
+)
+
+__all__ = [
+    "APP_DATA_PATH",
+    "APP_ROOT_PATH",
+    "CONFIG_FILE_PATH",
+    "DEFAULT_ACCESS_CODE",
+    "DEFAULT_FULL_NAME",
+    "DESKTOP_AUTH_CHECK_URL",
+    "DESKTOP_AUTH_URL",
+    "FALLBACK_DOWNLOAD_DIR",
+    "FULL_NAME_URL",
+    "INSTALLER_PATH_FILE_NAME",
+    "LATEST_ACCESS_CODE_URL",
+    "ONLINE_BASE_URL",
+    "RUSTDESK_REPORT_URL",
+    "SUPPORT_WEBSOCKET_URL",
+    "USER_TYPE_URL",
+    "extract_installer_code",
+    "get_access_code",
+    "get_cloudflare_headers",
+    "get_latest_obs_download_url",
+    "get_user_type",
+    "is_version_string",
+    "load_settings",
+    "reset_identity_cache",
+    "save_login_info",
+]
 
 # Directory of the application sources (the parent of this package).
 APP_ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FALLBACK_DOWNLOAD_DIR = os.path.join(APP_ROOT_PATH, "downloads")
 
 # --- Identity defaults ------------------------------------------------------
-DEFAULT_ACCESS_CODE = "Nenájdené"
 DEFAULT_FULL_NAME = "Nenájdené"
 
 # --- Service endpoints ------------------------------------------------------
@@ -56,35 +89,6 @@ def is_version_string(s: str) -> bool:
     return re.match(pattern, s) is not None
 
 
-def extract_installer_code(input_str):
-    """Extract the short access code from an installer file name."""
-    try:
-        pattern = re.compile(
-            r'MacrosoftSupportInstaller_([^_]+)_.*?\.exe',
-            re.IGNORECASE
-        )
-
-        if match := pattern.search(input_str):
-            code = match.group(1)
-            if len(code) > 0:
-                return code
-
-    except Exception:
-        pass
-
-
-def installer_path_file():
-    """Path of the file that stores the installer name next to the exe."""
-    base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-    return os.path.join(base_path, INSTALLER_PATH_FILE_NAME)
-
-
-def save_login_info(access_code):
-    """Saves the access code and user type to a persistent config file."""
-    with open(installer_path_file(), 'w', encoding='utf-8') as f:
-        f.write(f"Installer Path: MacrosoftSupportInstaller_{access_code}_.exe\n")
-
-
 def get_user_type():
     """Fetches user type from the API, config file or environment."""
     try:
@@ -95,41 +99,11 @@ def get_user_type():
         return res.json()['user_type']
 
     except Exception:
-        if os.path.exists(CONFIG_FILE_PATH):
-            try:
-                with open(CONFIG_FILE_PATH, 'r') as f:
-                    config = json.load(f)
-                    if 'is_lectoure' in config:
-                        is_lectoure = config['is_lectoure']
-                        return "lectoure" if is_lectoure else "client"
-
-            except Exception:
-                pass  # File might be corrupt, fall through
+        settings = load_settings()
+        if settings.is_lectoure is not None:
+            return "lectoure" if settings.is_lectoure else "client"
 
     return os.getenv("USER_TYPE", "lectoure")
-
-
-def get_access_code():
-    """Gets the access code from the config file, falling back to old methods."""
-    script_name = os.path.basename(sys.argv[0])
-    access = DEFAULT_ACCESS_CODE
-    if "installrustdesk_" in script_name:
-        access = (
-            script_name.replace("installrustdesk_", "")
-            .replace(".py", "")
-            .replace(".exe", "")
-        )
-    elif script_name.endswith(".exe"):
-        try:
-            with open(installer_path_file(), 'r') as file:
-                content = file.read().strip()
-                code = extract_installer_code(content)
-                if code:
-                    return code
-        except Exception:
-            pass
-
-    return access
 
 
 def get_latest_obs_download_url():
@@ -153,7 +127,40 @@ def get_latest_obs_download_url():
     return download_url
 
 
-# Resolved once at import time, exactly like the original entry point did.
-USER_TYPE = get_user_type()
-NAME = "MacrosoftConnectQuickSupport" if USER_TYPE == "client" else "MacrosoftConnect"
-EXE_NAME = "macrosoftconnectquicksupport" if USER_TYPE == "client" else "macrosoftconnect"
+# --- Lazy application identity ---------------------------------------------
+_USER_TYPE = None
+
+
+def _resolve_identity() -> str:
+    """Resolve and cache the user type and the matching app identity."""
+    global _USER_TYPE
+    if _USER_TYPE is None:
+        user_type = get_user_type()
+        if user_type == "client":
+            name = "MacrosoftConnectQuickSupport"
+            exe_name = "macrosoftconnectquicksupport"
+        else:
+            name = "MacrosoftConnect"
+            exe_name = "macrosoftconnect"
+
+        globals()["NAME"] = name
+        globals()["EXE_NAME"] = exe_name
+        _USER_TYPE = user_type
+
+    return _USER_TYPE
+
+
+def reset_identity_cache() -> None:
+    """Drop the cached identity (used by tests and after account changes)."""
+    global _USER_TYPE
+    _USER_TYPE = None
+    globals().pop("NAME", None)
+    globals().pop("EXE_NAME", None)
+
+
+def __getattr__(name):
+    """Resolve ``NAME``/``EXE_NAME`` on first access instead of at import."""
+    if name in ("NAME", "EXE_NAME"):
+        _resolve_identity()
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

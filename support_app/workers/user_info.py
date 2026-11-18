@@ -4,7 +4,8 @@ import os
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from support_app.app_config import NAME, get_access_code
+from support_app import app_config
+from support_app.app_config import get_access_code
 from support_app.macrosoft_connect import (
     app_executable_path,
     query_rustdesk_id,
@@ -34,7 +35,7 @@ class UserInfoWorker(QObject):
         """Retrieve the RustDesk ID."""
         if not os.path.exists(self.app_path):
             self.log.emit(
-                f"{NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {NAME}"
+                f"{app_config.NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {app_config.NAME}"
             )
             self.finished.emit(self.result_data)
 

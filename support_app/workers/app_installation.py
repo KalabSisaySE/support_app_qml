@@ -9,10 +9,9 @@ import urllib.request
 
 from PySide6.QtCore import QObject, Signal, Slot
 
+from support_app import app_config
 from support_app.app_config import (
-    EXE_NAME,
     FALLBACK_DOWNLOAD_DIR,
-    NAME,
     get_access_code,
     get_cloudflare_headers,
     get_user_type,
@@ -62,11 +61,11 @@ class AppInstallationWorker(QObject):
         self.log.emit("Začínam proces inštalácie...")
 
         base_url = "https://cloud.macrosoft.sk/"
-        download_url = f"{base_url}support_app/{EXE_NAME}.exe"
+        download_url = f"{base_url}support_app/{app_config.EXE_NAME}.exe"
         temp_dir = os.environ.get("TEMP", FALLBACK_DOWNLOAD_DIR)
 
         os.makedirs(temp_dir, exist_ok=True)
-        installer_path = os.path.join(temp_dir, f"{EXE_NAME}.exe")
+        installer_path = os.path.join(temp_dir, f"{app_config.EXE_NAME}.exe")
 
         try:
             req = urllib.request.Request(
@@ -156,7 +155,7 @@ class AppInstallationWorker(QObject):
                     self.log.emit("Odinštalácia trvá príliš dlho.")
                     break
                 time.sleep(1)
-            self.log.emit(f"{NAME} bol odinštalovaný úspešne.")
+            self.log.emit(f"{app_config.NAME} bol odinštalovaný úspešne.")
 
             # --- START: NEW SELF-UNINSTALL LOGIC ---
             # Check if running as a compiled executable (frozen by PyInstaller)
@@ -187,7 +186,7 @@ class AppInstallationWorker(QObject):
 
         if not os.path.exists(app_path):
             self.log.emit(
-                f"{NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {NAME}"
+                f"{app_config.NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {app_config.NAME}"
             )
             return "Nenájdené"
 
@@ -232,7 +231,7 @@ class AppInstallationWorker(QObject):
     def start_service(self):
         """Start the Macrosoft Connect service."""
         try:
-            if is_service_running(f"{NAME}"):
+            if is_service_running(f"{app_config.NAME}"):
                 self.log.emit("Služba je spustená...")
                 return True
 
@@ -251,22 +250,22 @@ class AppInstallationWorker(QObject):
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit(f"Služba {NAME} je spustená.")
+            self.log.emit(f"Služba {app_config.NAME} je spustená.")
             return True
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť službu {NAME}., {e}")
+            self.log.emit(f"Nepodarilo sa spustiť službu {app_config.NAME}., {e}")
 
 
     def stop_service(self):
         """Stop the Macrosoft Connect service."""
         try:
-            if is_service_running(f"{NAME}"):
+            if is_service_running(f"{app_config.NAME}"):
                 self.log.emit("Služba je spustená.")
                 if is_app_running():
                     self.log.emit("Aplikácia je spustená.")
                     self.manager.stop_service()
-                    self.log.emit(f"Služba {NAME} bola zastavená.")
+                    self.log.emit(f"Služba {app_config.NAME} bola zastavená.")
                     return True
                 else:
                     self.log.emit("Služba nie je spustená...")
@@ -275,5 +274,5 @@ class AppInstallationWorker(QObject):
                 return True
         except Exception as e:
             self.log.emit(
-                f"Nepodarilo sa zastaviť službu {NAME}. {e}"
+                f"Nepodarilo sa zastaviť službu {app_config.NAME}. {e}"
             )

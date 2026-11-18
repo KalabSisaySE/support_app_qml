@@ -10,12 +10,7 @@ import subprocess
 import time
 import urllib.request
 
-from support_app.app_config import (
-    EXE_NAME,
-    NAME,
-    RUSTDESK_REPORT_URL,
-    get_cloudflare_headers,
-)
+from support_app import app_config
 from support_app.rust_service_manager import ServiceManager
 
 PROGRAM_FILES_DIR = r"C:\Program Files"
@@ -23,17 +18,17 @@ PROGRAM_FILES_DIR = r"C:\Program Files"
 
 def app_install_dir():
     """Directory where Macrosoft Connect is installed."""
-    return os.path.join(PROGRAM_FILES_DIR, NAME)
+    return os.path.join(PROGRAM_FILES_DIR, app_config.NAME)
 
 
 def app_executable_path():
     """Full path of the installed Macrosoft Connect executable."""
-    return os.path.join(app_install_dir(), f"{EXE_NAME}.exe")
+    return os.path.join(app_install_dir(), f"{app_config.EXE_NAME}.exe")
 
 
 def uninstall_shortcut_path():
     """Path of the generated uninstall shortcut."""
-    return os.path.join(app_install_dir(), f"Uninstall {NAME}.lnk")
+    return os.path.join(app_install_dir(), f"Uninstall {app_config.NAME}.lnk")
 
 
 def service_binary_path():
@@ -44,8 +39,8 @@ def service_binary_path():
 def create_service_manager():
     """Build the ServiceManager for the Macrosoft Connect service."""
     return ServiceManager(
-        service_name=f"{NAME}",
-        display_name=f"{NAME} Service",
+        service_name=f"{app_config.NAME}",
+        display_name=f"{app_config.NAME} Service",
         binary_path=service_binary_path(),
     )
 
@@ -75,13 +70,13 @@ def report_rustdesk_id(access, rustdesk_id, log=None, max_attempts=3):
     if not access:
         return False
 
-    url = f"{RUSTDESK_REPORT_URL}?access={access}&rustdesk={rustdesk_id}"
+    url = f"{app_config.RUSTDESK_REPORT_URL}?access={access}&rustdesk={rustdesk_id}"
     attempt = 0
 
     while attempt < max_attempts:
         attempt += 1
         try:
-            req = urllib.request.Request(url, headers=get_cloudflare_headers())
+            req = urllib.request.Request(url, headers=app_config.get_cloudflare_headers())
             with urllib.request.urlopen(req) as response:
                 if response.status == 200:
                     if log:

@@ -36,8 +36,8 @@ def is_app_running():
     Check if a Macrosoft Remote Desktop is running.
     :return: True if the process is running, False otherwise.
     """
-    from support_app.app_config import EXE_NAME
-    process_name = f"{EXE_NAME}.exe"
+    from support_app import app_config
+    process_name = f"{app_config.EXE_NAME}.exe"
 
     for proc in psutil.process_iter(['name']):
         try:

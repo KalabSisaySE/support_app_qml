@@ -8,18 +8,17 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from support_app.app_config import EXE_NAME, NAME
+from support_app import app_config
 from support_app.backend import MacrosoftBackend
-
-
-print("\n\n\n\nmain.py .....")
-print(f"\tname: {NAME}")
-print(f"\texe_name: {EXE_NAME}")
-print()
 
 
 def main():
     """Create the Qt application, expose the backend and load the QML UI."""
+    print("\n\n\n\nmain.py .....")
+    print(f"\tname: {app_config.NAME}")
+    print(f"\texe_name: {app_config.EXE_NAME}")
+    print()
+
     # 1. Set the desired Qt Quick Controls style before creating the application
     QQuickStyle.setStyle("Fusion")  # Options: "Basic", "Fusion", "Material", "Imagine", etc.
 

@@ -8,8 +8,8 @@ import urllib.request
 from PySide6.QtCore import Property, QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
+from support_app import app_config
 from support_app.app_config import (
-    NAME,
     RUSTDESK_REPORT_URL,
     get_cloudflare_headers,
     get_user_type,
@@ -1004,7 +1004,7 @@ class MacrosoftBackend(QObject):
 
     def is_service_on(self):
         """checks if Macrosoft rustdesk service is running"""
-        return is_service_running(f"{NAME}")
+        return is_service_running(f"{app_config.NAME}")
 
 
 

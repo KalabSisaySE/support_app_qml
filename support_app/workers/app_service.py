@@ -5,7 +5,7 @@ import subprocess
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from support_app.app_config import NAME
+from support_app import app_config
 from support_app.macrosoft_connect import (
     app_executable_path,
     create_service_manager,
@@ -30,7 +30,7 @@ class StartAppWorker(QObject):
 
         if not os.path.exists(app_path):
             self.log.emit(
-                f"{NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {NAME}"
+                f"{app_config.NAME} nie je nainštalovaný, prosím kliknite na Inštalovať {app_config.NAME}"
             )
 
         try:
@@ -40,9 +40,9 @@ class StartAppWorker(QObject):
                 stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NO_WINDOW,
             )
-            self.log.emit(f"{NAME} bol spustený.")
+            self.log.emit(f"{app_config.NAME} bol spustený.")
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť {NAME}: {e}")
+            self.log.emit(f"Nepodarilo sa spustiť {app_config.NAME}: {e}")
 
         self.finished.emit()
 
@@ -52,10 +52,10 @@ class AppServiceWorker(QObject):
     progress_changed = Signal(float, str)
     log = Signal(str)
     finished = Signal()
-    manager = create_service_manager()
 
     def __init__(self):
         super().__init__()
+        self.manager = create_service_manager()
         self.process_name = "app_service"
 
     def start_macrosoftconnect(self):
@@ -97,10 +97,10 @@ class AppServiceWorker(QObject):
                 self.manager.create_service()
 
             self.manager.start_service()
-            self.log.emit(f"Služba {NAME} je spustená.")
+            self.log.emit(f"Služba {app_config.NAME} je spustená.")
 
         except Exception as e:
-            self.log.emit(f"Nepodarilo sa spustiť službu {NAME}., {e}")
+            self.log.emit(f"Nepodarilo sa spustiť službu {app_config.NAME}., {e}")
 
         self.finished.emit()
 
@@ -108,10 +108,10 @@ class AppServiceWorker(QObject):
     def stop_service(self):
         """Stop the Macrosoft Connect service."""
         try:
-            if is_service_running(f"{NAME}"):
+            if is_service_running(f"{app_config.NAME}"):
                 if is_app_running():
                     self.manager.stop_service()
-                    self.log.emit(f"Služba {NAME} bola zastavená.")
+                    self.log.emit(f"Služba {app_config.NAME} bola zastavená.")
 
                 else:
                     self.log.emit("Služba nie je spustená...")
@@ -119,7 +119,7 @@ class AppServiceWorker(QObject):
                 self.log.emit("Služba nie je spustená...")
         except Exception as e:
             self.log.emit(
-                f"Nepodarilo sa zastaviť službu {NAME}. {e}"
+                f"Nepodarilo sa zastaviť službu {app_config.NAME}. {e}"
             )
 
         self.finished.emit()

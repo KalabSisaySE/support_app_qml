@@ -2,10 +2,8 @@
 
 from PySide6.QtCore import QObject, Signal, Slot
 
-from support_app.app_config import (
-    NAME,
-    get_access_code,
-)
+from support_app import app_config
+from support_app.app_config import get_access_code
 from support_app.browser_permission_manager import BrowserPermissionManager
 from support_app.macrosoft_connect import (
     app_executable_path,
@@ -54,7 +52,7 @@ class InitializeApp(QObject):
         # APP STATUS
         if check_installation():
             self.result["is_app_installed"] = True
-            self.result["is_app_service_running"] = is_service_running(NAME)
+            self.result["is_app_service_running"] = is_service_running(app_config.NAME)
 
             # get rust_id
             try:
