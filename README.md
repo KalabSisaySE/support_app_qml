@@ -52,6 +52,7 @@ python main.py
 
 ```powershell
 python -m ruff check .
+python -m pyright
 python -m pytest
 ```
 

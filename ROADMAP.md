@@ -11,14 +11,14 @@ Theme: **foundations** (no user-visible behaviour changes).
 
 | # | Item | Status | Commit |
 |---|------|--------|--------|
-| 1 | Roadmap, README, packaging metadata, CI quality gate, pruned dependencies | ✅ | _filled in below_ |
-| 2 | Lazy app identity (remove network I/O at import time) | ⏳ | |
-| 3 | Rotating file logging, replace ad-hoc `print` debugging | ⏳ | |
-| 4 | HTTP client with timeouts and retries; migrate API calls | ⏳ | |
-| 5 | Typed settings/persistence, pytest suite, roadmap update | ⏳ | |
+| 1 | Roadmap, README, packaging metadata, CI quality gate, pruned dependencies | ✅ | `aa42e3d` |
+| 2 | Typed settings + lazy app identity (no network I/O at import time) | ✅ | `4cca6fa` |
+| 3 | Rotating file logging, replace ad-hoc `print` debugging | ✅ | `75e5808` |
+| 4 | HTTP client with timeouts and retries; migrate API calls | ✅ | `22d0e09` |
+| 5 | pytest suite for config/settings/api/reporting/status, roadmap update | ✅ | _this commit_ |
 
-Acceptance for today: `ruff` and `pytest` green in CI, no new runtime
-dependencies, console behaviour preserved.
+Acceptance for today: `ruff` and `pytest` green in CI (30 tests), no new
+runtime dependencies, console behaviour preserved.
 
 ---
 
@@ -42,7 +42,7 @@ dependencies, console behaviour preserved.
 - ✅ Pre-commit hook configuration.
 - ✅ GitHub Actions CI on Windows (lint + tests).
 - ✅ README with architecture, setup, run and build instructions.
-- ⏳ Enable Pyright on the modern modules and add it to CI.
+- ✅ Pyright configuration + CI type check for the modern modules.
 - ⏳ `CHANGELOG.md` maintained per release.
 - ⏳ Single source of truth for the app version (read by build script).
 
@@ -54,8 +54,8 @@ dependencies, console behaviour preserved.
 - ✅ Typed settings/persistence with atomic writes.
 - ⏳ Replace remaining broad `except` blocks with narrow handling + logging.
 - ⏳ `Status` enum instead of `"enabled"/"disabled"/"checking"` literals.
-- ⏳ Fix corrupted UI string (`"NeznA?me meno"`).
-- ⏳ Timeouts on installer downloads and OBS WebSocket waits.
+- ⏳ Timeouts on installer downloads and OBS WebSocket waits (download and
+  desktop-auth timeouts added; OBS WebSocket waits still pending).
 
 ## Phase 3 — Architecture
 
