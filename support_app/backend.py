@@ -4,7 +4,7 @@ import json
 import os
 import time
 
-from PySide6.QtCore import Property, QObject, QThread, QTimer, Signal, Slot
+from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
 from support_app import api, app_config
@@ -16,6 +16,8 @@ from support_app.app_config import (
 )
 from support_app.logging_setup import get_logger
 from support_app.macrosoft_connect import uninstall_shortcut_path
+from support_app.qt_bindings import notifying_property
+from support_app.status import Status
 from support_app.utils import check_installation, is_obs_installed, is_service_running
 from support_app.workers import (
     AccountAuthWorker,
@@ -91,13 +93,13 @@ class MacrosoftBackend(QObject):
         self._progress = 0
         self._running_tasks = {}
         self._running_progresses = {}
-        self._app_installation_status = "disabled"
-        self._app_service_status = "disabled"
-        self._app_websocket_status = "disabled"
-        self._permission_status = "disabled"
-        self._obs_installation_status = "disabled"
-        self._obs_websocket_status = "disabled"
-        self._recording_status = "disabled"
+        self._app_installation_status = Status.DISABLED
+        self._app_service_status = Status.DISABLED
+        self._app_websocket_status = Status.DISABLED
+        self._permission_status = Status.DISABLED
+        self._obs_installation_status = Status.DISABLED
+        self._obs_websocket_status = Status.DISABLED
+        self._recording_status = Status.DISABLED
 
         self._is_app_install_btn_enabled = False
         self._is_app_start_btn_enabled = False
@@ -130,25 +132,7 @@ class MacrosoftBackend(QObject):
 
         self.app_init()
 
-    @Property(bool, notify=userTypeChanged)
-    def is_user_lectoure(self):
-        return self._is_user_admin
-
-    @is_user_lectoure.setter
-    def is_user_lectoure(self, value):
-        if self._is_user_admin != value:
-            self._is_user_admin = value
-            self.userTypeChanged.emit(value)
-
-    @Property(bool, notify=changeAccountBtnEnabledChanged)
-    def is_change_account_btn_enabled(self):
-        return self._is_change_account_btn_enabled
-
-    @is_change_account_btn_enabled.setter
-    def is_change_account_btn_enabled(self, is_enabled):
-        if self._is_change_account_btn_enabled != is_enabled:
-            self._is_change_account_btn_enabled = is_enabled
-            self.changeAccountBtnEnabledChanged.emit(is_enabled)
+    is_user_lectoure = notifying_property(bool, "_is_user_admin", "userTypeChanged")
 
     @Slot()
     def change_account(self):
@@ -202,238 +186,73 @@ class MacrosoftBackend(QObject):
         self.is_change_account_btn_enabled = True
 
 
-    @Property(float, notify=progressChanged)
-    def progress(self):
-        return self._progress
-
-    @progress.setter
-    def progress(self, value):
-        if self._progress != value:
-            self._progress = value
-            self.progressChanged.emit(value)
-
-    @Property(str, notify=rustIdChanged)
-    def rust_id(self):
-        return self._rust_id
-
-    @rust_id.setter
-    def rust_id(self, id):
-        if self._rust_id != id:
-            self._rust_id = id
-            self.rustIdChanged.emit(id)
-
-    @Property(str, notify=streamingUrlChanged)
-    def streaming_url(self):
-        return self._streaming_url
-
-    @streaming_url.setter
-    def streaming_url(self, url):
-        if self._streaming_url != url:
-            self._streaming_url = url
-            self.streamingUrlChanged.emit(url)
-
-    @Property(str, notify=courseNameChanged)
-    def course_name(self):
-        return self._course_name
-
-    @course_name.setter
-    def course_name(self, name):
-        if self._course_name != name:
-            self._course_name = name
-            self.courseNameChanged.emit(name)
-
-    @Property(str, notify=accessCodeChanged)
-    def access_code(self):
-        return self._access_code
-
-    @access_code.setter
-    def access_code(self, code):
-        if self._access_code != code:
-            self._access_code = code
-            self.accessCodeChanged.emit(code)
-
-    @Property(str, notify=usernameChanged)
-    def username(self):
-        return self._username
-
-    @username.setter
-    def username(self, name):
-        if self._username != name:
-            new_name = name if name else "Nenájdené"
-            self._username = new_name
-            self.usernameChanged.emit(new_name)
-
-    @Property(bool, notify=appInstallBtnEnabledChanged)
-    def is_app_install_btn_enabled(self):
-        return self._is_app_install_btn_enabled
-
-    @is_app_install_btn_enabled.setter
-    def is_app_install_btn_enabled(self, is_running):
-        if self._is_app_install_btn_enabled != is_running:
-            self._is_app_install_btn_enabled = is_running
-            self.appInstallBtnEnabledChanged.emit(is_running)
-
-    @Property(bool, notify=appStartBtnEnabledChanged)
-    def is_app_start_btn_enabled(self):
-        return self._is_app_start_btn_enabled
-
-    @is_app_start_btn_enabled.setter
-    def is_app_start_btn_enabled(self, is_enabled):
-        if self._is_app_start_btn_enabled != is_enabled:
-            # check also if app is installed before allowing
-            status = is_enabled if check_installation() else False
-            self._is_app_start_btn_enabled = status
-            self.appStartBtnEnabledChanged.emit(status)
-
-    @Property(bool, notify=appServiceBtnEnabledChanged)
-    def is_app_service_btn_enabled(self):
-        return self._is_app_service_btn_enabled
-
-    @is_app_service_btn_enabled.setter
-    def is_app_service_btn_enabled(self, status):
-        if self._is_app_service_btn_enabled != status:
-            self._is_app_service_btn_enabled = status
-            self.appServiceBtnEnabledChanged.emit(status)
-
-    @Property(bool, notify=appRustIdBtnEnabledChanged)
-    def is_app_rust_id_btn_enabled(self):
-        return self._is_app_rust_id_btn_enabled
-
-    @is_app_rust_id_btn_enabled.setter
-    def is_app_rust_id_btn_enabled(self, is_enabled):
-        if self._is_app_rust_id_btn_enabled != is_enabled:
-            self._is_app_rust_id_btn_enabled = is_enabled
-            self.appRustIdBtnEnabledChanged.emit(is_enabled)
-
-    @Property(bool, notify=enableMicrophoneOnlyBtnEnabledChanged)
-    def is_enable_microphone_only_btn_enabled(self):
-        return self._is_enable_microphone_only_btn_enabled
-
-    @is_enable_microphone_only_btn_enabled.setter
-    def is_enable_microphone_only_btn_enabled(self, is_enabled):
-        if self._is_enable_microphone_only_btn_enabled != is_enabled:
-            self._is_enable_microphone_only_btn_enabled = is_enabled
-            self.enableMicrophoneOnlyBtnEnabledChanged.emit(is_enabled)
-
-    @Property(bool, notify=enableMicrophoneAndCameraBtnEnabledChanged)
-    def is_enable_microphone_and_camera_btn_enabled(self):
-        return self._is_enable_microphone_and_camera_btn_enabled
-
-    @is_enable_microphone_and_camera_btn_enabled.setter
-    def is_enable_microphone_and_camera_btn_enabled(self, is_enabled):
-        if self._is_enable_microphone_and_camera_btn_enabled != is_enabled:
-            self._is_enable_microphone_and_camera_btn_enabled = is_enabled
-            self.enableMicrophoneAndCameraBtnEnabledChanged.emit(is_enabled)
-
-    @Property(bool, notify=openBrowserBtnEnabledChanged)
-    def is_open_browser_btn_enabled(self):
-        return self._is_open_browser_btn_enabled
-
-    @is_open_browser_btn_enabled.setter
-    def is_open_browser_btn_enabled(self, is_enabled):
-        if self._is_open_browser_btn_enabled != is_enabled:
-            self._is_open_browser_btn_enabled = is_enabled
-            self.openBrowserBtnEnabledChanged.emit(is_enabled)
-
-    @Property(bool, notify=openObsBtnEnabledChanged)
-    def is_open_obs_btn_enabled(self):
-        return self._is_open_obs_btn_enabled
-
-    @is_open_obs_btn_enabled.setter
-    def is_open_obs_btn_enabled(self, is_enabled):
-        if self._is_open_obs_btn_enabled != is_enabled:
-            self._is_open_obs_btn_enabled = is_enabled
-            self.openObsBtnEnabledChanged.emit(is_enabled)
-
-    @Property(bool, notify=obsInstallBtnEnabledChanged)
-    def is_obs_install_btn_enabled(self):
-        return self._is_obs_install_btn_enabled
-
-    @is_obs_install_btn_enabled.setter
-    def is_obs_install_btn_enabled(self, is_enabled):
-        if self._is_obs_install_btn_enabled != is_enabled:
-            self._is_obs_install_btn_enabled = is_enabled
-            self.obsInstallBtnEnabledChanged.emit(is_enabled)
-
-    @Property(bool, notify=obsInstallBtnEnabledChanged)
-    def is_obs_record_btn_enabled(self):
-        return self._is_obs_record_btn_enabled
-
-    @is_obs_record_btn_enabled.setter
-    def is_obs_record_btn_enabled(self, is_enabled):
-        if self._is_obs_record_btn_enabled != is_enabled:
-            self._is_obs_record_btn_enabled = is_enabled
-            self.obsInstallBtnEnabledChanged.emit(is_enabled)
-
-    @Property(str, notify=appInstallationStatusChanged)
-    def app_installation_status(self):
-        return self._app_installation_status
-
-    @app_installation_status.setter
-    def app_installation_status(self, status):
-        if self._app_installation_status != status:
-            self._app_installation_status = status
-            self.appInstallationStatusChanged.emit(status)
-
-    @Property(str, notify=appServiceStatusChanged)
-    def app_service_status(self):
-        return self._app_service_status
-
-    @app_service_status.setter
-    def app_service_status(self, status):
-        if self._app_service_status != status:
-            self._app_service_status = status
-            self.appServiceStatusChanged.emit(status)
-
-    @Property(str, notify=permissionStatusChanged)
-    def permission_status(self):
-        return self._permission_status
-
-    @permission_status.setter
-    def permission_status(self, status):
-        if self._permission_status != status:
-            self._permission_status = status
-            self.permissionStatusChanged.emit(status)
-
-    @Property(str, notify=appWebsocketStatusChanged)
-    def app_websocket_status(self):
-        return self._app_websocket_status
-
-    @app_websocket_status.setter
-    def app_websocket_status(self, status):
-        if self._app_websocket_status != status:
-            self._app_websocket_status = status
-            self.appWebsocketStatusChanged.emit(status)
-
-    @Property(str, notify=obsInstallationStatusChanged)
-    def obs_installation_status(self):
-        return self._obs_installation_status
-
-    @obs_installation_status.setter
-    def obs_installation_status(self, status):
-        if self._obs_installation_status != status:
-            self._obs_installation_status = status
-            self.obsInstallationStatusChanged.emit(status)
-
-    @Property(str, notify=obsWebsocketStatusChanged)
-    def obs_websocket_status(self):
-        return self._obs_websocket_status
-
-    @obs_websocket_status.setter
-    def obs_websocket_status(self, status):
-        if self._obs_websocket_status != status:
-            self._obs_websocket_status = status
-            self.obsWebsocketStatusChanged.emit(status)
-
-    @Property(str, notify=recordingStatusChanged)
-    def recording_status(self):
-        return self._recording_status
-
-    @recording_status.setter
-    def recording_status(self, status):
-        if self._recording_status != status:
-            self._recording_status = status
-            self.recordingStatusChanged.emit(status)
+    is_change_account_btn_enabled = notifying_property(
+        bool, "_is_change_account_btn_enabled", "changeAccountBtnEnabledChanged"
+    )
+    progress = notifying_property(float, "_progress", "progressChanged")
+    rust_id = notifying_property(str, "_rust_id", "rustIdChanged")
+    streaming_url = notifying_property(str, "_streaming_url", "streamingUrlChanged")
+    course_name = notifying_property(str, "_course_name", "courseNameChanged")
+    access_code = notifying_property(str, "_access_code", "accessCodeChanged")
+    username = notifying_property(
+        str, "_username", "usernameChanged", transform=lambda name: name or "Nenájdené"
+    )
+    is_app_install_btn_enabled = notifying_property(
+        bool, "_is_app_install_btn_enabled", "appInstallBtnEnabledChanged"
+    )
+    is_app_start_btn_enabled = notifying_property(
+        bool,
+        "_is_app_start_btn_enabled",
+        "appStartBtnEnabledChanged",
+        transform=lambda enabled: enabled if check_installation() else False,
+    )
+    is_app_service_btn_enabled = notifying_property(
+        bool, "_is_app_service_btn_enabled", "appServiceBtnEnabledChanged"
+    )
+    is_app_rust_id_btn_enabled = notifying_property(
+        bool, "_is_app_rust_id_btn_enabled", "appRustIdBtnEnabledChanged"
+    )
+    is_enable_microphone_only_btn_enabled = notifying_property(
+        bool, "_is_enable_microphone_only_btn_enabled", "enableMicrophoneOnlyBtnEnabledChanged"
+    )
+    is_enable_microphone_and_camera_btn_enabled = notifying_property(
+        bool,
+        "_is_enable_microphone_and_camera_btn_enabled",
+        "enableMicrophoneAndCameraBtnEnabledChanged",
+    )
+    is_open_browser_btn_enabled = notifying_property(
+        bool, "_is_open_browser_btn_enabled", "openBrowserBtnEnabledChanged"
+    )
+    is_open_obs_btn_enabled = notifying_property(
+        bool, "_is_open_obs_btn_enabled", "openObsBtnEnabledChanged"
+    )
+    is_obs_install_btn_enabled = notifying_property(
+        bool, "_is_obs_install_btn_enabled", "obsInstallBtnEnabledChanged"
+    )
+    is_obs_record_btn_enabled = notifying_property(
+        bool, "_is_obs_record_btn_enabled", "obsInstallBtnEnabledChanged"
+    )
+    app_installation_status = notifying_property(
+        str, "_app_installation_status", "appInstallationStatusChanged"
+    )
+    app_service_status = notifying_property(
+        str, "_app_service_status", "appServiceStatusChanged"
+    )
+    permission_status = notifying_property(
+        str, "_permission_status", "permissionStatusChanged"
+    )
+    app_websocket_status = notifying_property(
+        str, "_app_websocket_status", "appWebsocketStatusChanged"
+    )
+    obs_installation_status = notifying_property(
+        str, "_obs_installation_status", "obsInstallationStatusChanged"
+    )
+    obs_websocket_status = notifying_property(
+        str, "_obs_websocket_status", "obsWebsocketStatusChanged"
+    )
+    recording_status = notifying_property(
+        str, "_recording_status", "recordingStatusChanged"
+    )
 
     @Slot(str)
     def add_log(self, log):
@@ -754,7 +573,7 @@ class MacrosoftBackend(QObject):
     def recording_toggle(self):
         self._start_obs_client()
 
-        if self._recording_status != "enabled":
+        if self._recording_status != Status.ENABLED:
             self.startStream.emit()
         else:
             self.stopStream.emit()
@@ -765,7 +584,7 @@ class MacrosoftBackend(QObject):
     @Slot(bool)
     def on_obs_ws_status_change(self, status):
         if status:
-            self.obs_websocket_status = "enabled"
+            self.obs_websocket_status = Status.ENABLED
         else:
             self.sendMessage.emit({
                 "client": "device",
@@ -774,8 +593,8 @@ class MacrosoftBackend(QObject):
                 "message": "OBS disconnected"
             }
             )
-            self.obs_websocket_status = "disabled"
-            self.recording_status = "disabled"
+            self.obs_websocket_status = Status.DISABLED
+            self.recording_status = Status.DISABLED
             if self.obs_ws_thread and self.obs_ws_thread.isRunning():
 
                 self.obs_ws_thread.quit()
@@ -797,7 +616,7 @@ class MacrosoftBackend(QObject):
     def on_obs_ws_stream_status_change(self, status):
 
         if status:
-            self.recording_status = "enabled"
+            self.recording_status = Status.ENABLED
             self.sendMessage.emit({
                     "client": "device",
                     "access_code": self._access_code,
@@ -806,7 +625,7 @@ class MacrosoftBackend(QObject):
                 }
             )
         else:
-            self.recording_status = "disabled"
+            self.recording_status = Status.DISABLED
             self.sendMessage.emit({
                 "client": "device",
                 "access_code": self._access_code,
@@ -895,9 +714,9 @@ class MacrosoftBackend(QObject):
         self.username = data["full_name"]
         self.rust_id = data["rust_id"]
         self.permission_status = data["permission_status"]
-        self.app_installation_status = "enabled" if data["is_app_installed"] else "disabled"
-        self.app_service_status = "enabled" if data["is_app_service_running"] else "disabled"
-        self.obs_installation_status = "enabled" if data["is_obs_installed"] else "disabled"
+        self.app_installation_status = Status.ENABLED if data["is_app_installed"] else Status.DISABLED
+        self.app_service_status = Status.ENABLED if data["is_app_service_running"] else Status.DISABLED
+        self.obs_installation_status = Status.ENABLED if data["is_obs_installed"] else Status.DISABLED
 
         self.is_app_install_btn_enabled = True
         if data["is_app_installed"]:
@@ -959,9 +778,9 @@ class MacrosoftBackend(QObject):
     @Slot(bool)
     def websocket_on_change_status(self, status):
         if status:
-            self.app_websocket_status = "enabled"
+            self.app_websocket_status = Status.ENABLED
         else:
-            self.app_websocket_status = "disabled"
+            self.app_websocket_status = Status.DISABLED
 
     @Slot(str)
     def websocket_on_message_received(self, message):
@@ -994,13 +813,13 @@ class MacrosoftBackend(QObject):
         self.is_app_service_btn_enabled = True
 
         if check_installation():
-            self.app_installation_status = "enabled"
+            self.app_installation_status = Status.ENABLED
             if self.is_service_on():
-                self.app_service_status = "enabled"
+                self.app_service_status = Status.ENABLED
             else:
-                self.app_service_status = "disabled"
+                self.app_service_status = Status.DISABLED
         else:
-            self.app_installation_status = "disabled"
+            self.app_installation_status = Status.DISABLED
             self.is_app_start_btn_enabled = False
             self.is_app_service_btn_enabled = False
 
@@ -1015,10 +834,10 @@ class MacrosoftBackend(QObject):
         """updates app state, cleans up, releases resources"""
         logger.debug("on_installation_finished")
         if result_data.get("app_installed"):
-            self.app_installation_status = "enabled"
+            self.app_installation_status = Status.ENABLED
 
             if result_data.get("app_service_on"):
-                self.app_service_status = "enabled"
+                self.app_service_status = Status.ENABLED
 
             if result_data.get("rust_id"):
                 self.rust_id = result_data.get("rust_id")
@@ -1031,8 +850,8 @@ class MacrosoftBackend(QObject):
             self.showDialog.emit("Inštalácia Úspešná", "Aplikácia Macrosoft QuickSupport bola úspešne nainštalovaná.", True)
 
         else:
-            self.app_installation_status = "disabled"
-            self.app_service_status = "disabled"
+            self.app_installation_status = Status.DISABLED
+            self.app_service_status = Status.DISABLED
             self.rust_id = result_data.get("rust_id")
             self.is_app_start_btn_enabled = False
             self.is_app_service_btn_enabled = False
@@ -1053,7 +872,7 @@ class MacrosoftBackend(QObject):
     @Slot()
     def on_obs_installation_finished(self):
         """updates obs installation status"""
-        self.obs_installation_status = "enabled" if is_obs_installed() else "disabled"
+        self.obs_installation_status = Status.ENABLED if is_obs_installed() else Status.DISABLED
         self.is_obs_install_btn_enabled = False
         self.is_open_obs_btn_enabled = True
         self.is_obs_record_btn_enabled = True
@@ -1074,7 +893,7 @@ class MacrosoftBackend(QObject):
     def on_toggle_service_finished(self):
         """cleans up when start service button is clicked"""
 
-        self.app_service_status = "enabled" if check_installation() and self.is_service_on() else "disabled"
+        self.app_service_status = Status.ENABLED if check_installation() and self.is_service_on() else Status.DISABLED
 
         self.is_app_service_btn_enabled = True
 
@@ -1113,11 +932,11 @@ class MacrosoftBackend(QObject):
         browser_permissions_allowed = result.get("is_browser_permissions_allowed")
 
         if microphone_allowed and webcam_allowed and browser_permissions_allowed:
-            self.permission_status = "enabled"
+            self.permission_status = Status.ENABLED
         elif microphone_allowed:
-            self.permission_status = "checking"
+            self.permission_status = Status.CHECKING
         else:
-            self.permission_status = "disabled"
+            self.permission_status = Status.DISABLED
 
     def cleanup(self):
         """
@@ -1127,8 +946,8 @@ class MacrosoftBackend(QObject):
         # Before shutting down threads, check if OBS is connected and streaming.
         # If so, send a command to stop the stream.
         if (self.obs_ws_worker and
-                self._obs_websocket_status == "enabled" and
-                self._recording_status == "enabled"):
+                self._obs_websocket_status == Status.ENABLED and
+                self._recording_status == Status.ENABLED):
             self.add_log("Aplikácia sa zatvára. Zastavuje sa stream v OBS...")
 
             # Call the dedicated method to stop the stream

@@ -44,6 +44,13 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.pyright]
-include = ["support_app/app_config.py", "support_app/settings.py", "support_app/api.py", "support_app/logging_setup.py"]
+include = [
+    "support_app/app_config.py",
+    "support_app/settings.py",
+    "support_app/api.py",
+    "support_app/logging_setup.py",
+    "support_app/qt_bindings.py",
+    "support_app/status.py",
+]
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
