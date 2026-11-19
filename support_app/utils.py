@@ -32,7 +32,8 @@ def get_process_command_lines(process_name):
                 command_lines.append(cmdline)
         logger.debug("cmdline over")
         return command_lines
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not read command lines for %s: %s", process_name, e)
         return []
 
 def is_app_running():
@@ -57,7 +58,8 @@ def is_service_running(service_name):
         return service.status() == 'running'
     except psutil.NoSuchProcess:
         return False
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not query service %s: %s", service_name, e)
         return False
 
 def get_full_name(access):
@@ -72,7 +74,8 @@ def get_full_name(access):
             else:
                 return 'Neznáme meno'
 
-        except Exception:
+        except Exception as e:
+            logger.debug("Could not fetch full name for access code: %s", e)
             return ""
     return ""
 
@@ -87,7 +90,8 @@ def open_website(access):
 def is_user_admin():
     try:
         return ctypes.windll.shell32.IsUserAnAdmin()
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not determine admin state: %s", e)
         return False
 
 def get_local_ip():
@@ -97,7 +101,8 @@ def get_local_ip():
 def get_public_ip():
     try:
         return api.get("https://api64.ipify.org?format=text").text
-    except requests.RequestException:
+    except requests.RequestException as e:
+        logger.debug("Could not determine public IP: %s", e)
         return
 
 
@@ -112,7 +117,8 @@ def get_latest_access_code():
                 return res.json().get('access_code', "")
         else:
             return ""
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not fetch the latest access code: %s", e)
         return ""
 
 def check_installation():
@@ -242,7 +248,8 @@ def setup_obs_config():
                 "server_password": generated_password,
                 "server_port": 4455
             }
-    except Exception:
+    except Exception as e:
+        logger.warning("Could not load OBS websocket config: %s", e)
         config_data = {}
 
     config_data["server_enabled"] = True
@@ -276,7 +283,8 @@ def check_obs_config():
                 port = config_data["server_port"] == 4455
 
                 return alert and auth and server and port
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not verify OBS websocket config: %s", e)
         return
 
 

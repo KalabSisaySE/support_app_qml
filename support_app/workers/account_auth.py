@@ -13,6 +13,9 @@ from support_app.app_config import (
     DESKTOP_AUTH_URL,
     get_cloudflare_headers,
 )
+from support_app.logging_setup import get_logger
+
+logger = get_logger(__name__)
 
 
 class AccountAuthWorker(QObject):
@@ -65,6 +68,6 @@ class AccountAuthWorker(QObject):
                         self.finished.emit(data) # Success!
                 # If status is 202 (Pending) or 404 (Not Found yet), we just wait for the next poll.
 
-        except Exception:
+        except Exception as e:
             # Don't log every failed poll attempt unless it's a major error
-            pass
+            logger.debug("Desktop auth poll failed: %s", e)

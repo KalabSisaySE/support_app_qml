@@ -7,6 +7,10 @@ import time
 
 import psutil
 
+from support_app.logging_setup import get_logger
+
+logger = get_logger(__name__)
+
 SITE_URL = 'https://online.macrosoft.sk'
 SITE_URL_KEY = f'{SITE_URL}:443,*'
 
@@ -25,8 +29,8 @@ class BrowserPermissionManager:
 
         try:
             self.user_account = os.getlogin()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not determine the current user account: %s", e)
 
         if self.user_account:
             self.chrome_basepath = f"C:\\Users\\{self.user_account}\\AppData\\Local\\Google\\Chrome\\"
@@ -145,33 +149,34 @@ class BrowserPermissionManager:
 
     def set_browser_permissions(self):
         """Grant microphone and camera access to the site in every browser."""
-        for _, base_path in self._chromium_browser_paths():
+        for browser_name, base_path in self._chromium_browser_paths():
             try:
                 if os.path.exists(base_path):
                     for preference in self.find_preferences_files(base_path):
                         self.modify_preference_file(preference)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Could not set %s permissions: %s", browser_name, e)
 
         # For Firefox
         try:
             self.set_firefox_permissions()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not set Firefox permissions: %s", e)
 
     def is_browser_permissions_allowed(self):
         permissions_allowed = False
 
         # Check the Chromium based browsers (Edge, Chrome, Brave)
-        for _, base_path in self._chromium_browser_paths():
+        for browser_name, base_path in self._chromium_browser_paths():
             try:
                 if os.path.exists(base_path):
                     for preference in self.find_preferences_files(base_path):
                         if not self.check_preference_file_settings(preference):
                             return
                 permissions_allowed = True
-            except Exception:
-                pass  # Silently skip if the browser is not installed or an error occurs
+            except Exception as e:
+                # Silently skip if the browser is not installed or an error occurs
+                logger.debug("Could not check %s permissions: %s", browser_name, e)
 
         # Check Firefox
         try:
@@ -197,8 +202,9 @@ class BrowserPermissionManager:
                     if mic_permission and mic_permission[0] == 1 and cam_permission and cam_permission[0] == 1:
                         permissions_allowed = True
                 conn.close()
-        except Exception:
-            pass  # Silently skip if Firefox is not installed or an error occurs
+        except Exception as e:
+            # Silently skip if Firefox is not installed or an error occurs
+            logger.debug("Could not check Firefox permissions: %s", e)
 
         return permissions_allowed
 
@@ -252,7 +258,8 @@ class BrowserPermissionManager:
 
             return camera_perm and mic_perm
 
-        except Exception:
+        except Exception as e:
+            logger.debug("Could not read preference file %s: %s", file_path, e)
             return
 
     def _read_firefox_profiles(self):

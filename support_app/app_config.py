@@ -104,7 +104,8 @@ def get_user_type():
 
         return res.json()['user_type']
 
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not fetch user type from API, using local fallback: %s", e)
         settings = load_settings()
         if settings.is_lectoure is not None:
             return "lectoure" if settings.is_lectoure else "client"
@@ -127,8 +128,8 @@ def get_latest_obs_download_url():
         if is_version_string(latest_version):
             logger.debug("Latest OBS version resolved from upstream.")
             download_url = f"{base_url}OBS-Studio-{latest_version}-Windows-x64-Installer.exe"
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Could not resolve the latest OBS release: %s", e)
 
     return download_url
 

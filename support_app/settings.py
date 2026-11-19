@@ -6,12 +6,15 @@ settings file behind when the process is interrupted.
 """
 
 import json
+import logging
 import os
 import re
 import sys
 import tempfile
 from dataclasses import dataclass
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 APP_DATA_PATH = os.path.join(os.getenv('APPDATA') or os.path.expanduser('~'), 'MacrosoftSupport')
 CONFIG_FILE_PATH = os.path.join(APP_DATA_PATH, 'config.json')
@@ -40,8 +43,8 @@ def _atomic_write_text(path: str, content: str) -> None:
     except Exception:
         try:
             os.remove(temp_path)
-        except OSError:
-            pass
+        except OSError as cleanup_error:
+            logger.debug("Could not remove temporary settings file: %s", cleanup_error)
         raise
 
 
@@ -50,7 +53,8 @@ def load_settings() -> AppSettings:
     try:
         with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as file:
             data = json.load(file)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError) as e:
+        logger.debug("Could not read settings from %s: %s", CONFIG_FILE_PATH, e)
         return AppSettings()
 
     if not isinstance(data, dict):
@@ -68,8 +72,8 @@ def save_settings(settings: AppSettings) -> None:
             existing = json.load(file)
             if isinstance(existing, dict):
                 data = existing
-    except (OSError, json.JSONDecodeError):
-        pass
+    except (OSError, json.JSONDecodeError) as e:
+        logger.debug("Could not merge existing settings from %s: %s", CONFIG_FILE_PATH, e)
 
     data['is_lectoure'] = settings.is_lectoure
     _atomic_write_text(CONFIG_FILE_PATH, json.dumps(data, indent=4))
@@ -88,8 +92,8 @@ def extract_installer_code(input_str: str):
             if len(code) > 0:
                 return code
 
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Could not extract the installer access code: %s", e)
 
 
 def installer_path_file() -> str:
@@ -123,7 +127,7 @@ def get_access_code() -> str:
                 code = extract_installer_code(content)
                 if code:
                     return code
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not read the installer access code file: %s", e)
 
     return access

@@ -744,12 +744,12 @@ class MacrosoftBackend(QObject):
             message_type = data.get("message_type")
             if not self.lectoure_ws_data and message_type:
                 self.lectoure_ws_data = data
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            logger.debug("Ignoring non-JSON websocket message: %s", e)
 
     @Slot(str)
     def websocket_on_error(self, message):
-        pass
+        logger.debug("Support websocket error: %s", message)
 
     @Slot(dict)
     def websocket_on_received_course_data(self, course_data):

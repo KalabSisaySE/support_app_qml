@@ -1,6 +1,10 @@
 import subprocess
 import sys
 
+from support_app.logging_setup import get_logger
+
+logger = get_logger(__name__)
+
 CONSENT_STORE_PATH = r"SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore"
 
 MICROPHONE_PERMISSION_PATHS = (
@@ -30,8 +34,8 @@ class RegistryPermissionManager:
                 if status != "Allow":
                     return False
             return True
-        except Exception:
-            # self.log_message(f"Nepodarilo sa overiť prístup: {e}")
+        except Exception as e:
+            logger.debug("Could not read a device permission value: %s", e)
             return False
 
     def is_microphone_allowed(self):
@@ -66,17 +70,16 @@ class RegistryPermissionManager:
             command = f"Set-ItemProperty -Path '{device_path}' -Name Value -Value '{status}'"
             self.run_powershell_command(command)
             # self.log_message(f"Set {device_path} to {status}")
-        except Exception:
-            pass
-            # self.log_message(f"Nepodarilo sa nastaviť {device_path} na {status}: {e}")
+        except Exception as e:
+            logger.warning("Could not set %s to %s: %s", device_path, status, e)
 
     def _allow_permission_paths(self, permission_paths):
         """Set every path in *permission_paths* to 'Allow'."""
         try:
             for path in permission_paths:
                 self.set_device_status(path, "Allow")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Could not allow the requested permission paths: %s", e)
 
     def set_microphone_access_powershell(self):
         self._allow_permission_paths(MICROPHONE_PERMISSION_PATHS)
