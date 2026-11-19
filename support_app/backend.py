@@ -18,6 +18,7 @@ from support_app.logging_setup import get_logger
 from support_app.macrosoft_connect import uninstall_shortcut_path
 from support_app.qt_bindings import notifying_property
 from support_app.status import Status
+from support_app.tasks import TaskRunner
 from support_app.utils import check_installation, is_obs_installed, is_service_running
 from support_app.workers import (
     AccountAuthWorker,
@@ -91,8 +92,12 @@ class MacrosoftBackend(QObject):
         logger.info("is_user_admin: %s", self._is_user_admin)
 
         self._progress = 0
-        self._running_tasks = {}
         self._running_progresses = {}
+        self._task_runner = TaskRunner(
+            on_progress=self.update_progress,
+            on_log=self.add_log,
+            on_self_uninstall=self.quit_application,
+        )
         self._app_installation_status = Status.DISABLED
         self._app_service_status = Status.DISABLED
         self._app_websocket_status = Status.DISABLED
@@ -264,65 +269,14 @@ class MacrosoftBackend(QObject):
 
 
     def _start_worker(self, task_name: str, worker_class, start_method_name: str, finished_slot, worker_args=None):
-        """
-        A generic function to create, configure, and start a worker in a new thread.
-        """
-        # ... (initial part of the method is unchanged)
-
-        thread = QThread()
-        worker_args = worker_args or ()
-        worker = worker_class(*worker_args)
-        worker.moveToThread(thread)
-
-        start_method = getattr(worker, start_method_name)
-        thread.started.connect(start_method)
-
-        if hasattr(worker, 'progress_changed'):
-            worker.progress_changed.connect(self.update_progress)
-        if hasattr(worker, 'log'):
-            worker.log.connect(self.add_log)
-
-        # --- START: ADD THIS BLOCK ---
-        # Special handling for the self-uninstall signal from AppInstallationWorker
-        if hasattr(worker, 'selfUninstallTriggered'):
-            worker.selfUninstallTriggered.connect(self.quit_application)
-        # --- END: ADD THIS BLOCK ---
-
-        worker.finished.connect(lambda *result: self._on_task_finished(task_name, finished_slot, result))
-
-        self._running_tasks[task_name] = {"thread": thread, "worker": worker}
-
-        thread.start()
-    # Add this method inside the MacrosoftBackend class
-
-    def _on_task_finished(self, task_name, specific_finished_slot, result):
-        """
-        Generic cleanup handler for any worker that finishes.
-        """
-        if task_name not in self._running_tasks:
-            return
-
-        task_info = self._running_tasks[task_name]
-        thread = task_info["thread"]
-        worker = task_info["worker"]
-
-        # Call the specific finished slot passed to _start_worker
-        # This handles signals with or without arguments (like finished() vs finished(dict))
-        if result:
-            specific_finished_slot(*result)
-        else:
-            specific_finished_slot()
-
-        # Perform the cleanup
-        thread.quit()
-        thread.wait()
-
-        # Let Qt's event loop delete the objects safely
-        worker.deleteLater()
-        thread.deleteLater()
-
-        # Remove the task from our tracking dictionary
-        del self._running_tasks[task_name]
+        """Create, configure and start a worker in a new thread."""
+        self._task_runner.start(
+            task_name,
+            worker_class,
+            start_method_name,
+            finished_slot,
+            worker_args=worker_args,
+        )
 
     # 1. THE PUBLIC SLOT FOR THE BUTTON
     @Slot()
