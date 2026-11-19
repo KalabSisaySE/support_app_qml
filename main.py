@@ -11,6 +11,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from support_app import app_config
 from support_app.backend import MacrosoftBackend
 from support_app.logging_setup import configure_logging, get_logger
+from support_app.version import __version__
 
 logger = get_logger(__name__)
 
@@ -18,7 +19,10 @@ logger = get_logger(__name__)
 def main():
     """Create the Qt application, expose the backend and load the QML UI."""
     configure_logging()
-    logger.info("main.py starting (name=%s, exe=%s)", app_config.NAME, app_config.EXE_NAME)
+    logger.info(
+        "Macrosoft Support %s starting (name=%s, exe=%s)",
+        __version__, app_config.NAME, app_config.EXE_NAME,
+    )
 
     # 1. Set the desired Qt Quick Controls style before creating the application
     QQuickStyle.setStyle("Fusion")  # Options: "Basic", "Fusion", "Material", "Imagine", etc.

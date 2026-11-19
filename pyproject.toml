@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "macrosoft-support"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Macrosoft Support desktop application (PySide6/QML)"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -31,6 +31,9 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["support_app*"]
 
+[tool.setuptools.dynamic]
+version = {attr = "support_app.version.__version__"}
+
 [tool.ruff]
 target-version = "py313"
 line-length = 120
@@ -52,6 +55,7 @@ include = [
     "support_app/qt_bindings.py",
     "support_app/status.py",
     "support_app/tasks.py",
+    "support_app/version.py",
 ]
 pythonVersion = "3.13"
 typeCheckingMode = "basic"

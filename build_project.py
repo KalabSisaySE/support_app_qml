@@ -1,7 +1,10 @@
 import os
+import re
 import subprocess
 import sys
 import shutil
+
+from support_app.version import __version__, version_string, version_tuple
 
 # --- Configuration ---
 
@@ -9,10 +12,12 @@ import shutil
 APP_SCRIPT = "main.py"
 EXE_NAME = "MacrosoftSupport"
 ICON_FILE = "images/icon.ico"
-VERSION_FILE = "config_files/version_info_main.txt"
+VERSION_INFO_TEMPLATE = "config_files/version_info_main.txt"
 INNO_SCRIPT = "config_files/installer.iss"
 SLOVAK_ISL_FILE = "config_files/Slovak.isl"
 OUTPUT_DIR = "output"
+BUILD_DIR = "build"
+RENDERED_VERSION_FILE = os.path.join(BUILD_DIR, "version_info_main.txt")
 
 
 
@@ -62,6 +67,46 @@ def run_command(command, env=None):
 
 
 
+def render_version_info(template_path, output_path):
+    """Render a PyInstaller version-info file from the single version source."""
+    with open(template_path, 'r', encoding='utf-8') as file:
+        text = file.read()
+
+    four_part_tuple = version_tuple()
+    four_part_string = version_string()
+
+    text = re.sub(r"filevers=\([^)]*\)", f"filevers={four_part_tuple}", text)
+    text = re.sub(r"prodvers=\([^)]*\)", f"prodvers={four_part_tuple}", text)
+    text = re.sub(
+        r"(StringStruct\('FileVersion', ')[^']*(')",
+        rf"\g<1>{four_part_string}\g<2>",
+        text,
+    )
+    text = re.sub(
+        r"(StringStruct\('ProductVersion', ')[^']*(')",
+        rf"\g<1>{four_part_string}\g<2>",
+        text,
+    )
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as file:
+        file.write(text)
+    return output_path
+
+
+def render_installer_script(template_path, output_path):
+    """Render the Inno Setup script with the current application version."""
+    with open(template_path, 'r', encoding='utf-8') as file:
+        text = file.read()
+
+    text = re.sub(r"(?m)^AppVersion=.*$", f"AppVersion={__version__}", text, count=1)
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    with open(output_path, 'w', encoding='utf-8') as file:
+        file.write(text)
+    return output_path
+
+
 def compile_application():
     """
     Compiles the application using PyInstaller for a specific user type.
@@ -76,7 +121,7 @@ def compile_application():
         print("\n>>> build directory existed and has been removed ...")
         shutil.rmtree('build')
 
-
+    version_file = render_version_info(VERSION_INFO_TEMPLATE, RENDERED_VERSION_FILE)
 
     # Construct the PyInstaller command
     pyinstaller_command = [
@@ -86,7 +131,7 @@ def compile_application():
         '--windowed',  # Use --console if you need a terminal window for debugging
         '--name', EXE_NAME,
         '--icon', ICON_FILE,
-        '--version-file', VERSION_FILE,
+        '--version-file', version_file,
         '--distpath', OUTPUT_DIR,
         '--optimize', "2",
         '--uac-admin',
@@ -118,7 +163,7 @@ def prepare_installer_directory():
     languages_dir = os.path.join(OUTPUT_DIR, "Languages")
     os.makedirs(languages_dir)
 
-    shutil.copy(INNO_SCRIPT, OUTPUT_DIR)
+    render_installer_script(INNO_SCRIPT, os.path.join(OUTPUT_DIR, os.path.basename(INNO_SCRIPT)))
     shutil.copy(ICON_FILE, OUTPUT_DIR)
     shutil.copy(SLOVAK_ISL_FILE, languages_dir)
 
@@ -127,7 +172,7 @@ def prepare_installer_directory():
 def main():
     """Main function to run the entire build process."""
     print("==========================================")
-    print("=== Macrosoft Support Build Automation ===")
+    print(f"=== Macrosoft Support Build {__version__} ===")
     print("==========================================")
 
     # 1. Compile the application for the chosen build type
