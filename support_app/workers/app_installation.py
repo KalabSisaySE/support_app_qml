@@ -23,7 +23,7 @@ from support_app.macrosoft_connect import (
     report_rustdesk_id,
     uninstall_shortcut_path,
 )
-from support_app.utils import (
+from support_app.system_info import (
     check_installation,
     is_app_running,
     is_service_running,

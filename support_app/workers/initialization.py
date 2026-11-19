@@ -5,23 +5,22 @@ from PySide6.QtCore import QObject, Signal, Slot
 from support_app import app_config
 from support_app.app_config import get_access_code
 from support_app.browser_permission_manager import BrowserPermissionManager
+from support_app.macrosoft_api import get_full_name
 from support_app.macrosoft_connect import (
     app_executable_path,
     query_rustdesk_id,
     report_rustdesk_id,
 )
-from support_app.registry_permission_manager import RegistryPermissionManager
-from support_app.utils import (
-    check_installation,
+from support_app.obs_control import (
     check_obs_config,
     close_obs,
-    get_full_name,
     is_obs_installed,
     is_obs_running,
-    is_service_running,
     setup_obs_config,
     start_obs,
 )
+from support_app.registry_permission_manager import RegistryPermissionManager
+from support_app.system_info import check_installation, is_service_running
 
 
 class InitializeApp(QObject):

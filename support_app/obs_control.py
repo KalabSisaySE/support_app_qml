@@ -1,139 +1,28 @@
-import ctypes
-import psutil
-import requests
-import socket
-import webbrowser
-import os
-import time
-import subprocess
-import win32gui
-import win32con
-import json
-import string
-import secrets
+"""OBS install detection, lifecycle and websocket configuration helpers."""
 
-from support_app.app_config import (
-    FULL_NAME_URL,
-    LATEST_ACCESS_CODE_URL,
-    get_cloudflare_headers,
-)
-from support_app import api
+import json
+import os
+import secrets
+import string
+import subprocess
+import time
+
+import psutil
+import win32con
+import win32gui
+
 from support_app.logging_setup import get_logger
 
 logger = get_logger(__name__)
 
-def get_process_command_lines(process_name):
-    try:
-        command_lines = []
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-            if proc.info['name'] and proc.info['name'].lower() == process_name.lower():
-                cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
-                logger.debug("cmdline: %s", cmdline)
-                command_lines.append(cmdline)
-        logger.debug("cmdline over")
-        return command_lines
-    except Exception as e:
-        logger.debug("Could not read command lines for %s: %s", process_name, e)
-        return []
+OBS_WINDOWS_PATH = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
+OBS_WEBSOCKET_CONFIG = ('obs-studio', 'plugin_config', 'obs-websocket', 'config.json')
 
-def is_app_running():
-    """
-    Check if a Macrosoft Remote Desktop is running.
-    :return: True if the process is running, False otherwise.
-    """
-    from support_app import app_config
-    process_name = f"{app_config.EXE_NAME}.exe"
-
-    for proc in psutil.process_iter(['name']):
-        try:
-            if proc.info['name'] and process_name.lower() == proc.info['name'].lower():
-                return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False
-
-def is_service_running(service_name):
-    try:
-        service = psutil.win_service_get(service_name)
-        return service.status() == 'running'
-    except psutil.NoSuchProcess:
-        return False
-    except Exception as e:
-        logger.debug("Could not query service %s: %s", service_name, e)
-        return False
-
-def get_full_name(access):
-    if access:
-        url = f'{FULL_NAME_URL}?access={access}'
-        try:
-            res = api.get(url, headers=get_cloudflare_headers(), retries=0)
-
-            json_data = res.json()
-            if json_data.get('status') == 'found':
-                return json_data.get('full_name', 'Neznáme meno')
-            else:
-                return 'Neznáme meno'
-
-        except Exception as e:
-            logger.debug("Could not fetch full name for access code: %s", e)
-            return ""
-    return ""
-
-def open_website(access):
-    if access:
-        url = f'https://online.macrosoft.sk/online/?access={access}'
-        webbrowser.open(url)
-        return True
-    else:
-        return False
-
-def is_user_admin():
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except Exception as e:
-        logger.debug("Could not determine admin state: %s", e)
-        return False
-
-def get_local_ip():
-    hostname = socket.gethostname()
-    return socket.gethostbyname(hostname)
-
-def get_public_ip():
-    try:
-        return api.get("https://api64.ipify.org?format=text").text
-    except requests.RequestException as e:
-        logger.debug("Could not determine public IP: %s", e)
-        return
-
-
-def get_latest_access_code():
-    try:
-        my_ip = get_public_ip()
-        if my_ip:
-            url = LATEST_ACCESS_CODE_URL
-            res = api.post(url, json={"ip_address": my_ip}, headers=get_cloudflare_headers())
-
-            if res.status_code == 200:
-                return res.json().get('access_code', "")
-        else:
-            return ""
-    except Exception as e:
-        logger.debug("Could not fetch the latest access code: %s", e)
-        return ""
-
-def check_installation():
-    """Check if the application is installed on user's computer."""
-    from support_app.macrosoft_connect import app_executable_path
-    return os.path.exists(app_executable_path())
 
 def is_obs_installed():
     """Check if OBS is installed"""
-    OBS_WINDOWS_PATH = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
+    return os.path.exists(OBS_WINDOWS_PATH)
 
-    if os.path.exists(OBS_WINDOWS_PATH):
-        return True
-
-    return False
 
 def is_obs_running():
     """Check if OBS process is running"""
@@ -175,6 +64,7 @@ def set_obs_exit_confirmation():
 
         logger.info("OBS closed and ConfirmOnExit set to false.")
 
+
 def start_obs(first_time=False):
     """Start OBS with confirmation dialog disabled."""
     # Ensure OBS does NOT show exit confirmation
@@ -182,7 +72,6 @@ def start_obs(first_time=False):
         set_obs_exit_confirmation()
 
     # Launch OBS
-    OBS_WINDOWS_PATH = r"C:\Program Files\obs-studio\bin\64bit\obs64.exe"
     obs_install_dir = os.path.dirname(OBS_WINDOWS_PATH)
     subprocess.Popen(
         [OBS_WINDOWS_PATH],
@@ -223,13 +112,7 @@ def close_obs():
 
 
 def setup_obs_config():
-    config_path = os.path.join(
-        os.environ['APPDATA'],
-        'obs-studio',
-        'plugin_config',
-        'obs-websocket',
-        'config.json'
-    )
+    config_path = os.path.join(os.environ['APPDATA'], *OBS_WEBSOCKET_CONFIG)
 
     chars = string.ascii_letters + string.digits
     generated_password = ''.join(secrets.choice(chars) for _ in range(16))
@@ -264,13 +147,7 @@ def setup_obs_config():
 
 def check_obs_config():
     """verifies if OBS is configured properly (as needed)"""
-    config_path = os.path.join(
-        os.environ['APPDATA'],
-        'obs-studio',
-        'plugin_config',
-        'obs-websocket',
-        'config.json'
-    )
+    config_path = os.path.join(os.environ['APPDATA'], *OBS_WEBSOCKET_CONFIG)
 
     try:
         if os.path.exists(config_path):
@@ -286,5 +163,3 @@ def check_obs_config():
     except Exception as e:
         logger.debug("Could not verify OBS websocket config: %s", e)
         return
-
-

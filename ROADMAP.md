@@ -5,7 +5,24 @@ test, ship and support. Status is updated as work lands on `main`.
 
 Legend: ✅ done · 🚧 in progress · ⏳ planned · ⚠️ blocked
 
-## Today — 2026-11-18
+## Today — 2026-11-19
+
+Theme: **architecture & build metadata** (still no user-visible behaviour changes).
+
+Baseline tagged `legacy-v1.0.0` at `e998116` (state before modernization).
+
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| 1 | Declarative Qt property helper + `Status` enum | ✅ | `b6514b9` |
+| 2 | Explicit `TaskRunner`/`WorkerTask` lifecycle | ✅ | `75d473a` |
+| 3 | Log previously swallowed exceptions | ✅ | `78349e6` |
+| 4 | Single-source version + rendered build metadata + changelog | ✅ | `67384dd` |
+| 5 | Split `utils.py` into OBS/system/API modules + tests | ✅ | _this commit_ |
+
+Acceptance: `ruff`, `pyright` and 59 pytest tests green; QML-facing property
+and signal names unchanged.
+
+## 2026-11-18 — foundations
 
 Theme: **foundations** (no user-visible behaviour changes).
 
@@ -43,8 +60,8 @@ runtime dependencies, console behaviour preserved.
 - ✅ GitHub Actions CI on Windows (lint + tests).
 - ✅ README with architecture, setup, run and build instructions.
 - ✅ Pyright configuration + CI type check for the modern modules.
-- ⏳ `CHANGELOG.md` maintained per release.
-- ⏳ Single source of truth for the app version (read by build script).
+- ✅ `CHANGELOG.md` maintained per release.
+- ✅ Single source of truth for the app version (rendered into build metadata).
 
 ## Phase 2 — Reliability & observability
 
@@ -52,19 +69,20 @@ runtime dependencies, console behaviour preserved.
 - ✅ Rotating file logging under `%APPDATA%` plus console mirror.
 - ✅ HTTP client with explicit timeouts, bounded retries and typed errors.
 - ✅ Typed settings/persistence with atomic writes.
-- ⏳ Replace remaining broad `except` blocks with narrow handling + logging.
-- ⏳ `Status` enum instead of `"enabled"/"disabled"/"checking"` literals.
-- ⏳ Timeouts on installer downloads and OBS WebSocket waits (download and
-  desktop-auth timeouts added; OBS WebSocket waits still pending).
+- ✅ Replace silently swallowed exceptions with debug/warning logging.
+- ✅ `Status` enum instead of `"enabled"/"disabled"/"checking"` literals.
+- ⏳ Timeouts on OBS WebSocket waits (installer download and desktop-auth
+  timeouts already added).
 
 ## Phase 3 — Architecture
 
-- ⏳ Split `support_app/backend.py` (900+ lines, 25 Qt properties) into cohesive
+- ⏳ Split `support_app/backend.py` (still ~700 lines) into cohesive
   controllers behind one QML façade.
-- ⏳ Replace repeated `@Property`/setter/notify boilerplate with a helper or
-  typed state object.
-- ⏳ Typed task runner with cancellation, timeouts and `error` signal.
-- ⏳ Split `utils.py` into OBS, process and network modules.
+- ✅ Replace repeated `@Property`/setter/notify boilerplate with a helper.
+- ✅ Explicit `TaskRunner`/`WorkerTask` lifecycle (cancellation/timeouts still
+  planned).
+- ✅ Split `utils.py` into OBS (`obs_control`), system (`system_info`) and API
+  (`macrosoft_api`) modules.
 - ⏳ Remove blocking sleeps from the GUI thread (`cleanup`).
 
 ## Phase 4 — UI, build & delivery

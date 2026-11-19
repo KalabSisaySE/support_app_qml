@@ -18,13 +18,13 @@ from support_app.app_config import (
     get_latest_obs_download_url,
 )
 from support_app.macrosoft_connect import create_service_manager
-from support_app.rtmp_url_manager import RtmpUrlGenerator
-from support_app.utils import (
+from support_app.obs_control import (
     is_obs_installed,
     is_obs_running,
     setup_obs_config,
     start_obs,
 )
+from support_app.rtmp_url_manager import RtmpUrlGenerator
 
 
 class OpenOBSWorker(QObject):

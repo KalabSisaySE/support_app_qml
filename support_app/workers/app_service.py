@@ -10,7 +10,7 @@ from support_app.macrosoft_connect import (
     app_executable_path,
     create_service_manager,
 )
-from support_app.utils import check_installation, is_app_running, is_service_running
+from support_app.system_info import check_installation, is_app_running, is_service_running
 
 
 class StartAppWorker(QObject):

@@ -15,12 +15,21 @@ launcher.py                     UAC elevation launcher
 build_project.py                PyInstaller + Inno Setup build automation
 qml/                            QML views and reusable controls
 support_app/
-  app_config.py                 endpoints, paths, Cloudflare headers, identity
+  app_config.py                 endpoints, paths, Cloudflare headers, lazy identity
   backend.py                    QObject facade exposed to QML
   workers/                      background workers (install, service, OBS, ...)
+  tasks.py                      QThread worker lifecycle
+  settings.py                   typed persistence + installer access code
+  api.py                        HTTP client (timeouts, retries)
+  logging_setup.py              rotating file + console logging
+  version.py                    single source of the app version
+  qt_bindings.py                declarative Qt property helper
+  status.py                     Status enum for QML indicators
   macrosoft_connect.py          install paths / service / RustDesk reporting
+  macrosoft_api.py              full-name lookup and web links
+  obs_control.py                OBS detection, launch, config
+  system_info.py                process/service/network/installation checks
   rtmp_url_manager.py           PeerTube live-video provisioning
-  utils.py                      OBS, process and network helpers
   registry_permission_manager.py
   browser_permission_manager.py
   rust_service_manager.py

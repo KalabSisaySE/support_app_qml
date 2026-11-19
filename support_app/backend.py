@@ -19,7 +19,8 @@ from support_app.macrosoft_connect import uninstall_shortcut_path
 from support_app.qt_bindings import notifying_property
 from support_app.status import Status
 from support_app.tasks import TaskRunner
-from support_app.utils import check_installation, is_obs_installed, is_service_running
+from support_app.obs_control import is_obs_installed
+from support_app.system_info import check_installation, is_service_running
 from support_app.workers import (
     AccountAuthWorker,
     AppInstallationWorker,

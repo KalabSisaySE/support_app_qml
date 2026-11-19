@@ -11,7 +11,7 @@ from support_app.macrosoft_connect import (
     query_rustdesk_id,
     report_rustdesk_id,
 )
-from support_app.utils import get_full_name
+from support_app.macrosoft_api import get_full_name
 
 
 class UserInfoWorker(QObject):

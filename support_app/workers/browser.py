@@ -3,7 +3,7 @@
 from PySide6.QtCore import QObject, Signal, Slot
 
 from support_app.app_config import get_access_code
-from support_app.utils import open_website
+from support_app.macrosoft_api import open_website
 
 
 class OpenBrowserWorker(QObject):
