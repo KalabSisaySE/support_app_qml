@@ -9,24 +9,19 @@ from support_app.version import __version__, version_string, version_tuple
 # --- Configuration ---
 
 # The name of your main Python script file.
-APP_SCRIPT = "main.py"
-EXE_NAME = "MacrosoftSupport"
 ICON_FILE = "images/icon.ico"
 VERSION_INFO_TEMPLATE = "config_files/version_info_main.txt"
 INNO_SCRIPT = "config_files/installer.iss"
 SLOVAK_ISL_FILE = "config_files/Slovak.isl"
+SPEC_FILE = "MacrosoftSupport.spec"
 OUTPUT_DIR = "output"
 BUILD_DIR = "build"
 RENDERED_VERSION_FILE = os.path.join(BUILD_DIR, "version_info_main.txt")
 
 
 
-# Directories that need to be included with your application (e.g., qml files, images).
-# Format: 'source_path:destination_in_dist'
-ADDITIONAL_DATA = {
-    'qml': 'qml',
-    'images': 'images',
-}
+# Directories that need to be included with your application (qml files, images)
+# are declared in MacrosoftSupport.spec.
 
 # Files to remove, reduce size
 FILES_TO_REMOVE = [
@@ -123,26 +118,18 @@ def compile_application():
 
     version_file = render_version_info(VERSION_INFO_TEMPLATE, RENDERED_VERSION_FILE)
 
-    # Construct the PyInstaller command
+    # Construct the PyInstaller command. Packaging details (datas, icon,
+    # version file, UAC) live in the checked-in spec file.
     pyinstaller_command = [
         'pyinstaller',
         '--noconfirm',
-        '--onedir',
-        '--windowed',  # Use --console if you need a terminal window for debugging
-        '--name', EXE_NAME,
-        '--icon', ICON_FILE,
-        '--version-file', version_file,
         '--distpath', OUTPUT_DIR,
-        '--optimize', "2",
-        '--uac-admin',
-        APP_SCRIPT,
+        '--workpath', BUILD_DIR,
+        SPEC_FILE,
     ]
 
-    # Add data files (like the qml directory)
-    for src, dst in ADDITIONAL_DATA.items():
-        pyinstaller_command.extend(['--add-data', f'{src}{os.pathsep}{dst}'])
-
-    print(f"\n\npyinstaller_command: {" ".join(pyinstaller_command)}")
+    print(f"\n\nversion_info: {version_file}")
+    print(f"pyinstaller_command: {' '.join(pyinstaller_command)}")
 
     # Run the compilation
     run_command(pyinstaller_command)
@@ -185,9 +172,6 @@ def main():
     print("\n>>> Cleaning up intermediate build files...")
     if os.path.exists('build'):
         shutil.rmtree('build')
-    spec_file = f'{os.path.splitext(APP_SCRIPT)[0]}.spec'
-    if os.path.exists(spec_file):
-        os.remove(spec_file)
     # if os.path.exists('dist'):
     #     shutil.rmtree('dist')
 
