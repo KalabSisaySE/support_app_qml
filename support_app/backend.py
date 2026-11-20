@@ -20,6 +20,7 @@ from support_app.qt_bindings import notifying_property
 from support_app.status import Status
 from support_app.tasks import TaskRunner
 from support_app.obs_control import is_obs_installed
+from support_app.one_click import OneClickFlow
 from support_app.system_info import check_installation, is_service_running
 from support_app.workers import (
     AccountAuthWorker,
@@ -100,6 +101,7 @@ class MacrosoftBackend(QObject):
             on_self_uninstall=self.quit_application,
             on_task_error=self._on_worker_error,
         )
+        self._one_click = OneClickFlow(self)
         self._app_installation_status = Status.DISABLED
         self._app_service_status = Status.DISABLED
         self._app_websocket_status = Status.DISABLED
@@ -293,101 +295,20 @@ class MacrosoftBackend(QObject):
     # 1. THE PUBLIC SLOT FOR THE BUTTON
     @Slot()
     def one_click_setup(self):
-        """
-        Starts the one-click process: install app, set permissions, and (if lectoure) install OBS.
-        """
-        self.add_log("Spúšťa sa kompletné nastavenie na 1-klik...")
-
-        # Disable all relevant buttons to prevent user interference
-        self.is_app_install_btn_enabled = False
-        self.is_app_start_btn_enabled = False
-        self.is_app_service_btn_enabled = False
-        self.is_app_rust_id_btn_enabled = False
-        self.is_enable_microphone_only_btn_enabled = False
-        self.is_enable_microphone_and_camera_btn_enabled = False
-        self.is_obs_install_btn_enabled = False
-
-        # Check if the app is already installed to skip the installation step
-        if check_installation():
-            self.add_log("Aplikácia je už nainštalovaná. Prechádzam na nastavenie povolení.")
-            # If installed, skip directly to the permission worker (Step 2)
-            self._start_worker(
-                task_name="one_click_permissions",
-                worker_class=PermissionWorker,
-                start_method_name="set_microphone_and_camera_access_only",
-                finished_slot=self._on_one_click_permissions_finished
-            )
-        else:
-            # If not installed, start with the installation worker (Step 1)
-            self._start_worker(
-                task_name="one_click_install",
-                worker_class=AppInstallationWorker,
-                start_method_name="handle_install",
-                finished_slot=self._on_one_click_install_finished
-            )
+        """Starts the one-click install → permissions → OBS workflow."""
+        self._one_click.start()
 
     @Slot(dict)
     def _on_one_click_install_finished(self, result_data):
-        """
-        Called after the installation worker finishes. Starts the permission worker.
-        """
-        self.add_log("Inštalácia aplikácie dokončená. Pokračujem nastavením povolení...")
-        self.on_installation_finished(result_data)  # Update UI based on installation
-
-        self._start_worker(
-            task_name="one_click_permissions",
-            worker_class=PermissionWorker,
-            start_method_name="set_microphone_and_camera_access_only",
-            finished_slot=self._on_one_click_permissions_finished
-        )
+        self._one_click.on_install_finished(result_data)
 
     @Slot(dict)
     def _on_one_click_permissions_finished(self, result_data):
-        """
-        Called after the PermissionWorker finishes. Checks if OBS needs to be installed.
-        """
-        self.add_log("Nastavenie povolení dokončené.")
-        self.update_permission_status(result_data)
-
-        # Check if we need to install OBS (lectoure user and OBS not installed)
-        if self.is_user_lectoure and not is_obs_installed():
-            self.add_log("Používateľ je lektor, spúšťa sa inštalácia OBS...")
-            self._start_worker(
-                task_name="one_click_obs_install",
-                worker_class=OBSInstallationWorker,
-                start_method_name="install_app",
-                finished_slot=self._on_one_click_obs_finished
-            )
-        else:
-            if self.is_user_lectoure and is_obs_installed():
-                self.add_log("OBS je už nainštalovaný, krok sa preskakuje.")
-            self._on_one_click_complete()
+        self._one_click.on_permissions_finished(result_data)
 
     @Slot()
     def _on_one_click_obs_finished(self):
-        """
-        Called after the OBSInstallationWorker finishes.
-        """
-        self.add_log("Inštalácia OBS dokončená.")
-        self.on_obs_installation_finished()
-        self._on_one_click_complete()
-
-    def _on_one_click_complete(self):
-        """
-        Called at the very end of the one-click chain. Re-enables buttons and shows a success message.
-        """
-        self.add_log("Kompletné nastavenie na 1-klik bolo úspešne dokončené!")
-
-        # Re-enable all buttons now that the entire sequence is complete
-        self.is_app_install_btn_enabled = True
-        self.is_app_start_btn_enabled = check_installation()
-        self.is_app_service_btn_enabled = check_installation()
-        self.is_app_rust_id_btn_enabled = check_installation()
-        self.is_enable_microphone_only_btn_enabled = True
-        self.is_enable_microphone_and_camera_btn_enabled = True
-        self.is_obs_install_btn_enabled = not is_obs_installed()
-
-        self.showDialog.emit("Nastavenie Dokončené", "Kompletné nastavenie na 1-klik bolo úspešne dokončené!", True)
+        self._one_click.on_obs_finished()
 
     @Slot()
     def install_or_uninstall(self):
