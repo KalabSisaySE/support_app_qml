@@ -16,6 +16,7 @@ from support_app.app_config import (
     get_cloudflare_headers,
     get_user_type,
 )
+from support_app.installer_verification import log_signature_result, verify_authenticode
 from support_app.macrosoft_connect import (
     app_executable_path,
     create_service_manager,
@@ -90,6 +91,21 @@ class AppInstallationWorker(QObject):
             self.log.emit(f"Chyba pri sťahovaní súboru: {e}")
             self.finished.emit(self.result_data)
             return
+
+        try:
+            self.log.emit("Overujem digitálny podpis inštalátora...")
+            signature = verify_authenticode(installer_path)
+            log_signature_result(installer_path, signature)
+            if signature is None:
+                self.log.emit("Digitálny podpis inštalátora sa nepodarilo overiť.")
+            elif signature.is_valid:
+                self.log.emit("Digitálny podpis inštalátora je platný.")
+            else:
+                self.log.emit(
+                    f"Upozornenie: digitálny podpis inštalátora je {signature.status}."
+                )
+        except Exception as e:
+            self.log.emit(f"Overenie digitálneho podpisu zlyhalo: {e}")
 
         try:
             # Prepare startup info to hide cmd window

@@ -5,9 +5,24 @@ test, ship and support. Status is updated as work lands on `main`.
 
 Legend: ✅ done · 🚧 in progress · ⏳ planned · ⚠️ blocked
 
-## Today — 2026-11-19
+## Today — 2026-11-20
 
-Theme: **architecture & build metadata** (still no user-visible behaviour changes).
+Theme: **runtime hardening & delivery**.
+
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| 1 | Duplicate-task guard + worker failure handling | ✅ | `c1b2179` |
+| 2 | One-click flow extracted into a tested controller | ✅ | `a9d4709` |
+| 3 | Non-blocking shutdown/OBS startup + bounded handshake | ✅ | `67b4f15` |
+| 4 | Checked-in PyInstaller spec + tag-driven release workflow | ✅ | `491481c` |
+| 5 | Advisory Authenticode verification for installers | ✅ | _this commit_ |
+
+Acceptance: `ruff`/`pyright` clean, 76 pytest tests green, local build produced
+`MacrosoftSupport.exe` with version 1.0.0.0 and installer `AppVersion=1.0.0`.
+
+## 2026-11-19 — architecture & build metadata
+
+Theme: **architecture & build metadata** (no user-visible behaviour changes).
 
 Baseline tagged `legacy-v1.0.0` at `e998116` (state before modernization).
 
@@ -43,10 +58,10 @@ runtime dependencies, console behaviour preserved.
 
 - ⏳ Rotate the Cloudflare service token and PeerTube root credentials that are
   currently stored in source (`app_config.py`, `rtmp_url_manager.py`).
+- ✅ Advisory Authenticode verification of downloaded installers (logged in the
+  support log; enforcement awaits a signed Macrosoft installer).
 - ⏳ Remove secrets from the repository and git history; inject them at build
   time or move privileged calls behind `online.macrosoft.sk`.
-- ⏳ Verify Authenticode signature/hash of downloaded installers before silent
-  execution.
 - ⏳ Split the elevated helper from the UI so the window does not run as admin
   (Phase 4).
 
@@ -71,26 +86,28 @@ runtime dependencies, console behaviour preserved.
 - ✅ Typed settings/persistence with atomic writes.
 - ✅ Replace silently swallowed exceptions with debug/warning logging.
 - ✅ `Status` enum instead of `"enabled"/"disabled"/"checking"` literals.
-- ⏳ Timeouts on OBS WebSocket waits (installer download and desktop-auth
-  timeouts already added).
+- ✅ Bounded waits: installer downloads, desktop-auth polling and the OBS
+  websocket handshake all have timeouts; OBS startup is non-blocking.
 
 ## Phase 3 — Architecture
 
-- ⏳ Split `support_app/backend.py` (still ~700 lines) into cohesive
-  controllers behind one QML façade.
+- 🚧 Split `support_app/backend.py` into cohesive controllers behind one QML
+  façade (one-click flow extracted; account, OBS-session and websocket-session
+  controllers remain).
 - ✅ Replace repeated `@Property`/setter/notify boilerplate with a helper.
-- ✅ Explicit `TaskRunner`/`WorkerTask` lifecycle (cancellation/timeouts still
-  planned).
+- ✅ Explicit `TaskRunner`/`WorkerTask` lifecycle with duplicate guards and
+  error reporting (cooperative cancellation still planned).
 - ✅ Split `utils.py` into OBS (`obs_control`), system (`system_info`) and API
   (`macrosoft_api`) modules.
-- ⏳ Remove blocking sleeps from the GUI thread (`cleanup`).
+- ✅ Remove blocking sleeps from the GUI thread (cleanup now flushes the socket).
 
 ## Phase 4 — UI, build & delivery
 
 - ⏳ Extract QML `Theme` singleton/design tokens; split large pages.
-- ⏳ Checked-in PyInstaller `.spec`; reproducible builds from lockfile.
+- ✅ Checked-in PyInstaller `.spec`; build renders version metadata.
 - ⏳ Code signing for exe/installer.
-- ⏳ Tag-driven release pipeline publishing a signed installer.
+- ✅ Tag-driven release pipeline (builds and publishes; signing awaits a
+  certificate).
 - ⏳ Crash reporting and log upload; version check/auto-update.
 - ⏳ Least-privilege elevated helper.
 

@@ -17,6 +17,7 @@ from support_app.app_config import (
     get_access_code,
     get_latest_obs_download_url,
 )
+from support_app.installer_verification import log_signature_result, verify_authenticode
 from support_app.macrosoft_connect import create_service_manager
 from support_app.obs_control import (
     is_obs_installed,
@@ -111,6 +112,13 @@ class OBSInstallationWorker(QObject):
 
         try:
             self.log.emit("Inštaluje sa OBS Studio...")
+            self.log.emit("Overujem digitálny podpis inštalátora OBS...")
+            signature = verify_authenticode(installer_path)
+            log_signature_result(installer_path, signature)
+            if signature is not None and not signature.is_valid:
+                self.log.emit(
+                    f"Upozornenie: digitálny podpis OBS je {signature.status}."
+                )
             # Run the installer silently
             subprocess.run([installer_path, "/S"], check=True)
             self.log.emit("OBS Studio bolo úspešne nainštalované.")
