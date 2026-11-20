@@ -98,6 +98,7 @@ class MacrosoftBackend(QObject):
             on_progress=self.update_progress,
             on_log=self.add_log,
             on_self_uninstall=self.quit_application,
+            on_task_error=self._on_worker_error,
         )
         self._app_installation_status = Status.DISABLED
         self._app_service_status = Status.DISABLED
@@ -277,6 +278,16 @@ class MacrosoftBackend(QObject):
             start_method_name,
             finished_slot,
             worker_args=worker_args,
+        )
+
+    def _on_worker_error(self, task_name: str, error: BaseException) -> None:
+        """Surface unexpected worker failures instead of leaving the UI stuck."""
+        logger.error("Worker task %s failed: %s", task_name, error)
+        self.add_log(f"Operácia zlyhala ({task_name}): {error}")
+        self.showDialog.emit(
+            "Chyba",
+            "Operáciu sa nepodarilo dokončiť. Skontrolujte protokol aplikácie.",
+            False,
         )
 
     # 1. THE PUBLIC SLOT FOR THE BUTTON

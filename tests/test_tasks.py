@@ -110,3 +110,52 @@ def test_task_runner_ignores_unknown_task():
     runner._finish("missing", ())  # must not raise
 
     assert runner.active_task_names() == ()
+
+
+def test_task_runner_rejects_duplicate_task():
+    runner = TaskRunner(lambda *a: None, lambda *a: None, lambda: None)
+    task, _, _ = make_task()
+    runner._tasks[task.name] = task
+
+    started = runner.start(task.name, None, "run", lambda: None)
+
+    assert started is False
+    assert runner.is_running(task.name) is True
+
+
+def test_invoke_runs_worker_method():
+    calls = []
+
+    class Worker:
+        def run(self):
+            calls.append("ran")
+
+    runner = TaskRunner(lambda *a: None, lambda *a: None, lambda: None)
+
+    runner._invoke("demo", Worker(), "run")
+
+    assert calls == ["ran"]
+
+
+def test_invoke_cleans_up_and_reports_failure():
+    errors = []
+
+    class Worker:
+        def run(self):
+            raise RuntimeError("boom")
+
+    runner = TaskRunner(
+        lambda *a: None,
+        lambda *a: None,
+        lambda: None,
+        on_task_error=lambda name, error: errors.append((name, str(error))),
+    )
+    task, thread, worker = make_task()
+    runner._tasks[task.name] = task
+
+    runner._invoke(task.name, Worker(), "run")
+
+    assert runner.active_task_names() == ()
+    assert thread.deleted == 1
+    assert worker.deleted == 1
+    assert errors == [("demo", "boom")]
