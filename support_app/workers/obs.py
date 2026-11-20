@@ -8,7 +8,7 @@ import time
 import urllib.request
 import uuid
 
-from PySide6.QtCore import QObject, QUrl, Signal, Slot
+from PySide6.QtCore import QObject, QTimer, QUrl, Signal, Slot
 from PySide6.QtWebSockets import QWebSocket
 
 from support_app import app_config
@@ -25,6 +25,9 @@ from support_app.obs_control import (
     start_obs,
 )
 from support_app.rtmp_url_manager import RtmpUrlGenerator
+
+OBS_START_DELAY_MS = 2000
+OBS_CONNECT_TIMEOUT_MS = 15000
 
 
 class OpenOBSWorker(QObject):
@@ -174,20 +177,40 @@ class OBSClientWorker(QObject):
         self.ws.textMessageReceived.connect(self.on_text_message_received)
         self.ws.error.connect(self.handle_error)
 
+        self.connect_timeout_timer = QTimer(self)
+        self.connect_timeout_timer.setSingleShot(True)
+        self.connect_timeout_timer.timeout.connect(self._on_connect_timeout)
+
     def connect_to_host(self):
         if not is_obs_running():
             start_obs()
-            time.sleep(2)
+            # OBS needs a moment before its websocket plugin starts listening.
+            QTimer.singleShot(OBS_START_DELAY_MS, self._open_websocket)
+            return
 
+        self._open_websocket()
+
+    def _open_websocket(self):
         self.ws.open(self.url)
+        self.connect_timeout_timer.start(OBS_CONNECT_TIMEOUT_MS)
+
+    def _on_connect_timeout(self):
+        if self.identified:
+            return
+        message = "OBS WebSocket handshake timed out."
+        self.log.emit(message)
+        self.errorOccurred.emit(message)
+        self.ws.abort()
 
     def on_connected(self):
         self.log.emit("Pripojené k serveru OBS WebSocket.")
 
     def on_disconnected(self):
+        self.connect_timeout_timer.stop()
         self.connection.emit(False)
 
     def handle_error(self, error):
+        self.connect_timeout_timer.stop()
         error_msg = self.ws.errorString()
         self.errorOccurred.emit(error_msg)
 
@@ -234,6 +257,7 @@ class OBSClientWorker(QObject):
 
     def handle_identified(self, data):
         self.identified = True
+        self.connect_timeout_timer.stop()
         self.connection.emit(True)
 
         # later calls
@@ -353,7 +377,12 @@ class OBSClientWorker(QObject):
         self.responses[request_id] = None
 
     def disconnect_ws(self):
+        self.connect_timeout_timer.stop()
         self.ws.close()
+
+    def flush_websocket(self):
+        """Flush pending websocket frames without blocking the caller."""
+        self.ws.flush()
 
     @Slot()
     def force_stop_stream_on_exit(self):

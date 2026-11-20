@@ -2,7 +2,6 @@
 
 import json
 import os
-import time
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
@@ -840,9 +839,9 @@ class MacrosoftBackend(QObject):
             # Call the dedicated method to stop the stream
             self.obs_ws_worker.force_stop_stream_on_exit()
 
-            # Give the message a moment to be sent over the websocket before
-            # the app fully closes and quits the worker thread.
-            time.sleep(1)
+            # Flush the queued websocket frame instead of blocking the GUI
+            # thread with a sleep during shutdown.
+            self.obs_ws_worker.flush_websocket()
         # --- END: New Feature ---
 
         # Original cleanup logic for threads and workers
