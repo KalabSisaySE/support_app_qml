@@ -17,6 +17,7 @@ from support_app.status import Status
 from support_app.tasks import TaskRunner
 from support_app.obs_control import is_obs_installed
 from support_app.one_click import OneClickFlow
+from support_app.progress import ProgressAggregator
 from support_app.system_info import check_installation, is_service_running
 from support_app.websocket_session import SupportWebSocketSession
 from support_app.workers import (
@@ -89,7 +90,7 @@ class MacrosoftBackend(QObject):
         logger.info("is_user_admin: %s", self._is_user_admin)
 
         self._progress = 0
-        self._running_progresses = {}
+        self._progress_aggregator = ProgressAggregator()
         self._task_runner = TaskRunner(
             on_progress=self.update_progress,
             on_log=self.add_log,
@@ -514,16 +515,15 @@ class MacrosoftBackend(QObject):
 
     @Slot(float, str)
     def update_progress(self, value, process_name):
-        self._running_progresses[process_name] = value
-        aggregate_value = sum(self._running_progresses.values()) / len(self._running_progresses)
+        aggregate_value = self._progress_aggregator.update(process_name, value)
         self.progress = aggregate_value
 
         if aggregate_value == 100:
-            self._running_progresses = {}
+            self._progress_aggregator.clear()
             QTimer.singleShot(100, self.reset_progress)
 
     def reset_progress(self):
-        if not self._running_progresses:
+        if self._progress_aggregator.is_empty:
             self.progress = 0
 
     def app_init(self):
@@ -731,10 +731,6 @@ class MacrosoftBackend(QObject):
 
         self.is_enable_microphone_only_btn_enabled = True
         self.is_enable_microphone_and_camera_btn_enabled = True
-
-        # if "all_permissions" in self._running_progresses:
-        #     del self._running_progresses["all_permissions"]
-
 
     def update_permission_status(self, result):
         """updates permission status based on the given data"""

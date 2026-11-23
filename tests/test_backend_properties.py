@@ -67,3 +67,14 @@ def test_status_property_emits_string_value(backend):
 
     assert changes == ["enabled"]
     assert backend.app_installation_status == "enabled"
+
+
+def test_progress_aggregates_running_tasks(backend):
+    backend.update_progress(20, "install")
+    backend.update_progress(80, "permissions")
+
+    assert backend.progress == 50
+
+    backend.update_progress(100, "install")
+
+    assert backend.progress == 90

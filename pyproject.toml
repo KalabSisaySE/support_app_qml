@@ -53,6 +53,7 @@ include = [
     "support_app/api.py",
     "support_app/logging_setup.py",
     "support_app/installer_verification.py",
+    "support_app/progress.py",
     "support_app/qt_bindings.py",
     "support_app/status.py",
     "support_app/tasks.py",
