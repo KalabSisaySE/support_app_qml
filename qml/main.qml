@@ -116,8 +116,8 @@ Window {
 
     Rectangle {
         id: bg
-        color: "#2c313c"
-        border.color: "#383e4c"
+        color: Theme.background
+        border.color: Theme.border
         // FIX: Remove the border when maximized to prevent a visible line at the screen edge.
         border.width: windowMargin > 0 ? 1 : 0
         anchors.left: parent.left
@@ -142,7 +142,7 @@ Window {
             Rectangle {
                 id: topBar
                 height: 50
-                color: "#1c1d20"
+                color: Theme.surface
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
@@ -155,7 +155,7 @@ Window {
                     id: topBarDescription
                     y: 28
                     height: 22
-                    color: "#282c34"
+                    color: Theme.backgroundAlt
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
@@ -165,7 +165,7 @@ Window {
 
                     Label {
                         id: labelTopInfo
-                        color: "#5f6a82"
+                        color: Theme.textDim
                         text: qsTr("Popis aplikácie")
                         anchors.left: parent.left
                         anchors.right: parent.right
@@ -185,7 +185,7 @@ Window {
                         property string currentTime: ""
 
 
-                        color: "#5f6a82"
+                        color: Theme.textDim
                         text: `| ${currentTime}`
                         anchors.left: labelTopInfo.right
                         anchors.right: parent.right
@@ -247,7 +247,7 @@ Window {
 
                     Label {
                         id: label
-                        color: "#c3cbdd"
+                        color: Theme.textMuted
                         text: qsTr("Macrosoft Support")
                         anchors.left: iconApp.right
                         anchors.right: parent.right
@@ -284,7 +284,7 @@ Window {
 
                     TopBarButton {
                         id: btnClose
-                        btnColorClicked: "#ff007f"
+                        btnColorClicked: Theme.accentPink
                         btnIconSource: "../../images/svg_images/close_icon.svg"
                         onClicked: mainWindow.close()
                     }
@@ -306,7 +306,7 @@ Window {
                 Rectangle {
                     id: leftMenu
                     width: 60
-                    color: "#1c1d20"
+                    color: Theme.surface
                     anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
@@ -457,7 +457,7 @@ Window {
                             Layout.fillWidth: true
                             // Dynamic height based on switch
                             Layout.preferredHeight: showLogsSwitch.checked ? 140 : 40
-                            color: "#171917"
+                            color: Theme.logBackground
 
                             Behavior on Layout.preferredHeight {
                                 NumberAnimation { duration: 300; easing.type: Easing.InOutQuad }
@@ -484,7 +484,7 @@ Window {
                                     visible: showLogsSwitch.checked
                                     clip: true
                                     background: Rectangle {
-                                        color: "#ffffff"
+                                        color: Theme.textPrimary
                                         radius: 4
                                     }
 
@@ -495,7 +495,7 @@ Window {
                                         font.family: "Monospace"
                                         font.pointSize: 9
                                         selectByMouse: true
-                                        color: "#333"
+                                        color: Theme.track
                                         background: Rectangle { color: "transparent" }
                                         leftPadding: 5
                                         rightPadding: 5
@@ -524,7 +524,7 @@ Window {
                             Layout.fillWidth: true
                             // Minimized height
                             Layout.preferredHeight: 20
-                            color: "#282c34"
+                            color: Theme.backgroundAlt
 
                             Switch {
                                 id: showLogsSwitch
@@ -544,8 +544,8 @@ Window {
                                     implicitWidth: 32
                                     implicitHeight: 16
                                     radius: height / 2
-                                    color: showLogsSwitch.checked ? "#16a086" : "#777"
-                                    border.color: showLogsSwitch.checked ? "#16a086" : "#666"
+                                    color: showLogsSwitch.checked ? Theme.accent : Theme.switchOff
+                                    border.color: showLogsSwitch.checked ? Theme.accent : Theme.switchOffBorder
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Rectangle {
@@ -574,7 +574,7 @@ Window {
 
                             Label {
                                 id: copyrightLabel
-                                color: "#5f6a82"
+                                color: Theme.textDim
                                 text: qsTr("Autorské práva © 2025 Macrosoft. Všetky práva vyhradené.")
                                 anchors.centerIn: parent
                                 font.pointSize: 9
@@ -624,7 +624,7 @@ Window {
         verticalOffset: 0
         radius: 10
         samples: 16
-        color: "#80000000"
+        color: Theme.overlay
         source: bg
         z: 0
     }

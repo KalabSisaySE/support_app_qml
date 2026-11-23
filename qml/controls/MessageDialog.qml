@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
+import "."
 
 Dialog {
     id: messageDialog
@@ -49,9 +50,9 @@ Dialog {
     // --- Custom Visuals ---
     background: Rectangle {
         id: backgroundRect
-        color: "#3a4150"
+        color: Theme.dialogSurface
         radius: 8
-        border.color: isSuccess ? "#16a086" : "#e74c3c"
+        border.color: isSuccess ? Theme.accent : Theme.error
         border.width: 2
     }
 
@@ -59,7 +60,7 @@ Dialog {
         source: backgroundRect
         radius: 15
         samples: 25
-        color: "#90000000"
+        color: Theme.overlayStrong
         verticalOffset: 4
     }
 
@@ -80,7 +81,7 @@ Dialog {
             // By enabling the layer, we can apply an effect directly.
             layer.enabled: true
             layer.effect: ColorOverlay {
-                color: "#ffffff"
+                color: Theme.textPrimary
             }
         }
 
@@ -89,7 +90,7 @@ Dialog {
             text: dialogTitle
             font.bold: true
             font.pointSize: 12
-            color: "#ffffff"
+            color: Theme.textPrimary
             anchors.verticalCenter: parent.verticalCenter
         }
     }
@@ -98,7 +99,7 @@ Dialog {
         text: dialogText
         wrapMode: Text.WordWrap
         font.pointSize: 10
-        color: "#e0e0e0"
+        color: Theme.textSoft
         padding: 20
         topPadding: 0
     }
@@ -110,7 +111,7 @@ Dialog {
         CustomButton {
             text: qsTr("OK")
             onClicked: messageDialog.closeWithAnimation()
-            colorDefault: isSuccess ? "#16a086" : "#c0392b"
+            colorDefault: isSuccess ? Theme.accent : Theme.danger
             implicitWidth: 100
         }
     }

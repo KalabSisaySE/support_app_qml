@@ -1,14 +1,15 @@
 import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
+import "."
 
 Button{
     id: btnTopBar
     // CUSTOM PROPERTIES
     property url btnIconSource: "../../images/svg_images/minimize_icon.svg"
     property color btnColorDefault: "transparent" // Make transparent by default
-    property color btnColorMouseOver: "#23272E"
-    property color btnColorClicked: "#16a086"
+    property color btnColorMouseOver: Theme.surfaceHover
+    property color btnColorClicked: Theme.accent
 
     QtObject{
         id: internal
@@ -44,7 +45,7 @@ Button{
         ColorOverlay{
             anchors.fill: iconBtn
             source: iconBtn
-            color: "#c3cbdd" // Match title text color
+            color: Theme.textMuted // Match title text color
             antialiasing: true
         }
     }

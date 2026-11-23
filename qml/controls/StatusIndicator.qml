@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "."
 
 Rectangle {
 
@@ -10,9 +11,9 @@ Rectangle {
     id: indicatorBorder
     width: size
     height: size
-    color: "#555" // Darker border background
+    color: Theme.disabled // Darker border background
     radius: width / 2
-    border.color: "#333"
+    border.color: Theme.track
     border.width: 1
 
     Rectangle {
@@ -29,15 +30,15 @@ Rectangle {
     states: [
         State {
             name: "disabled"
-            PropertyChanges { target: indicatorInner; color: "#e74c3c" } // Red
+            PropertyChanges { target: indicatorInner; color: Theme.error } // Red
         },
         State {
             name: "enabled"
-            PropertyChanges { target: indicatorInner; color: "#2ecc71" } // Green
+            PropertyChanges { target: indicatorInner; color: Theme.success } // Green
         },
         State {
             name: "checking"
-            PropertyChanges { target: indicatorInner; color: "#f39c12" } // Orange
+            PropertyChanges { target: indicatorInner; color: Theme.warning } // Orange
         }
     ]
 

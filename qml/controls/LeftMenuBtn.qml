@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
+import "."
 
 Button{
     id: btnLeftMenu
@@ -8,12 +9,12 @@ Button{
 
     // CUSTOM PROPERTIES
     property url btnIconSource: "../../images/svg_images/info.svg"
-    property color btnColorDefault: "#1c1d20"
-    property color btnColorMouseOver: "#23272E"
-    property color btnColorClicked: "#16a086"
+    property color btnColorDefault: Theme.surface
+    property color btnColorMouseOver: Theme.surfaceHover
+    property color btnColorClicked: Theme.accent
     property int iconWidth: 20
     property int iconHeight: 20
-    property color activeMenuColor: "#35b8a0"
+    property color activeMenuColor: Theme.accentMenu
     property bool isActiveMenu: false
 
     QtObject{
@@ -65,12 +66,12 @@ Button{
         ColorOverlay{
             anchors.fill: iconBtn
             source: iconBtn
-            color: "#ffffff"
+            color: Theme.textPrimary
             antialiasing: true
         }
 
         Text{
-            color: "#ffffff"
+            color: Theme.textPrimary
             text: qsTr(btnLeftMenu.text)
             font.pointSize: 10
             font.bold: true
