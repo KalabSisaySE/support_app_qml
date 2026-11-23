@@ -1,6 +1,5 @@
 """Backend object exposed to QML by the Macrosoft Support application."""
 
-import json
 import os
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
@@ -19,6 +18,7 @@ from support_app.tasks import TaskRunner
 from support_app.obs_control import is_obs_installed
 from support_app.one_click import OneClickFlow
 from support_app.system_info import check_installation, is_service_running
+from support_app.websocket_session import SupportWebSocketSession
 from support_app.workers import (
     AppInstallationWorker,
     AppServiceWorker,
@@ -30,7 +30,6 @@ from support_app.workers import (
     PermissionWorker,
     StartAppWorker,
     UserInfoWorker,
-    WebSocketWorker,
 )
 
 logger = get_logger(__name__)
@@ -99,6 +98,7 @@ class MacrosoftBackend(QObject):
         )
         self._one_click = OneClickFlow(self)
         self._account_flow = AccountFlow(self)
+        self._websocket_session = SupportWebSocketSession(self)
         self._app_installation_status = Status.DISABLED
         self._app_service_status = Status.DISABLED
         self._app_websocket_status = Status.DISABLED
@@ -593,59 +593,27 @@ class MacrosoftBackend(QObject):
 
     def setup_websockets(self, code):
         """sets up websockets"""
-        if self.app_websocket_thread and self.app_websocket_thread.isRunning():
-            self.app_websocket_thread.quit()
-            self.app_websocket_thread.wait()
-
-        if code:
-            self.app_websocket_worker = WebSocketWorker()
-            self.app_websocket_thread = QThread()
-            self.app_websocket_worker.moveToThread(self.app_websocket_thread)
-
-            # Connect signals
-            self.app_websocket_thread.started.connect(self.app_websocket_worker.start_connection)
-            self.app_websocket_worker.connection.connect(self.websocket_on_change_status)
-            self.app_websocket_worker.message_received.connect(self.websocket_on_message_received)
-            self.app_websocket_worker.error_occurred.connect(self.websocket_on_error)
-            self.app_websocket_worker.log.connect(self.add_log)
-            self.app_websocket_worker.toggleRecording.connect(self.websocket_on_toggle_recording)
-            self.app_websocket_worker.receivedCourseData.connect(self.websocket_on_received_course_data)
-            self.sendMessage.connect(self.app_websocket_worker.send_msg_to_server)
-
-            self.app_websocket_thread.start()
+        self._websocket_session.setup(code)
 
     @Slot()
     def websocket_on_toggle_recording(self):
-        self.recording_toggle()
+        self._websocket_session.on_toggle_recording()
 
     @Slot(bool)
     def websocket_on_change_status(self, status):
-        if status:
-            self.app_websocket_status = Status.ENABLED
-        else:
-            self.app_websocket_status = Status.DISABLED
+        self._websocket_session.on_change_status(status)
 
     @Slot(str)
     def websocket_on_message_received(self, message):
-        try:
-            data = json.loads(message)
-
-            message_type = data.get("message_type")
-            if not self.lectoure_ws_data and message_type:
-                self.lectoure_ws_data = data
-        except json.JSONDecodeError as e:
-            logger.debug("Ignoring non-JSON websocket message: %s", e)
+        self._websocket_session.on_message_received(message)
 
     @Slot(str)
     def websocket_on_error(self, message):
-        logger.debug("Support websocket error: %s", message)
+        self._websocket_session.on_error(message)
 
     @Slot(dict)
     def websocket_on_received_course_data(self, course_data):
-        self.lectoure_ws_data = course_data
-        name = course_data.get("course_name", "course_name")
-        if name != "course_name":
-            self.course_name = name[:25] + "..." if len(name) > 25 else name
+        self._websocket_session.on_received_course_data(course_data)
 
 
     @Slot()
