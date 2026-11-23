@@ -16,7 +16,12 @@ semantic versioning.
 - Declarative Qt property helper, `Status` enum and `TaskRunner` worker
   lifecycle.
 - One-click setup orchestration extracted and unit-tested.
-- Checked-in PyInstaller spec and tag-driven release workflow.
+- Account authentication, support WebSocket and progress aggregation extracted
+  into tested helpers/controllers.
+- QML `Theme` singleton with shared colour tokens for controls and the main
+  window.
+- Checked-in PyInstaller spec, tag-driven release workflow and a CI smoke
+  build.
 - Advisory Authenticode verification for downloaded installers.
 - Test suite covering settings, identity, HTTP policy, reporting, browser
   profiles, RTMP names and backend status/property behaviour.

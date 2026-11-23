@@ -5,9 +5,22 @@ test, ship and support. Status is updated as work lands on `main`.
 
 Legend: ✅ done · 🚧 in progress · ⏳ planned · ⚠️ blocked
 
-## Today — 2026-11-20
+## Today — 2026-11-23
 
-Theme: **runtime hardening & delivery**.
+Theme: **backend decomposition & QML tokens**.
+
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| 1 | Account authentication flow extracted + tested | ✅ | `1465d45` |
+| 2 | Support WebSocket session extracted + tested | ✅ | `b37b4f6` |
+| 3 | Progress aggregation extracted + tested | ✅ | `73bd57c` |
+| 4 | QML `Theme` singleton and design tokens | ✅ | `24b1456` |
+| 5 | CI PyInstaller smoke build + docs | ✅ | _this commit_ |
+
+Acceptance: `ruff`/`pyright` clean, 95 pytest tests green, no QML lint errors,
+offscreen control load resolves the Theme singleton.
+
+## 2026-11-20 — runtime hardening & delivery
 
 | # | Item | Status | Commit |
 |---|------|--------|--------|
@@ -73,6 +86,7 @@ runtime dependencies, console behaviour preserved.
 - ✅ Pytest test layout and configuration.
 - ✅ Pre-commit hook configuration.
 - ✅ GitHub Actions CI on Windows (lint + tests).
+- ✅ CI PyInstaller smoke build on `main`/PRs.
 - ✅ README with architecture, setup, run and build instructions.
 - ✅ Pyright configuration + CI type check for the modern modules.
 - ✅ `CHANGELOG.md` maintained per release.
@@ -92,8 +106,8 @@ runtime dependencies, console behaviour preserved.
 ## Phase 3 — Architecture
 
 - 🚧 Split `support_app/backend.py` into cohesive controllers behind one QML
-  façade (one-click flow extracted; account, OBS-session and websocket-session
-  controllers remain).
+  façade (one-click, account and support-websocket flows extracted; OBS
+  session remains).
 - ✅ Replace repeated `@Property`/setter/notify boilerplate with a helper.
 - ✅ Explicit `TaskRunner`/`WorkerTask` lifecycle with duplicate guards and
   error reporting (cooperative cancellation still planned).
@@ -103,7 +117,8 @@ runtime dependencies, console behaviour preserved.
 
 ## Phase 4 — UI, build & delivery
 
-- ⏳ Extract QML `Theme` singleton/design tokens; split large pages.
+- 🚧 Extract QML `Theme` singleton/design tokens (done for controls and
+  `main.qml`); split large pages next.
 - ✅ Checked-in PyInstaller `.spec`; build renders version metadata.
 - ⏳ Code signing for exe/installer.
 - ✅ Tag-driven release pipeline (builds and publishes; signing awaits a
