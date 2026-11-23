@@ -6,12 +6,10 @@ import os
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
-from support_app import api, app_config
+from support_app import app_config
+from support_app.account_flow import AccountFlow
 from support_app.app_config import (
-    RUSTDESK_REPORT_URL,
-    get_cloudflare_headers,
     get_user_type,
-    save_login_info,
 )
 from support_app.logging_setup import get_logger
 from support_app.macrosoft_connect import uninstall_shortcut_path
@@ -22,7 +20,6 @@ from support_app.obs_control import is_obs_installed
 from support_app.one_click import OneClickFlow
 from support_app.system_info import check_installation, is_service_running
 from support_app.workers import (
-    AccountAuthWorker,
     AppInstallationWorker,
     AppServiceWorker,
     InitializeApp,
@@ -101,6 +98,7 @@ class MacrosoftBackend(QObject):
             on_task_error=self._on_worker_error,
         )
         self._one_click = OneClickFlow(self)
+        self._account_flow = AccountFlow(self)
         self._app_installation_status = Status.DISABLED
         self._app_service_status = Status.DISABLED
         self._app_websocket_status = Status.DISABLED
@@ -145,53 +143,12 @@ class MacrosoftBackend(QObject):
     @Slot()
     def change_account(self):
         """Starts the web authentication flow."""
-        self.is_change_account_btn_enabled = False
-        self.add_log("Spúšťa sa proces zmeny účtu...")
-        self._start_worker(
-            task_name="account_auth",
-            worker_class=AccountAuthWorker,  # Your new worker
-            start_method_name="start_auth_flow",
-            finished_slot=self.on_account_auth_finished
-        )
+        self._account_flow.start()
 
     @Slot(dict)
     def on_account_auth_finished(self, result_data):
         """Handles the result from the AccountAuthWorker."""
-        new_access_code = result_data.get('access_code')
-        is_lectoure = result_data.get('is_lectoure', True)
-
-        self.is_user_lectoure = is_lectoure
-
-
-        if new_access_code:
-            self.add_log("Účet bol úspešne zmenený.")
-
-            # 1. Save the new code persistently
-            save_login_info(new_access_code)
-
-            # 2. Update the backend state
-            self.access_code = new_access_code
-            self.username = result_data.get('full_name', 'Nenájdené')
-
-            # 3. Re-initialize websockets with the new identity
-            # This will disconnect the old one and connect the new one
-            self.setup_websockets(new_access_code)
-
-            # 4. Optionally, re-report RustDesk ID for the new user
-            if self._rust_id != "Nenájdené":
-                # You might want a simple way to re-run this
-                url = f"{RUSTDESK_REPORT_URL}?access={new_access_code}&rustdesk={self._rust_id}"
-                try:
-                    api.get(url, headers=get_cloudflare_headers(), retries=0)
-                except Exception as e:
-                    self.add_log(f"Nepodarilo sa znovu nahlásiť RustDesk ID: {e}")
-
-            self.showDialog.emit("Účet Zmenený", "Vaša identita bola úspešne aktualizovaná.", True)
-        else:
-            self.add_log("Proces zmeny účtu zlyhal alebo bol zrušený.")
-            self.showDialog.emit("Chyba", "Nepodarilo sa zmeniť účet.", False)
-
-        self.is_change_account_btn_enabled = True
+        self._account_flow.on_finished(result_data)
 
 
     is_change_account_btn_enabled = notifying_property(
