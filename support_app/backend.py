@@ -1,16 +1,18 @@
 """Backend object exposed to QML by the Macrosoft Support application."""
 
 import os
+import platform
+from datetime import datetime
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
-from support_app import app_config
+from support_app import app_config, diagnostics, settings
 from support_app.account_flow import AccountFlow
 from support_app.app_config import (
     get_user_type,
 )
-from support_app.logging_setup import get_logger
+from support_app.logging_setup import get_logger, log_files
 from support_app.macrosoft_connect import uninstall_shortcut_path
 from support_app.qt_bindings import notifying_property
 from support_app.status import Status
@@ -19,6 +21,7 @@ from support_app.obs_control import is_obs_installed
 from support_app.one_click import OneClickFlow
 from support_app.progress import ProgressAggregator
 from support_app.system_info import check_installation, is_service_running
+from support_app.version import __version__
 from support_app.websocket_session import SupportWebSocketSession
 from support_app.workers import (
     AppInstallationWorker,
@@ -225,6 +228,55 @@ class MacrosoftBackend(QObject):
         """adds a new log to UI"""
         logger.info("%s", log)
         self.newLogAdded.emit(log)
+
+    @Slot()
+    def copy_rust_id(self):
+        """Copy the current RustDesk id to the system clipboard."""
+        QGuiApplication.clipboard().setText(self._rust_id)
+        self.add_log(f"ID {self._rust_id} bolo skopírované do schránky.")
+
+    @Slot()
+    def create_diagnostics_bundle(self):
+        """Write a timestamped zip with a status summary and the app logs."""
+        summary = diagnostics.build_summary({
+            "Generated": datetime.now().isoformat(timespec="seconds"),
+            "App version": __version__,
+            "Platform": platform.platform(),
+            "User type": self._user_type,
+            "Access code": self._access_code,
+            "RustDesk ID": self._rust_id,
+            "Username": self._username,
+            "App installation": self._app_installation_status,
+            "App service": self._app_service_status,
+            "Permissions": self._permission_status,
+            "Support websocket": self._app_websocket_status,
+            "OBS installation": self._obs_installation_status,
+            "OBS websocket": self._obs_websocket_status,
+            "Recording": self._recording_status,
+        })
+
+        try:
+            archive_path = diagnostics.create_diagnostics_archive(
+                os.path.join(settings.APP_DATA_PATH, "diagnostics"),
+                summary,
+                log_files=log_files(),
+            )
+        except Exception as e:
+            logger.exception("Could not create the diagnostics bundle")
+            self.add_log(f"Diagnostický balík sa nepodarilo vytvoriť: {e}")
+            self.showDialog.emit(
+                "Chyba",
+                "Diagnostický balík sa nepodarilo vytvoriť. Skontrolujte protokol aplikácie.",
+                False,
+            )
+            return
+
+        self.add_log(f"Diagnostický balík bol vytvorený: {archive_path}")
+        self.showDialog.emit(
+            "Diagnostický balík",
+            f"Vytvorený súbor:\n{archive_path}",
+            True,
+        )
 
     # Add this method inside the MacrosoftBackend class
 

@@ -23,6 +23,12 @@ def log_file_path() -> str:
     return os.path.join(APP_DATA_PATH, LOG_FILE_NAME)
 
 
+def log_files() -> list[str]:
+    """Current log file plus its rotated backups (missing files are skipped)."""
+    current = log_file_path()
+    return [current] + [f"{current}.{index}" for index in range(1, LOG_BACKUP_COUNT + 1)]
+
+
 def configure_logging(level: int = logging.INFO) -> None:
     """Attach a console and a rotating file handler to the root logger once."""
     global _configured

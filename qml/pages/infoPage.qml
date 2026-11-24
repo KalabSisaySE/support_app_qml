@@ -76,6 +76,7 @@ Item {
                     Label { text: qsTr("Vaše ID:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     Text { text: backend.rust_id; font.pixelSize: 16; font.bold: true; color: "#13b899"; Layout.alignment: Qt.AlignVCenter }
+                    CustomButton { text: qsTr("Kopírovať ID"); Layout.preferredWidth: 110; Layout.preferredHeight: 28; onClicked: backend.copy_rust_id() }
                 }
 
                 // --- Statuses ---
@@ -134,6 +135,14 @@ Item {
                     Label { text: qsTr("Otvoriť stránku v prehliadači:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     CustomButton { text: qsTr("Otvoriť webstránku"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: backend.is_open_browser_btn_enabled; onClicked: backend.open_webpage() }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Podpora:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { text: qsTr("Vytvoriť diagnostický balík"); Layout.preferredWidth: 210; Layout.preferredHeight: 28; onClicked: backend.create_diagnostics_bundle() }
                 }
 
                 // This spacer will take up all the extra vertical space
