@@ -32,6 +32,7 @@ from support_app.workers import (
     OpenBrowserWorker,
     OpenOBSWorker,
     PermissionWorker,
+    PreflightWorker,
     StartAppWorker,
     UserInfoWorker,
 )
@@ -277,6 +278,32 @@ class MacrosoftBackend(QObject):
             f"Vytvorený súbor:\n{archive_path}",
             True,
         )
+
+    @Slot()
+    def run_preflight(self):
+        """Run readiness checks in a worker and show the report."""
+        self.add_log("Spúšťa sa pre-flight kontrola...")
+        websocket_ok = None
+        if self._is_user_admin:
+            websocket_ok = self._app_websocket_status == Status.ENABLED
+        self._start_worker(
+            task_name="preflight",
+            worker_class=PreflightWorker,
+            start_method_name="run",
+            finished_slot=self.on_preflight_finished,
+            worker_args=(
+                self._permission_status == Status.ENABLED,
+                websocket_ok,
+            ),
+        )
+
+    @Slot(dict)
+    def on_preflight_finished(self, result):
+        """Show the readiness report and mirror it to the log."""
+        report = result.get("report", "")
+        passed = bool(result.get("all_passed"))
+        self.add_log(f"Pre-flight kontrola: {'v poriadku' if passed else 'našla problémy'}.")
+        self.showDialog.emit("Pre-flight kontrola", report, passed)
 
     # Add this method inside the MacrosoftBackend class
 

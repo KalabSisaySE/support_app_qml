@@ -7,6 +7,7 @@ from support_app.workers.browser import OpenBrowserWorker
 from support_app.workers.initialization import InitializeApp
 from support_app.workers.obs import OBSClientWorker, OBSInstallationWorker, OpenOBSWorker
 from support_app.workers.permissions import PermissionWorker
+from support_app.workers.preflight import PreflightWorker
 from support_app.workers.user_info import UserInfoWorker
 from support_app.workers.websocket import WebSocketWorker
 
@@ -20,6 +21,7 @@ __all__ = [
     "OpenBrowserWorker",
     "OpenOBSWorker",
     "PermissionWorker",
+    "PreflightWorker",
     "StartAppWorker",
     "UserInfoWorker",
     "WebSocketWorker",

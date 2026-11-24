@@ -140,6 +140,14 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
+                    Label { text: qsTr("Pre-flight:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Item { Layout.fillWidth: true }
+                    CustomButton { text: qsTr("Skontrolovať pripravenosť"); Layout.preferredWidth: 210; Layout.preferredHeight: 28; onClicked: backend.run_preflight() }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: mainContainer.rowHeight
                     Label { text: qsTr("Podpora:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     CustomButton { text: qsTr("Vytvoriť diagnostický balík"); Layout.preferredWidth: 210; Layout.preferredHeight: 28; onClicked: backend.create_diagnostics_bundle() }

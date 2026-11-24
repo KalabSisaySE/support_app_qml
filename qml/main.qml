@@ -5,6 +5,7 @@ import Qt5Compat.GraphicalEffects
 import "controls"
 import QtQuick.Dialogs
 import QtQuick.Layouts
+import Qt.labs.settings 1.0
 
 Window {
     id: mainWindow
@@ -15,6 +16,38 @@ Window {
     visible: true
     color: "#00000000"
     title: qsTr("Macrosoft Support")
+
+    // Persisted window/page state
+    Settings {
+        id: appSettings
+        category: "window"
+        property int windowWidth: 920
+        property int windowHeight: 650
+        property string currentPage: "pages/infoPage.qml"
+    }
+
+    onWidthChanged: appSettings.windowWidth = width
+    onHeightChanged: appSettings.windowHeight = height
+
+    Component.onCompleted: {
+        width = Math.max(minimumWidth, appSettings.windowWidth)
+        height = Math.max(minimumHeight, appSettings.windowHeight)
+    }
+
+    function setActivePage(page) {
+        btnHome.isActiveMenu = page === "pages/infoPage.qml"
+        btnServices.isActiveMenu = page === "pages/appPage.qml"
+        btnPermissions.isActiveMenu = page === "pages/permissionsPage.qml"
+        btnRecording.isActiveMenu = page === "pages/recordingPage.qml"
+        btnHelp.isActiveMenu = page === "pages/helpPage.qml"
+    }
+
+    function navigate(page) {
+        setActivePage(page)
+        appSettings.currentPage = page
+        stackView.push(Qt.resolvedUrl(page))
+    }
+
 
     // Remove title bar
     flags: Qt.Window | Qt.FramelessWindowHint
@@ -342,14 +375,7 @@ Window {
                             width: leftMenu.width
                             text: qsTr("Informácie")
                             isActiveMenu: true
-                            onClicked: {
-                                btnHome.isActiveMenu = true
-                                btnHelp.isActiveMenu = false
-                                btnServices.isActiveMenu = false
-                                btnRecording.isActiveMenu = false
-                                btnPermissions.isActiveMenu = false
-                                stackView.push(Qt.resolvedUrl("pages/infoPage.qml"))
-                            }
+                            onClicked: navigate("pages/infoPage.qml")
                         }
 
                         LeftMenuBtn {
@@ -358,15 +384,7 @@ Window {
                             text: qsTr("Služby")
 
                             btnIconSource: "../../images/svg_images/services.svg"
-                            onClicked: {
-                                btnHome.isActiveMenu = false
-                                btnHelp.isActiveMenu = false
-                                btnRecording.isActiveMenu = false
-                                btnPermissions.isActiveMenu = false
-                                btnServices.isActiveMenu = true
-
-                                stackView.push(Qt.resolvedUrl("pages/appPage.qml"))
-                            }
+                            onClicked: navigate("pages/appPage.qml")
                         }
 
                         LeftMenuBtn {
@@ -375,15 +393,7 @@ Window {
                             text: qsTr("Povolenia")
 
                             btnIconSource: "../../images/svg_images/permissions.svg"
-                            onClicked: {
-                                btnHome.isActiveMenu = false
-                                btnHelp.isActiveMenu = false
-                                btnServices.isActiveMenu = false
-                                btnRecording.isActiveMenu = false
-                                btnPermissions.isActiveMenu = true
-
-                                stackView.push(Qt.resolvedUrl("pages/permissionsPage.qml"))
-                            }
+                            onClicked: navigate("pages/permissionsPage.qml")
                         }
 
                         LeftMenuBtn {
@@ -392,15 +402,7 @@ Window {
                             text: qsTr("Nahrávanie")
 
                             btnIconSource: "../../images/svg_images/recording.svg"
-                            onClicked: {
-                                btnHome.isActiveMenu = false
-                                btnHelp.isActiveMenu = false
-                                btnServices.isActiveMenu = false
-                                btnPermissions.isActiveMenu = false
-                                btnRecording.isActiveMenu = true
-
-                                stackView.push(Qt.resolvedUrl("pages/recordingPage.qml"))
-                            }
+                            onClicked: navigate("pages/recordingPage.qml")
                             visible: backend.is_user_lectoure
                         }
 
@@ -414,14 +416,7 @@ Window {
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: 20
                         btnIconSource: "../../images/svg_images/help.svg"
-                        onClicked: {
-                            btnHome.isActiveMenu = false
-                            btnPermissions.isActiveMenu = false
-                            btnServices.isActiveMenu = false
-                            btnRecording.isActiveMenu = false
-                            btnHelp.isActiveMenu = true
-                            stackView.push(Qt.resolvedUrl("pages/helpPage.qml"))
-                        }
+                        onClicked: navigate("pages/helpPage.qml")
                     }
                 }
 
@@ -435,9 +430,13 @@ Window {
                     z: 1
                     clip: true
 
-                    // FIX: Programmatically push the initial page to ensure it loads correctly.
+                    // Restore the last page (recording is lecturer-only).
                     Component.onCompleted: {
-                        stackView.push(Qt.resolvedUrl("pages/infoPage.qml"))
+                        var page = appSettings.currentPage
+                        if (page === "pages/recordingPage.qml" && !backend.is_user_lectoure) {
+                            page = "pages/infoPage.qml"
+                        }
+                        navigate(page)
                     }
 
                     // This container holds the pages and the process/log area
