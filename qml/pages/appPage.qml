@@ -8,11 +8,11 @@ Item {
     function updateButtonStates() {
         // Logic from your onAppInstallationStatusChanged handler
         macrosoftQuickSupportButton.text = (backend.app_installation_status === "enabled") ? "Odinštalovať" : "Inštalovať";
-        macrosoftQuickSupportButton.colorDefault = (backend.app_installation_status === "enabled") ? "#c0392b" : "#35b59d";
+        macrosoftQuickSupportButton.colorDefault = (backend.app_installation_status === "enabled") ? Theme.danger : Theme.accentButton;
 
         // Logic from your onAppServiceStatusChanged handler
         startServiceButton.text = (backend.app_service_status === "enabled") ? "Zastaviť službu" : "Spustiť službu";
-        startServiceButton.colorDefault = (backend.app_service_status === "enabled") ? "#c0392b" : "#35b59d";
+        startServiceButton.colorDefault = (backend.app_service_status === "enabled") ? Theme.danger : Theme.accentButton;
     }
 
     Connections {
@@ -33,7 +33,7 @@ Item {
 
     Rectangle {
         id: mainContainer
-        color: "#2c313c"
+        color: Theme.background
         anchors.fill: parent
 
         property real rowHeight: 30
@@ -42,7 +42,7 @@ Item {
         Rectangle {
             id: groupBox
             radius: 4
-            border.color: "#16a086"
+            border.color: Theme.accent
             border.width: 1
             color: "transparent"
             anchors {
@@ -54,7 +54,7 @@ Item {
             }
 
             Rectangle {
-                color: "#2c313c"
+                color: Theme.background
                 width: groupBoxTitle.width + 10
                 height: groupBoxTitle.height
                 x: 15
@@ -63,7 +63,7 @@ Item {
                     id: groupBoxTitle
                     anchors.centerIn: parent
                     text: qsTr("Inštalácia a Spustenie")
-                    color: "#c1f6ec"
+                    color: Theme.accentSoft
                     font.pointSize: 12
                 }
             }
@@ -86,14 +86,14 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight + 10
-                    Label { text: qsTr("Kompletné Nastavenie:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Label { text: qsTr("Kompletné Nastavenie:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     CustomButton {
                         id: oneClickSetupButton
                         text: qsTr("Konfigurácia na 1 klik")
                         Layout.preferredWidth: 170
                         Layout.preferredHeight: 32
-                        colorDefault: "#27ae60"
+                        colorDefault: Theme.successStrong
                         enabled: backend.is_app_install_btn_enabled
                         onClicked: backend.one_click_setup()
                     }
@@ -103,24 +103,24 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: qsTr("Aplikácia MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Label { text: qsTr("Aplikácia MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     StatusIndicator { id: appIndicator; size: 20; status: backend.app_installation_status; Layout.alignment: Qt.AlignVCenter; }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: qsTr("Služba MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Label { text: qsTr("Služba MacrosoftConnectQuickSupport:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     StatusIndicator { id: serviceIndicator; size: 20; status: backend.app_service_status; Layout.alignment: Qt.AlignVCenter; }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight
-                    Label { text: qsTr("Vaše ID:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Label { text: qsTr("Vaše ID:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     Text {
-                        text: backend.rust_id; Layout.alignment: Qt.AlignRight | Qt.AlignVCenter; font.pixelSize: 16; font.italic: true; font.bold: true; color: "#13b899"; rightPadding: 10
+                        text: backend.rust_id; Layout.alignment: Qt.AlignRight | Qt.AlignVCenter; font.pixelSize: 16; font.italic: true; font.bold: true; color: Theme.valueText; rightPadding: 10
                     }
                 }
 
@@ -135,7 +135,7 @@ Item {
                         text: columnLayout.detailsVisible ? qsTr("Skryť Možnosti ▲") : qsTr("Zobraziť Možnosti ▼")
                         Layout.preferredWidth: 170
                         Layout.preferredHeight: 32
-                        colorDefault: "#3498db"
+                        colorDefault: Theme.info
                         onClicked: columnLayout.detailsVisible = !columnLayout.detailsVisible
                     }
                 }
@@ -166,7 +166,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: qsTr("Aplikácia Macrosoft QuickSupport:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: qsTr("Aplikácia Macrosoft QuickSupport:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             CustomButton {
                                 id: macrosoftQuickSupportButton
@@ -180,7 +180,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: "Spustiť Aplikáciu:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: "Spustiť Aplikáciu:"; font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             CustomButton {
                                 id: startAppButton
@@ -194,7 +194,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: "Služba:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: "Služba:"; font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             CustomButton {
                                 id: startServiceButton
@@ -208,7 +208,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: "Získať ID pre prístup:"; font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: "Získať ID pre prístup:"; font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             CustomButton {
                                 id: getRustIdButton

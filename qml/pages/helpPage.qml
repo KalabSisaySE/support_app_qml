@@ -160,12 +160,12 @@ Item {
 
     Rectangle {
         id: rectangle
-        color: "#2c313c"
+        color: Theme.background
         anchors.fill: parent
 
         Rectangle {
             id: rectangleVisible
-            color: "#1d2128"
+            color: Theme.panelSurface
             radius: 4
             anchors.fill: parent
             anchors.margins: 20
@@ -177,7 +177,7 @@ Item {
 
                 Label {
                     id: labelTextName
-                    color: "#c3cbdd"
+                    color: Theme.textMuted
                     // Podmienené nastavenie titulku na základe backend vlastnosti
                     text: backend.is_user_lectoure
                           ? qsTr("Návod na Používanie Aplikácie (Lektor)")
@@ -197,7 +197,7 @@ Item {
                         id: textHome
                         readOnly: true
                         wrapMode: Text.WordWrap
-                        color: "#a9b2c8"
+                        color: Theme.helpText
                         font.pointSize: 10
                         textFormat: Text.RichText
                         background: Rectangle { color: "transparent" }

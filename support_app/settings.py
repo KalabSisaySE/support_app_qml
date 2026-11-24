@@ -28,6 +28,7 @@ class AppSettings:
     """Persisted, user-scoped application settings."""
 
     is_lectoure: Optional[bool] = None
+    dark_theme: Optional[bool] = None
 
 
 def write_text_atomic(path: str, content: str) -> None:
@@ -61,7 +62,11 @@ def load_settings() -> AppSettings:
         return AppSettings()
 
     is_lectoure = data.get('is_lectoure')
-    return AppSettings(is_lectoure=is_lectoure if isinstance(is_lectoure, bool) else None)
+    dark_theme = data.get('dark_theme')
+    return AppSettings(
+        is_lectoure=is_lectoure if isinstance(is_lectoure, bool) else None,
+        dark_theme=dark_theme if isinstance(dark_theme, bool) else None,
+    )
 
 
 def save_settings(settings: AppSettings) -> None:
@@ -75,7 +80,10 @@ def save_settings(settings: AppSettings) -> None:
     except (OSError, json.JSONDecodeError) as e:
         logger.debug("Could not merge existing settings from %s: %s", CONFIG_FILE_PATH, e)
 
-    data['is_lectoure'] = settings.is_lectoure
+    if settings.is_lectoure is not None:
+        data['is_lectoure'] = settings.is_lectoure
+    if settings.dark_theme is not None:
+        data['dark_theme'] = settings.dark_theme
     write_text_atomic(CONFIG_FILE_PATH, json.dumps(data, indent=4))
 
 

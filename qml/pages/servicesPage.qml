@@ -1,17 +1,18 @@
 import QtQuick 2.0
 import QtQuick.Controls 2.15
+import "../controls"
 
 Item {
     Rectangle {
         id: rectangle
-        color: "#2c313c"
+        color: Theme.background
         anchors.fill: parent
 
         Label {
             id: label
             x: 302
             y: 194
-            color: "#ffffff"
+            color: Theme.textPrimary
             text: qsTr("Services Page")
             anchors.verticalCenter: parent.verticalCenter
             horizontalAlignment: Text.AlignHCenter

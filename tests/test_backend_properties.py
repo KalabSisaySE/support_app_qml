@@ -5,11 +5,15 @@ from support_app.backend import MacrosoftBackend
 from support_app.status import Status
 
 
+from support_app.settings import AppSettings
+
+
 @pytest.fixture
 def backend(monkeypatch):
     """Build the backend without starting the initialization worker."""
     monkeypatch.setattr(backend_module, "get_user_type", lambda: "lectoure")
     monkeypatch.setattr(MacrosoftBackend, "app_init", lambda self: None)
+    monkeypatch.setattr(backend_module.settings, "load_settings", lambda: AppSettings())
     return MacrosoftBackend()
 
 
@@ -78,3 +82,18 @@ def test_progress_aggregates_running_tasks(backend):
     backend.update_progress(100, "install")
 
     assert backend.progress == 90
+
+
+def test_toggle_theme_updates_and_persists(backend, monkeypatch):
+    saved = []
+    changes = []
+    monkeypatch.setattr(backend_module.settings, "save_settings", saved.append)
+    backend.themeChanged.connect(changes.append)
+
+    assert backend.is_dark_theme is True
+
+    backend.toggle_theme()
+
+    assert backend.is_dark_theme is False
+    assert changes == [False]
+    assert saved and saved[0].dark_theme is False

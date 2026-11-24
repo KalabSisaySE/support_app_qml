@@ -32,6 +32,7 @@ Window {
     Component.onCompleted: {
         width = Math.max(minimumWidth, appSettings.windowWidth)
         height = Math.max(minimumHeight, appSettings.windowHeight)
+        Theme.setDark(backend.is_dark_theme)
     }
 
     function setActivePage(page) {
@@ -88,6 +89,10 @@ Window {
         // UPDATED: Add the 'isSuccess' parameter
         function onShowDialog(title, text, isSuccess) {
             dialogManager.showMessage(title, text, isSuccess);
+        }
+
+        function onThemeChanged(isDark) {
+            Theme.setDark(isDark);
         }
     }
 
@@ -483,7 +488,7 @@ Window {
                                     visible: showLogsSwitch.checked
                                     clip: true
                                     background: Rectangle {
-                                        color: Theme.textPrimary
+                                        color: Theme.logPanel
                                         radius: 4
                                     }
 
@@ -494,7 +499,7 @@ Window {
                                         font.family: "Monospace"
                                         font.pointSize: 9
                                         selectByMouse: true
-                                        color: Theme.track
+                                        color: Theme.logText
                                         background: Rectangle { color: "transparent" }
                                         leftPadding: 5
                                         rightPadding: 5

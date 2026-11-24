@@ -6,7 +6,7 @@ import QtQuick.Layouts
 Item {
     Rectangle {
         id: mainContainer
-        color: "#2c313c"
+        color: Theme.background
         anchors.fill: parent
 
         property real rowHeight: 30
@@ -15,7 +15,7 @@ Item {
         Rectangle {
             id: groupBox
             radius: 4
-            border.color: "#16a086"
+            border.color: Theme.accent
             border.width: 1
             color: "transparent"
             anchors {
@@ -27,7 +27,7 @@ Item {
             }
 
             Rectangle {
-                color: "#2c313c"
+                color: Theme.background
                 width: groupBoxTitle.width + 10
                 height: groupBoxTitle.height
                 x: 15
@@ -36,7 +36,7 @@ Item {
                     id: groupBoxTitle
                     anchors.centerIn: parent
                     text: qsTr("Povolenia")
-                    color: "#c1f6ec"
+                    color: Theme.accentSoft
                     font.pointSize: 12
                 }
             }
@@ -60,14 +60,14 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     Layout.preferredHeight: mainContainer.rowHeight + 10
-                    Label { text: qsTr("Kompletné Nastavenie:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                    Label { text: qsTr("Kompletné Nastavenie:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                     Item { Layout.fillWidth: true }
                     CustomButton {
                         id: oneClickSetupButton
                         text: qsTr("Konfigurácia na 1 klik")
                         Layout.preferredWidth: 170
                         Layout.preferredHeight: 32
-                        colorDefault: "#27ae60"
+                        colorDefault: Theme.successStrong
                         // Assuming a dummy property for demonstration if backend is not available
                         enabled: typeof backend !== 'undefined' ? backend.is_app_install_btn_enabled : true
                         onClicked: if (typeof backend !== 'undefined') backend.one_click_setup()
@@ -84,7 +84,7 @@ Item {
                         text: columnLayout.detailsVisible ? qsTr("Skryť Detaily ▲") : qsTr("Zobraziť Detaily ▼")
                         Layout.preferredWidth: 170
                         Layout.preferredHeight: 32
-                        colorDefault: "#3498db"
+                        colorDefault: Theme.info
                         onClicked: columnLayout.detailsVisible = !columnLayout.detailsVisible
                     }
                 }
@@ -121,7 +121,7 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: qsTr("Stav Povolenia:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: qsTr("Stav Povolenia:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             // Assuming StatusIndicator is a custom component
                             // StatusIndicator { size: 20; status: typeof backend !== 'undefined' ? backend.permission_status : 0; Layout.alignment: Qt.AlignVCenter;}
@@ -131,21 +131,21 @@ Item {
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: qsTr("Povoliť prístup k mikrofónu:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: qsTr("Povoliť prístup k mikrofónu:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             CustomButton { text: qsTr("Povoliť len Mikrofón"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: typeof backend !== 'undefined' ? backend.is_enable_microphone_only_btn_enabled : true; onClicked: if (typeof backend !== 'undefined') backend.enable_microphone_only() }
                         }
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: qsTr("Povoliť mikrofón a kameru:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: qsTr("Povoliť mikrofón a kameru:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             CustomButton { text: qsTr("Povoliť všetko"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: typeof backend !== 'undefined' ? backend.is_enable_microphone_and_camera_btn_enabled : true; onClicked: if (typeof backend !== 'undefined') backend.enable_microphone_and_camera() }
                         }
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.preferredHeight: mainContainer.rowHeight
-                            Label { text: qsTr("Otvoriť stránku v prehliadači:"); font.pointSize: 11; color: "#ffffff"; Layout.alignment: Qt.AlignVCenter }
+                            Label { text: qsTr("Otvoriť stránku v prehliadači:"); font.pointSize: 11; color: Theme.textPrimary; Layout.alignment: Qt.AlignVCenter }
                             Item { Layout.fillWidth: true }
                             CustomButton { text: qsTr("Otvoriť webstránku"); Layout.preferredWidth: 170; Layout.preferredHeight: 28; enabled: typeof backend !== 'undefined' ? backend.is_open_browser_btn_enabled : true; onClicked: if (typeof backend !== 'undefined') backend.open_webpage() }
                         }

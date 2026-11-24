@@ -41,7 +41,19 @@ def test_load_settings_ignores_non_boolean(tmp_path, monkeypatch):
     config_path.write_text(json.dumps({"is_lectoure": "yes"}), encoding="utf-8")
     monkeypatch.setattr(settings, "CONFIG_FILE_PATH", str(config_path))
 
-    assert settings.load_settings().is_lectoure is None
+    loaded = settings.load_settings()
+    assert loaded.is_lectoure is None
+    assert loaded.dark_theme is None
+
+
+def test_dark_theme_roundtrip(tmp_path, monkeypatch):
+    config_path = tmp_path / "config.json"
+    monkeypatch.setattr(settings, "CONFIG_FILE_PATH", str(config_path))
+
+    settings.save_settings(settings.AppSettings(dark_theme=False))
+
+    assert settings.load_settings().dark_theme is False
+    assert json.loads(config_path.read_text(encoding="utf-8")) == {"dark_theme": False}
 
 
 def test_save_settings_preserves_unknown_keys(tmp_path, monkeypatch):

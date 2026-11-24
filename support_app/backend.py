@@ -53,6 +53,7 @@ class MacrosoftBackend(QObject):
 
     # custom signals
     progressChanged = Signal(float)
+    themeChanged = Signal(bool)
     appInstallationStatusChanged = Signal(str)
     appServiceStatusChanged = Signal(str)
     appWebsocketStatusChanged = Signal(str)
@@ -93,6 +94,9 @@ class MacrosoftBackend(QObject):
 
         self._is_user_admin = self._user_type == "lectoure"
         logger.info("is_user_admin: %s", self._is_user_admin)
+
+        saved_settings = settings.load_settings()
+        self._is_dark_theme = True if saved_settings.dark_theme is None else saved_settings.dark_theme
 
         self._progress = 0
         self._progress_aggregator = ProgressAggregator()
@@ -145,6 +149,7 @@ class MacrosoftBackend(QObject):
         self.app_init()
 
     is_user_lectoure = notifying_property(bool, "_is_user_admin", "userTypeChanged")
+    is_dark_theme = notifying_property(bool, "_is_dark_theme", "themeChanged")
 
     @Slot()
     def change_account(self):
@@ -236,6 +241,18 @@ class MacrosoftBackend(QObject):
         """Copy the current RustDesk id to the system clipboard."""
         QGuiApplication.clipboard().setText(self._rust_id)
         self.add_log(f"ID {self._rust_id} bolo skopírované do schránky.")
+
+    @Slot()
+    def toggle_theme(self):
+        """Switch between the dark and light palettes and persist the choice."""
+        self.is_dark_theme = not self._is_dark_theme
+        saved = settings.load_settings()
+        saved.dark_theme = self._is_dark_theme
+        try:
+            settings.save_settings(saved)
+        except Exception as e:
+            logger.warning("Could not persist the theme preference: %s", e)
+        self.add_log("Téma: tmavá." if self._is_dark_theme else "Téma: svetlá.")
 
     @Slot()
     def create_diagnostics_bundle(self):
