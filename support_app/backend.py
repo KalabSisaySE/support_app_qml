@@ -35,6 +35,7 @@ from support_app.workers import (
     PreflightWorker,
     StartAppWorker,
     UserInfoWorker,
+    UploadRetryWorker,
 )
 
 logger = get_logger(__name__)
@@ -662,8 +663,31 @@ class MacrosoftBackend(QObject):
             if self.is_user_lectoure:
                 self.setup_websockets(code)
 
+        if self.is_user_lectoure:
+            self.retry_pending_uploads()
+
         # if data["is_obs_running"]:
         #     self.connect_to_obs_websocket()
+
+    def retry_pending_uploads(self):
+        """Retry queued recording uploads in the background."""
+        self._start_worker(
+            task_name="upload_retry",
+            worker_class=UploadRetryWorker,
+            start_method_name="run",
+            finished_slot=self.on_upload_retry_finished,
+        )
+
+    @Slot(dict)
+    def on_upload_retry_finished(self, result):
+        sent = result.get("sent", 0)
+        remaining = result.get("remaining", 0)
+        if sent:
+            self.add_log(f"Znovu odoslaných nahrávok: {sent}.")
+        if remaining == -1:
+            self.add_log("Kontrola čakajúcich nahrávok zlyhala.")
+        elif remaining:
+            self.add_log(f"Čakajúcich nahrávok na odoslanie: {remaining}.")
 
     @Slot()
     def connect_to_obs_websocket(self):

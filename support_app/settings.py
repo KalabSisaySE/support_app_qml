@@ -30,7 +30,7 @@ class AppSettings:
     is_lectoure: Optional[bool] = None
 
 
-def _atomic_write_text(path: str, content: str) -> None:
+def write_text_atomic(path: str, content: str) -> None:
     """Write *content* to *path* via a temporary file and an atomic replace."""
     directory = os.path.dirname(path) or "."
     os.makedirs(directory, exist_ok=True)
@@ -76,7 +76,7 @@ def save_settings(settings: AppSettings) -> None:
         logger.debug("Could not merge existing settings from %s: %s", CONFIG_FILE_PATH, e)
 
     data['is_lectoure'] = settings.is_lectoure
-    _atomic_write_text(CONFIG_FILE_PATH, json.dumps(data, indent=4))
+    write_text_atomic(CONFIG_FILE_PATH, json.dumps(data, indent=4))
 
 
 def extract_installer_code(input_str: str):
@@ -104,7 +104,7 @@ def installer_path_file() -> str:
 
 def save_login_info(access_code: str) -> None:
     """Persist the current installer access code next to the executable."""
-    _atomic_write_text(
+    write_text_atomic(
         installer_path_file(),
         f"Installer Path: MacrosoftSupportInstaller_{access_code}_.exe\n",
     )

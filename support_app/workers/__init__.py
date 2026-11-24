@@ -9,6 +9,7 @@ from support_app.workers.obs import OBSClientWorker, OBSInstallationWorker, Open
 from support_app.workers.permissions import PermissionWorker
 from support_app.workers.preflight import PreflightWorker
 from support_app.workers.user_info import UserInfoWorker
+from support_app.workers.upload_retry import UploadRetryWorker
 from support_app.workers.websocket import WebSocketWorker
 
 __all__ = [
@@ -23,6 +24,7 @@ __all__ = [
     "PermissionWorker",
     "PreflightWorker",
     "StartAppWorker",
+    "UploadRetryWorker",
     "UserInfoWorker",
     "WebSocketWorker",
 ]

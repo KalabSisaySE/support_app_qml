@@ -40,6 +40,7 @@ __all__ = [
     "FULL_NAME_URL",
     "INSTALLER_PATH_FILE_NAME",
     "LATEST_ACCESS_CODE_URL",
+    "OBS_UPLOAD_URL",
     "ONLINE_BASE_URL",
     "RUSTDESK_REPORT_URL",
     "SUPPORT_WEBSOCKET_URL",
@@ -74,6 +75,7 @@ DESKTOP_AUTH_URL = f"{ONLINE_BASE_URL}/desktop-auth/"
 DESKTOP_AUTH_CHECK_URL = f"{ONLINE_BASE_URL}/api/desktop-auth/check/"
 SUPPORT_WEBSOCKET_URL = "wss://online.macrosoft.sk/ws/support/"
 LATEST_ACCESS_CODE_URL = f"{ONLINE_BASE_URL}/get/lectoure/access/"
+OBS_UPLOAD_URL = f"{ONLINE_BASE_URL}/upload/recording/obs/"
 
 # --- Cloudflare access credentials -----------------------------------------
 CF_ACCESS_CLIENT_ID = "e5227eb75bb71fa25a09e6bed7362bb1.access"

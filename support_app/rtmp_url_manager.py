@@ -2,8 +2,9 @@ import random
 import string
 
 from support_app import api
-from support_app.app_config import get_cloudflare_headers
+from support_app.app_config import OBS_UPLOAD_URL, get_cloudflare_headers
 from support_app.logging_setup import get_logger
+from support_app.upload_queue import enqueue_upload
 
 logger = get_logger(__name__)
 
@@ -18,7 +19,7 @@ class RtmpUrlGenerator:
 
     # External service URL
     SAVE_URL = "https://online.macrosoft.sk/save/peertube/url/"
-    UPLOAD_URL = "https://online.macrosoft.sk/upload/recording/obs/"
+    UPLOAD_URL = OBS_UPLOAD_URL
 
     def __init__(self, video_name=None, lectoure_data=None):
         """
@@ -172,21 +173,38 @@ class RtmpUrlGenerator:
             logger.warning("Error while saving live video UUID: %s", e)
 
     def upload_recording_to_vimeo(self):
-        """Triggers video upload to an external service once recording is complete."""
+        """Trigger the recording upload, queueing it when the request fails."""
         if not (self.lectoure_data and self.video_data):
             logger.debug("Skipping upload: missing lecture data or video ID.")
-            return
+            return False
+
+        data = {
+            "class_type": self.lectoure_data.get('class_type'),
+            "class_id": self.lectoure_data.get('class_id'),
+            "room_id": self.lectoure_data.get('room_id'),
+        }
 
         try:
             logger.info("Triggering upload for video %s.", self.video_data.get('uuid'))
-            data = {
-                "class_type": self.lectoure_data.get('class_type'),
-                "class_id": self.lectoure_data.get('class_id'),
-                "room_id": self.lectoure_data.get('room_id'),
-            }
-
             res = api.post(self.UPLOAD_URL, headers=self.cloudflare_headers, json=data)
             logger.info("Upload trigger response status: %s", res.status_code)
-            logger.debug("Upload trigger response: %s", res.json())
+            try:
+                logger.debug("Upload trigger response: %s", res.json())
+            except Exception:
+                logger.debug("Upload trigger response body was not JSON.")
+
+            if 200 <= res.status_code < 300:
+                return True
+
+            logger.warning(
+                "Upload trigger failed with status %s; queued for retry.",
+                res.status_code,
+            )
         except Exception as e:
             logger.warning("Error while triggering recording upload: %s", e)
+
+        try:
+            enqueue_upload(data)
+        except Exception as e:
+            logger.exception("Could not queue the failed recording upload: %s", e)
+        return False

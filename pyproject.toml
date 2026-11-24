@@ -59,6 +59,7 @@ include = [
     "support_app/qt_bindings.py",
     "support_app/status.py",
     "support_app/tasks.py",
+    "support_app/upload_queue.py",
     "support_app/version.py",
 ]
 pythonVersion = "3.13"
