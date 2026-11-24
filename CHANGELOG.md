@@ -20,6 +20,11 @@ semantic versioning.
   into tested helpers/controllers.
 - QML `Theme` singleton with shared colour tokens for controls and the main
   window.
+- Diagnostics bundle (summary + rotated logs) and copy-ID support actions.
+- Pre-flight readiness report for installation, service, OBS, permissions,
+  websocket and internet.
+- Persistent retry queue for failed recording-upload triggers.
+- Window size/page persistence and a dark/light theme toggle.
 - Checked-in PyInstaller spec, tag-driven release workflow and a CI smoke
   build.
 - Advisory Authenticode verification for downloaded installers.

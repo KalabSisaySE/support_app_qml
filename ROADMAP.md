@@ -5,7 +5,21 @@ test, ship and support. Status is updated as work lands on `main`.
 
 Legend: ✅ done · 🚧 in progress · ⏳ planned · ⚠️ blocked
 
-## Today — 2026-11-23
+## Today — 2026-11-24
+
+Theme: **support tooling & UX**.
+
+| # | Item | Status | Commit |
+|---|------|--------|--------|
+| 1 | Diagnostics bundle + copy-ID action | ✅ | `c17bfb0` |
+| 2 | Window size/page persistence and central navigation | ✅ | `4aba572` |
+| 3 | Pre-flight readiness check | ✅ | `4aba572` |
+| 4 | Persistent recording-upload retry queue | ✅ | `3120988` |
+| 5 | Persisted light/dark theme toggle | ✅ | `e8795a5` |
+
+Acceptance: `ruff`/`pyright` clean, 114 pytest tests green, no qmllint errors.
+
+## 2026-11-23 — backend decomposition & QML tokens
 
 Theme: **backend decomposition & QML tokens**.
 
@@ -117,8 +131,9 @@ runtime dependencies, console behaviour preserved.
 
 ## Phase 4 — UI, build & delivery
 
-- 🚧 Extract QML `Theme` singleton/design tokens (done for controls and
-  `main.qml`); split large pages next.
+- 🚧 Extract QML `Theme` singleton/design tokens (done: all controls and pages
+  use tokens, with a persisted dark/light toggle); split large pages next.
+- ⏳ Tray icon, start with Windows and service health monitoring.
 - ✅ Checked-in PyInstaller `.spec`; build renders version metadata.
 - ⏳ Code signing for exe/installer.
 - ✅ Tag-driven release pipeline (builds and publishes; signing awaits a
